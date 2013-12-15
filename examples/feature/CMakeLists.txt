@@ -1,0 +1,18 @@
+SUBDIRS(
+  auth1
+  auth2
+  broadcast
+  client-ssl-auth 
+  dbo
+  locale
+  mediaplayer
+  miniwebgl
+  multiple_servers
+  oauth
+  paypal
+  serverpush
+  socketnotifier
+  suggestionpopup
+  video
+  widgetset
+)

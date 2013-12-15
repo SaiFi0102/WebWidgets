@@ -1,0 +1,1762 @@
+/*
+ * Copyright (C) 2009 Emweb bvba, Kessel-Lo, Belgium.
+ *
+ * See the LICENSE file for terms of use.
+ */
+#include <boost/test/unit_test.hpp>
+
+#include <Wt/Dbo/Dbo>
+#include <Wt/Dbo/backend/Postgres>
+#include <Wt/Dbo/backend/MySQL>
+#include <Wt/Dbo/backend/Sqlite3>
+#include <Wt/Dbo/backend/Firebird>
+#include <Wt/Dbo/FixedSqlConnectionPool>
+#include <Wt/WDate>
+#include <Wt/WDateTime>
+#include <Wt/WTime>
+#include <Wt/Dbo/WtSqlTraits>
+#include <Wt/Dbo/ptr_tuple>
+#include <Wt/Dbo/QueryModel>
+#include <boost/date_time/posix_time/posix_time.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
+
+//#define SCHEMA "test."
+#define SCHEMA ""
+
+//#define DEBUG(x) x
+#define DEBUG(x)
+
+namespace dbo = Wt::Dbo;
+
+class A;
+class B;
+class C;
+class D;
+
+bool fractionalSeconds = true;
+
+struct Coordinate {
+  int x, y;
+
+  Coordinate()
+    : x(-1), y(-1) { }
+
+  Coordinate(int an_x, int an_y)
+    : x(an_x), y(an_y) { }
+
+  bool operator== (const Coordinate& other) const {
+    return x == other.x && y == other.y;
+  }
+
+  bool operator< (const Coordinate& other) const {
+    if (x < other.x)
+      return true;
+    else if (x == other.x)
+      return y < other.y;
+    else
+      return false;
+  }
+};
+
+std::ostream& operator<< (std::ostream& o, const Coordinate& c)
+{
+  return o << "(" << c.x << ", " << c.y << ")";
+}
+
+namespace Wt {
+  namespace Dbo {
+
+    template <class Action>
+    void field(Action& action, Coordinate& coordinate, const std::string& name,
+	       int size = -1)
+    {
+      field(action, coordinate.x, name + "_x");
+      field(action, coordinate.y, name + "_y");
+    }
+  }
+}
+
+namespace Wt {
+  namespace Dbo {
+
+template<>
+struct dbo_traits<D> : public dbo_default_traits
+{
+  typedef Coordinate IdType;
+  static IdType invalidId() { return Coordinate(); }
+  static const char *surrogateIdField() { return 0; }
+  static const char *versionField() { return 0; }
+};
+
+  }
+}
+
+typedef dbo::collection<dbo::ptr<A> > As;
+typedef dbo::collection<dbo::ptr<B> > Bs;
+typedef dbo::collection<dbo::ptr<C> > Cs;
+typedef dbo::collection<dbo::ptr<D> > Ds;
+
+class A : public dbo::Dbo<A> {
+public:
+  dbo::ptr<B> b;
+  dbo::ptr<D> dthing;
+  dbo::ptr<A> parent;
+  dbo::ptr<C> c;
+
+  std::vector<unsigned char> binary;
+  Wt::WDate date;
+  Wt::WTime time;
+  Wt::WDateTime datetime;
+  Wt::WString wstring;
+  Wt::WString wstring2;
+  std::string string;
+  std::string string2;
+  boost::posix_time::ptime ptime;
+  boost::posix_time::time_duration pduration;
+  bool checked;
+  int i;
+  ::int64_t i64;
+  long long ll;
+  float f;
+  double d;
+
+  bool operator== (const A& other) const {
+    if (binary.size() != other.binary.size()){
+          DEBUG(std::cerr << "ERROR: binary.size = " << binary.size()
+                << " | " << other.binary.size() << std::endl);
+      return false;
+    }
+
+    for (unsigned j = 0; j < binary.size(); ++j)
+      if (binary[j] != other.binary[j]){
+        DEBUG(std::cerr << "ERROR: binary" << std::endl);
+        return false;
+      }
+
+    //Debug printings:
+    if (date != other.date) {
+      DEBUG(std::cerr << "ERROR: date = " << date.toString() << " | "
+            << other.date.toString() << std::endl);
+    }
+    if (time  != other.time) {
+      DEBUG(std::cerr << "ERROR: time = " << time.toString() << " | "
+            << other.time.toString() << std::endl);
+    }
+    if (datetime  != other.datetime) {
+      DEBUG(std::cerr << "ERROR: datetime = " << datetime.toString() << " | "
+            << other.datetime.toString() << std::endl);
+    }
+    if (wstring  != other.wstring) {
+      DEBUG(std::cerr << "ERROR: wstring = " << wstring << " | "
+            << other.wstring << std::endl);
+    }
+    if (wstring2  != other.wstring2) {
+      DEBUG(std::cerr << "ERROR: wstring2 = " << wstring2 << " | "
+            << other.wstring2 << std::endl);
+    }
+    if (string  != other.string) {
+      DEBUG(std::cerr << "ERROR: string = " << string << " | " << other.string
+            << std::endl);
+    }
+    if (string2  != other.string2) {
+      DEBUG(std::cerr << "ERROR: string2 = " << string2 << " | "
+            << other.string2 << std::endl);
+    }
+    if (ptime  != other.ptime) {
+      DEBUG(std::cerr << "ERROR: ptime = " <<  ptime<< " | " << other.ptime
+            << std::endl);
+    }
+    if (pduration  != other.pduration) {
+      DEBUG(std::cerr << "ERROR: pduration = " << pduration << " | "
+            << other.pduration << std::endl);
+    }
+    if (i != other.i) {
+      DEBUG(std::cerr << "ERROR: i = " << i << " | " << other.i << std::endl);
+    }
+    if (i64 != other.i64) {
+      DEBUG(std::cerr << "ERROR: i64 = " <<i64  << " | "
+            << other.i64 << std::endl);
+    }
+    if (ll != other.ll) {
+      DEBUG(std::cerr << "ERROR: ll = " << ll << " | "
+            << other.ll << std::endl);
+    }
+    if (checked != other.checked) {
+      DEBUG(std::cerr << "ERROR: checked = " << checked << " | "
+            << other.checked << std::endl);
+    }
+    if (f != other.f) {
+      DEBUG(std::cerr << "ERROR: f = " << f << " | " << other.f << std::endl);
+    }
+    if (d != other.d) {
+      DEBUG(std::cerr << "ERROR: d = " << d << " | " << other.d << std::endl);
+    }
+    if (b != other.b) {
+      DEBUG(std::cerr << "ERROR: b  = " << b  << " | " << other.b << std::endl);
+    }
+    if (dthing != other.dthing) {
+      DEBUG(std::cerr << "ERROR: dthing = " << dthing << " | " << other.dthing
+            << std::endl);
+    }
+    if (parent != other.parent) {
+      DEBUG(std::cerr << "ERROR: parent = " << parent << " | " << other.parent
+            << std::endl);
+    }
+
+    return date == other.date
+      && (time == other.time || !fractionalSeconds)
+      && datetime == other.datetime
+      && wstring == other.wstring
+      && wstring2 == other.wstring2
+      && string == other.string
+      && string2 == other.string2
+      && ptime == other.ptime
+      && pduration == pduration
+      && i == other.i
+      && i64 == other.i64
+      && ll == other.ll
+      && checked == other.checked
+      && f == other.f
+      && d == other.d
+      && b == other.b
+      && dthing == other.dthing
+      && parent == other.parent;
+  }
+
+  As             asManyToOne;
+
+  template <class Action>
+  void persist(Action& a)
+  {
+    dbo::field(a, date, "date");
+    dbo::field(a, time, "time");
+    dbo::field(a, binary, "binary");
+    dbo::field(a, datetime, "datetime");
+    dbo::field(a, wstring, "wstring");
+    dbo::field(a, wstring2, "wstring2", 30);
+    dbo::field(a, string, "string");
+    dbo::field(a, string2, "string2", 50);
+    dbo::field(a, ptime, "ptime");
+    dbo::field(a, pduration, "pduration");
+    dbo::field(a, i, "i");
+    dbo::field(a, i64, "i64");
+    dbo::field(a, ll, "ll");
+    dbo::field(a, checked, "checked");
+    dbo::field(a, f, "f");
+    dbo::field(a, d, "d");
+
+    dbo::belongsTo(a, b, "b");
+    dbo::belongsTo(a, c);
+
+    if (a.session()) {
+      dbo::belongsTo(a, dthing);
+
+      dbo::belongsTo(a, parent, a.session()->template tableName<A>()
+		     + std::string("_parent"));
+      dbo::hasMany(a, asManyToOne, dbo::ManyToOne,
+		   a.session()->template tableName<A>()
+		   + std::string("_parent"));
+    }
+  }
+};
+
+class B {
+public:
+  enum State {
+    State1 = 0,
+    State2 = 1
+  };
+
+  std::string name;
+  State state;
+
+  As    asManyToOne;
+  Cs    csManyToMany;
+  Cs    csManyToOne;
+
+  B() { }
+
+  B(const std::string& aName, State aState)
+    : name(aName), state(aState)
+  { }
+
+  bool operator== (const B& other) const {
+    return name == other.name
+      && state == other.state;
+  }
+
+  template <class Action>
+  void persist(Action& a)
+  {
+    dbo::field(a, state, "state");
+    dbo::field(a, name, "name");
+
+    dbo::hasMany(a, asManyToOne, dbo::ManyToOne, "b");
+    dbo::hasMany(a, csManyToMany, dbo::ManyToMany, SCHEMA "b_c", "the_b",
+		   dbo::NotNull
+		 | dbo::OnDeleteCascade
+		 | dbo::OnUpdateCascade);
+    dbo::hasMany(a, csManyToOne, dbo::ManyToOne, "b2");
+  }
+};
+
+class C {
+public:
+  std::string name;
+  
+  dbo::weak_ptr<A> aOneToOne;
+  dbo::ptr<B> b;
+
+  Bs    bsManyToMany;
+  Ds    dsManyToMany;
+
+  C() { }
+
+  C(const std::string& aName)
+    : name(aName)
+  { }
+
+  bool operator== (const C& other) const {
+    return name == other.name;
+  }
+
+  template <class Action>
+  void persist(Action& a)
+  {
+    dbo::field(a, name, "name");
+
+    dbo::belongsTo(a, b, "b2");
+
+    dbo::hasMany(a, bsManyToMany, dbo::ManyToMany, SCHEMA "b_c", "the_c",
+		   dbo::NotNull
+		 | dbo::OnDeleteCascade
+		 | dbo::OnUpdateCascade );
+    dbo::hasMany(a, dsManyToMany, dbo::ManyToMany, SCHEMA "c_d");
+    dbo::hasOne(a, aOneToOne);
+  }
+};
+
+class D {
+public:
+  Coordinate id;
+  std::string name;
+
+  As    asManyToOne;
+  Cs    csManyToMany;
+
+  D() { }
+  D(const Coordinate& anId, const std::string& aName)
+    : id(anId),
+      name(aName)
+  { }
+
+  template <class Action>
+  void persist(Action& a)
+  {
+    dbo::id(a, id, "id");
+    dbo::field(a, name, "name");
+
+    dbo::hasMany(a, asManyToOne, dbo::ManyToOne);
+    dbo::hasMany(a, csManyToMany, dbo::ManyToMany, SCHEMA "c_d");
+  }
+};
+
+struct DboFixture
+{
+  DboFixture()
+  {
+    static bool logged = false;
+    dbo::SqlConnection *connection;
+
+#ifdef SQLITE3
+    if (!logged) {
+      std::cerr << "DboTest.C created a Sqlite3 connector" << std::endl;
+      logged = true;
+    }
+
+    dbo::backend::Sqlite3 *sqlite3 = new dbo::backend::Sqlite3(":memory:");
+    sqlite3->setDateTimeStorage(dbo::SqlDate,
+				dbo::backend::Sqlite3::JulianDaysAsReal);
+    connection = sqlite3;
+#endif // SQLITE3
+
+#ifdef POSTGRES
+    if (!logged) {
+      std::cerr << "DboTest.C created a Postgres connector" << std::endl;
+      logged = true;
+    }
+
+    connection = new dbo::backend::Postgres
+      ("user=postgres_test password=postgres_test port=5432 dbname=wt_test");
+#endif // POSTGRES
+
+#ifdef MYSQL
+    if (!logged) {
+      std::cerr << "DboTest.C created a MySQL connector" << std::endl;
+      logged = true;
+    }
+
+    fractionalSeconds = false;
+    connection = new dbo::backend::MySQL("wt_test_db", "test_user",
+                                            "test_pw", "localhost", 3306);
+#endif // MYSQL
+
+#ifdef FIREBIRD
+    // gsec.exe -user sysdba -pass masterkey
+    // add test_user -pw test_pwd
+    // isql.exe
+    // create database 'C:\opt\db\firebird\wt_test.fdb' user 'test_user' password 'test_pwd'
+    std::string file;
+#ifdef WIN32
+    file = "C:\\opt\\db\\firebird\\wt_test.fdb";
+#else
+    file = "/opt/db/firebird/wt_test.fdb";
+#endif
+
+    if (!logged) {
+      std::cerr << "DboTest.C created a Firebird connector" << std::endl;
+      logged = true;
+    }
+
+    connection = new dbo::backend::Firebird ("localhost", 
+					     file, 
+					     "test_user", "test_pwd", 
+					     "", "", "");
+#endif // FIREBIRD
+
+    connection->setProperty("show-queries", "true");
+
+    connectionPool_ = new dbo::FixedSqlConnectionPool(connection, 5);
+
+    session_ = new dbo::Session();
+    session_->setConnectionPool(*connectionPool_);
+
+
+    session_->mapClass<A>(SCHEMA "table_a");
+    session_->mapClass<B>(SCHEMA "table_b");
+    session_->mapClass<C>(SCHEMA "table_c");
+    session_->mapClass<D>(SCHEMA "table_d");
+
+    std::cerr << session_->tableCreationSql() << std::endl;
+
+    //session_->dropTables();
+
+    session_->createTables();
+
+    Wt::registerType<Coordinate>();
+  }
+
+  ~DboFixture()
+  {
+    session_->dropTables();
+
+    delete session_;
+    delete connectionPool_;
+  }
+
+  dbo::SqlConnectionPool *connectionPool_;
+  dbo::Session *session_;
+};
+
+BOOST_AUTO_TEST_CASE( dbo_test1 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  A a1;
+  a1.datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1), Wt::WTime(12, 11, 31));
+  for (unsigned i = 0; i < 255; ++i)
+    a1.binary.push_back(i);
+  a1.date = Wt::WDate(1976, 6, 14);
+  a1.time = Wt::WTime(13, 14, 15, 102);
+
+  // There is a bug in the implementation of milliseconds in mariadb c client
+#ifdef MYSQL
+  a1.time = Wt::WTime(13, 14, 15);
+#endif //MYSQL
+
+  a1.wstring = "Hello";
+  a1.wstring2 = "Kitty";
+  a1.string = "There";
+  a1.string2 = "Big Owl";
+  a1.ptime = boost::posix_time::ptime
+    (boost::gregorian::date(2005,boost::gregorian::Jan,1),
+     boost::posix_time::time_duration(1,2,3));
+  a1.pduration = boost::posix_time::hours(1) + 
+    boost::posix_time::seconds(10);
+  a1.checked = true;
+  a1.i = 42;
+  a1.i64 = 9223372036854775805LL;
+  a1.ll = 6066005651767221LL;
+  a1.f = (float)42.42;
+  a1.d = 42.424242;
+
+  /* Create an A, check that it is found during the same transaction  */
+  {
+    dbo::Transaction t(*session_);
+    dbo::ptr<A> ptrA = session_->add(new A(a1));
+
+    BOOST_REQUIRE(ptrA->session() == session_);
+
+    BOOST_REQUIRE(ptrA->self() == ptrA);
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 1);
+    dbo::ptr<A> a2 = *allAs.begin();
+    BOOST_REQUIRE(*a2 == a1);
+
+    BOOST_REQUIRE(a2->self() == ptrA);
+  }
+
+  /* Check that A is found during other transaction */
+  {
+    dbo::Transaction t(*session_);
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 1);
+    dbo::ptr<A> a2 = *allAs.begin();
+
+    BOOST_REQUIRE(*a2 == a1);
+
+    a2.modify()->parent = a2;
+  }
+
+  /* Remove the A, check it is no longer found during the same transaction */
+  {
+    dbo::Transaction t(*session_);
+
+    {
+      As allAs = session_->find<A>();
+
+      BOOST_REQUIRE(allAs.size() == 1);
+      dbo::ptr<A> a2 = *allAs.begin();
+
+      BOOST_REQUIRE(a2->parent == a2);
+
+#ifdef MYSQL
+      a2.modify()->parent.reset();
+      a2.flush();
+#endif
+
+      a2.remove();
+    }
+
+    {
+      As allAs = session_->find<A>();
+      BOOST_REQUIRE(allAs.size() == 0);
+    }
+
+    t.commit();
+  }
+
+  /* Check it is no longer found during other transaction */
+  {
+    dbo::Transaction t(*session_);
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 0);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test2 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  A a1;
+  a1.datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1), Wt::WTime(12, 11, 31));
+  a1.date = Wt::WDate(1980, 12, 4);
+  a1.time = Wt::WTime(12, 13, 14, 123);
+  // There is a bug in the implementation of milliseconds in mariadb c client
+#ifdef MYSQL
+  a1.time = Wt::WTime(13, 14, 15);
+#endif //MYSQL
+  a1.wstring = "Hello";
+  a1.string = "There";
+  a1.checked = false;
+  a1.i = 42;
+  a1.i64 = 9223372036854775804LL;
+  a1.ll = 6066005651767221LL;
+  a1.f = (float)42.42;
+  a1.d = 42.424242;
+
+  B b1;
+  b1.name = "b1";
+  b1.state = B::State1;
+
+  /* Create an A + B  */
+  {
+    dbo::Transaction t(*session_);
+    a1.b = session_->add(new B(b1));
+    dbo::ptr<A> a = session_->add(new A(a1));
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 1);
+    dbo::ptr<A> a2 = *allAs.begin();
+    BOOST_REQUIRE(*a2 == a1);
+  }
+
+  /* Check that A + B are found in other transaction */
+  {
+    dbo::Transaction t(*session_);
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 1);
+    dbo::ptr<A> a2 = *allAs.begin();
+    BOOST_REQUIRE(*a2 == a1);
+    BOOST_REQUIRE(*a2->b == b1);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test3 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  /* Create B's many-to-many C's  */
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<B> b1 = session_->add(new B("b1", B::State1));
+    dbo::ptr<B> b2 = session_->add(new B("b2", B::State2));
+    dbo::ptr<B> b3 = session_->add(new B("b3", B::State1));
+
+    dbo::ptr<C> c1 = session_->add(new C("c1"));
+    dbo::ptr<C> c2 = session_->add(new C("c2"));
+    dbo::ptr<C> c3 = session_->add(new C("c3"));
+
+    B *m = b1.modify();
+    m->csManyToMany.insert(c1);
+
+    BOOST_REQUIRE(b1->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->bsManyToMany.size() == 1);
+
+    BOOST_REQUIRE(c1->bsManyToMany.count(b1) == 1);
+    BOOST_REQUIRE(c1->bsManyToMany.count(b2) == 0);
+    BOOST_REQUIRE(c1->bsManyToMany.count(b3) == 0);
+
+    BOOST_REQUIRE(b1->csManyToMany.count(c1) == 1);
+    BOOST_REQUIRE(b1->csManyToMany.count(c2) == 0);
+    BOOST_REQUIRE(b1->csManyToMany.count(c3) == 0);
+
+    b1.modify()->csManyToMany.insert(c2);
+
+    BOOST_REQUIRE(b1->csManyToMany.size() == 2);
+    BOOST_REQUIRE(c1->bsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->bsManyToMany.size() == 1);
+    BOOST_REQUIRE(c3->bsManyToMany.size() == 0);
+
+    Cs cs = b1->csManyToMany;
+    for (Cs::const_iterator i = cs.begin(); i != cs.end(); ++i) {
+      std::cerr << "C: " << (*i)->name << std::endl;
+    }
+
+    b1.modify()->csManyToMany.erase(c2);
+
+    BOOST_REQUIRE(b1->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->bsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->bsManyToMany.size() == 0);
+    BOOST_REQUIRE(c3->bsManyToMany.size() == 0);
+
+    b1.modify()->csManyToMany.insert(c2);
+    b1.modify()->csManyToMany.erase(c2);
+
+    BOOST_REQUIRE(b1->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->bsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->bsManyToMany.size() == 0);
+    BOOST_REQUIRE(c3->bsManyToMany.size() == 0);
+
+    /*
+     * I had to write this example to convince myself that I actually
+     * implemented this so that this kind of things simply work !
+     */
+    dbo::collection<std::string> names
+      = session_->query<std::string>("select \"name\" from \"table_b\"");
+
+    for (dbo::collection<std::string>::const_iterator i = names.begin();
+	 i != names.end(); ++i)
+      std::cerr << *i << std::endl;
+  }
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<B> b1 = session_->query< dbo::ptr<B> >
+      ("select distinct B from \"table_b\" B ").where("B.\"name\" = ?").bind("b1");
+
+    std::size_t count = session_->query< dbo::ptr<B> >
+      ("select distinct B from \"table_b\" B ").where("B.\"name\" = ?").bind("b1")
+      .resultList().size();
+
+    dbo::ptr<C> c1 = session_->find<C>().where("\"name\" = ?").bind("c1");
+
+    BOOST_REQUIRE(count == 1);
+    BOOST_REQUIRE(b1->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->bsManyToMany.size() == 1);
+
+    //this test case does not work in firebird,
+    //the name field is of the 'blob subtype text' datatype,
+    //and according to the firebird documentation,
+    //order by is not supported on columns of this datatype 
+    //http://www.firebirdsql.org/refdocs/langrefupd21-blob.html
+#ifndef FIREBIRD
+    typedef dbo::collection<dbo::ptr<C> > Cs;
+
+    Cs c2 = session_->find<C>().orderBy("\"name\" desc");
+    Cs c3 = session_->find<C>().orderBy("\"name\" desc").limit(2);
+
+    std::vector<std::string> c2_compare;
+    c2_compare.push_back("c3");
+    c2_compare.push_back("c2");
+    c2_compare.push_back("c1");
+
+    std::vector<std::string> c3_compare;
+    c3_compare.push_back("c3");
+    c3_compare.push_back("c2");
+
+    int c = 0; 
+    BOOST_REQUIRE(c2.size() == c2_compare.size());
+    for (Cs::const_iterator i = c2.begin(); i != c2.end(); ++i)
+      BOOST_REQUIRE((*i)->name == c2_compare[c++]);
+
+    c = 0;
+    BOOST_REQUIRE(c3.size() == c3_compare.size());
+    for (Cs::const_iterator i = c3.begin(); i != c3.end(); ++i)
+      BOOST_REQUIRE((*i)->name == c3_compare[c++]);
+#endif
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test4 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1(new A());
+
+    BOOST_REQUIRE(a1->self() == a1);
+
+    a1.modify()->datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1),
+					  Wt::WTime(12, 11, 31));
+    a1.modify()->date = Wt::WDate(1980, 12, 4);
+    a1.modify()->wstring = "Hello";
+    a1.modify()->string = "There";
+    a1.modify()->i = 42;
+    a1.modify()->i64 = 9223372036854775803LL;
+    a1.modify()->ll = 6066005651767220LL;
+    a1.modify()->f = (float)42.42;
+    a1.modify()->d = 42.424242;
+
+    dbo::ptr<A> a2(new A(*a1));
+    a2.modify()->wstring = "Oh my god";
+    a2.modify()->i = 142;
+
+    dbo::ptr<B> b(new B());
+    b.modify()->name = "b";
+    b.modify()->state = B::State1;
+
+    a1.modify()->b = b;
+    a2.modify()->b = b;
+
+    session_->add(a1);
+    session_->add(a2);
+    session_->add(b);
+
+    typedef dbo::ptr_tuple<B, A>::type BA;
+    typedef dbo::collection<BA> BAs;
+
+    // The query below becomes:
+    //    select count(1) from ( select B."id", B."name", A."id", A."date", A."b_id" 
+    //    from "table_b" B join "table_a" A on A."b_id" = B."id"); 
+    // when it is used to return the size of the collection.
+    // This is not valid SQL by the SQL standard definition,
+    // because 2 id fields are mentioned in the select clause.
+    //
+    // A valid alternative would be:
+    //   select count(1) from ( select B."id", B."name", A."id" as id2, A."date",
+    //   A."b_id" from "table_b" B join "table_a" A on A."b_id" = B."id");
+    //
+    // Firebird & mysql are not able to execute this query.
+
+#if !defined(FIREBIRD) && !defined(MYSQL)
+    dbo::Query<BA> q = session_->query<BA>
+      ("select B, A "
+       "from \"table_b\" B join \"table_a\" A on A.\"b_id\" = B.\"id\"")
+      .orderBy("A.\"i\"");
+
+    std::vector<dbo::FieldInfo> fields = q.fields();
+    std::vector<dbo::FieldInfo> fields2 = q.fields();
+
+    BOOST_REQUIRE(fields.size() == fields2.size());
+
+    BAs bas;
+    bas = q.resultList();
+    BOOST_REQUIRE(bas.size() == 2);
+
+    int ii = 0;
+    for (BAs::const_iterator i = bas.begin(); i != bas.end(); ++i) {
+      dbo::ptr<A> a_result;
+      dbo::ptr<B> b_result;
+      boost::tie(b_result, a_result) = *i;
+
+      if (ii == 0) {
+	BOOST_REQUIRE(a_result == a1);
+	BOOST_REQUIRE(b_result == b);
+      } else if (ii == 1) {
+	BOOST_REQUIRE(a_result == a2);
+	BOOST_REQUIRE(b_result == b);
+      }
+
+      ++ii;
+    }
+
+    BOOST_REQUIRE(ii == 2);
+#endif //FIREBIRD && MYSQL
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test4b )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1(new A());
+    dbo::ptr<A> a2(new A());
+    dbo::ptr<A> a3(new A());
+    dbo::ptr<A> a4(new A());
+    dbo::ptr<A> a5(new A());
+    dbo::ptr<A> a6(new A());
+
+    dbo::ptr<B> b1(new B());
+    dbo::ptr<B> b2(new B());
+    dbo::ptr<B> b3(new B());
+
+    dbo::ptr<C> c1(new C());
+    dbo::ptr<C> c2(new C());
+    dbo::ptr<C> c3(new C());
+
+    a1.modify()->wstring = "a1";
+    a2.modify()->wstring = "a2";
+    a3.modify()->wstring = "a3";
+    a4.modify()->wstring = "a4";
+    a5.modify()->wstring = "a5";
+    a6.modify()->wstring = "a6";
+
+    b1.modify()->name = "b1";
+    b2.modify()->name = "b2";
+    b3.modify()->name = "b3";
+
+    c1.modify()->name = "c1";
+    c2.modify()->name = "c2";
+    c3.modify()->name = "c3";
+
+    a1.modify()->b = b1;
+    a2.modify()->b = b1;
+    a3.modify()->b = b2;
+    a4.modify()->b = b2;
+    a5.modify()->b = b3;
+    a6.modify()->b = b3;
+
+    c1.modify()->b = b1;
+    c2.modify()->b = b2;
+    c3.modify()->b = b3;
+
+    session_->add(b1);
+    session_->add(b2);
+    session_->add(b3);
+    session_->add(a1);
+    session_->add(a2);
+    session_->add(a3);
+    session_->add(a4);
+    session_->add(a5);
+    session_->add(a6);
+    session_->add(c1);
+    session_->add(c2);
+    session_->add(c3);
+  }
+
+  {
+    dbo::Transaction t(*session_);
+
+    typedef dbo::ptr_tuple<A, B, C>::type ABC;
+    typedef dbo::collection<ABC> C_ABCs;
+    typedef std::vector<ABC> ABCs;
+
+#if !defined(FIREBIRD) && !defined(MYSQL)
+    dbo::Query<ABC> q = session_->query<ABC>
+      ("select A, B, C " 
+       "from \"table_a\" A join \"table_b\" B on (A.\"b_id\" = B.\"id\") join \"table_c\" C on (C.\"b2_id\" = B.\"id\")").orderBy("A.\"wstring\", B.\"name\", C.\"name\"");
+
+    C_ABCs c_abcs = q.resultList();
+    ABCs abcs(c_abcs.begin(), c_abcs.end());
+
+    BOOST_REQUIRE(abcs.size() == 6);
+
+    int ii = 0;
+    for (ABCs::const_iterator i = abcs.begin(); i != abcs.end(); ++i) {
+      dbo::ptr<A> a_result;
+      dbo::ptr<B> b_result;
+      dbo::ptr<C> c_result;
+      boost::tie(a_result, b_result, c_result) = *i;
+
+      switch (ii)
+      {
+        case 0:
+            BOOST_REQUIRE(a_result->wstring == "a1");
+            BOOST_REQUIRE(b_result->name == "b1");
+            BOOST_REQUIRE(c_result->name == "c1");
+            break;
+        case 1:
+            BOOST_REQUIRE(a_result->wstring == "a2");
+            BOOST_REQUIRE(b_result->name == "b1");
+            BOOST_REQUIRE(c_result->name == "c1");
+            break;
+        case 2:
+            BOOST_REQUIRE(a_result->wstring == "a3");
+            BOOST_REQUIRE(b_result->name == "b2");
+            BOOST_REQUIRE(c_result->name == "c2");
+            break;
+        case 3:
+            BOOST_REQUIRE(a_result->wstring == "a4");
+            BOOST_REQUIRE(b_result->name == "b2");
+            BOOST_REQUIRE(c_result->name == "c2");
+            break;
+        case 4:
+            BOOST_REQUIRE(a_result->wstring == "a5");
+            BOOST_REQUIRE(b_result->name == "b3");
+            BOOST_REQUIRE(c_result->name == "c3");
+            break;
+        case 5:
+            BOOST_REQUIRE(a_result->wstring == "a6");
+            BOOST_REQUIRE(b_result->name == "b3");
+            BOOST_REQUIRE(c_result->name == "c3");
+            break;
+      }
+
+      ++ii;
+    }
+
+    BOOST_REQUIRE(ii == 6);
+#endif //FIREBIRD && MYSQL
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test5 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1(new A());
+    a1.modify()->datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1),
+					  Wt::WTime(12, 11, 31));
+    a1.modify()->date = Wt::WDate(1976, 11, 1);
+    a1.modify()->wstring = "Hello";
+    a1.modify()->string = "There";
+    a1.modify()->i = 42;
+    a1.modify()->i64 = 9223372036854775802LL;
+    a1.modify()->ll = 6066005651767219LL;
+    a1.modify()->f = (float)42.42;
+    a1.modify()->d = 42.424242;
+
+    dbo::ptr<A> a2(new A(*a1));
+    a2.modify()->wstring = "Oh my god";
+    a2.modify()->i = 142;
+
+    dbo::ptr<B> b(new B());
+    b.modify()->name = "b";
+    b.modify()->state = B::State1;
+
+    a1.modify()->b = b;
+    a2.modify()->b = b;
+
+    session_->add(a1);
+    session_->add(a2);
+    session_->add(b);
+
+    session_->flush();
+
+    t.rollback();
+
+    a1.remove();
+    a2.remove();
+    b.remove();
+  }
+
+  {
+    dbo::Transaction t(*session_);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test6 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1(new A());
+    a1.modify()->datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1),
+					  Wt::WTime(12, 11, 31));
+    a1.modify()->date = Wt::WDate(1980, 1, 1);
+    a1.modify()->wstring = "Hello";
+    a1.modify()->string = "There";
+    a1.modify()->i = 42;
+    a1.modify()->i64 = 9223372036854775802LL;
+    a1.modify()->ll = 6066005651767219LL;
+    a1.modify()->f = (float)42.42;
+    a1.modify()->d = 42.424242;
+
+    session_->add(a1);
+  }
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1 = session_->find<A>();
+    a1.modify()->i = 41;
+    a1.flush();
+    t.rollback();
+
+    session_->rereadAll();
+
+    dbo::Transaction t2(*session_);
+
+    dbo::ptr<A> a2 = session_->find<A>();
+
+    BOOST_REQUIRE(a1 == a2);
+    BOOST_REQUIRE(a1->i == 42);
+
+    t2.commit();
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test7 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+#ifndef FIREBIRD
+  {
+    dbo::Transaction t(*session_);
+
+    std::string result = session_->query<std::string>("select 'dima '' ? '");
+    BOOST_REQUIRE(result == "dima ' ? ");
+  }
+#endif //FIREBIRD
+
+  int aId = -1;
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a1(new A());
+    a1.modify()->datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1),
+					  Wt::WTime(12, 11, 31));
+    a1.modify()->date = Wt::WDate(1980, 1, 1);
+    a1.modify()->wstring = "Hello";
+    a1.modify()->string = "There";
+    a1.modify()->i = 42;
+    a1.modify()->i64 = 9223372036854775801LL;
+    a1.modify()->ll = 6066005651767219LL;
+    a1.modify()->f = (float)42.42;
+    a1.modify()->d = 42.424242;
+
+    session_->add(a1);
+    a1.flush();
+
+    aId = (int)a1.id();
+  }
+
+  {
+    dbo::Transaction t(*session_);
+    int id1, id2;
+
+    boost::tie(id1, id2) = session_->query<boost::tuple<int, int> >
+      ("select \"id\", \"id\" from \"table_a\"").resultValue();
+
+    BOOST_REQUIRE(id1 == aId);
+    BOOST_REQUIRE(id2 == aId);
+
+#ifdef POSTGRES
+    dbo::ptr<A> a;
+    int id;
+    boost::tie(a, id) = session_->query<boost::tuple<dbo::ptr<A>, int> >
+      ("select (a), a.\"id\" from \"table_a\" a").resultValue();
+
+    BOOST_REQUIRE(id == aId);
+    BOOST_REQUIRE(a.id() == aId);
+#endif
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test8 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    session_->execute("delete from \"table_a\"");
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test9 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a(new A());
+
+    typedef dbo::query_result_traits< dbo::ptr<A> > A_traits;
+
+    std::vector<boost::any> values;
+    A_traits::getValues(a, values);
+
+    std::cerr << values.size() << std::endl;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test10 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<D> d(new D());
+
+    BOOST_REQUIRE(Wt::asString(boost::any(Coordinate(10, 4)))
+		  == "(10, 4)");
+
+    d.modify()->id = Coordinate(42, 43);
+    d.modify()->name = "Object @ (42, 43)";
+
+    session_->add(d);
+
+    t.commit();
+
+    // No transaction, but should just fetch it from the session.
+    // This checks that saving the dbo sets the id properly
+    BOOST_REQUIRE(session_->load<D>(Coordinate(42, 43)) == d);
+  }
+
+  {
+    dbo::Transaction t2(*session_);
+
+    try {
+      session_->load<D>(Coordinate(10, 11));
+      BOOST_REQUIRE(false); // Expected an exception
+    } catch (const dbo::ObjectNotFoundException&) {
+    }
+
+    dbo::ptr<D> d2 = session_->load<D>(Coordinate(42, 43));
+ 
+    BOOST_REQUIRE(d2 && d2.id() == Coordinate(42, 43));
+     
+    dbo::ptr<C> c1 = session_->add(new C("c1"));
+    dbo::ptr<C> c2 = session_->add(new C("c2"));
+    dbo::ptr<C> c3 = session_->add(new C("c3"));
+
+    d2.modify()->csManyToMany.insert(c1);
+
+    BOOST_REQUIRE(d2->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->dsManyToMany.size() == 1);
+
+    BOOST_REQUIRE(d2->csManyToMany.count(c1) == 1);
+    std::cerr << "Failing now" << std::endl;
+
+    BOOST_REQUIRE(c1->dsManyToMany.count(d2) == 1);
+
+    d2.modify()->csManyToMany.insert(c2);
+
+    BOOST_REQUIRE(d2->csManyToMany.size() == 2);
+    BOOST_REQUIRE(c1->dsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->dsManyToMany.size() == 1);
+    BOOST_REQUIRE(c3->dsManyToMany.size() == 0);
+
+    d2.modify()->csManyToMany.erase(c2);
+
+    BOOST_REQUIRE(d2->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->dsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->dsManyToMany.size() == 0);
+    BOOST_REQUIRE(c3->dsManyToMany.size() == 0);
+
+    d2.modify()->csManyToMany.insert(c2);
+    d2.modify()->csManyToMany.erase(c2);
+
+    BOOST_REQUIRE(d2->csManyToMany.size() == 1);
+    BOOST_REQUIRE(c1->dsManyToMany.size() == 1);
+    BOOST_REQUIRE(c2->dsManyToMany.size() == 0);
+    BOOST_REQUIRE(c3->dsManyToMany.size() == 0);
+  }
+
+  {
+    /*
+     * Check that we fail gracefully when inserting an object with a
+     * duplicate ID
+     */
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<D> d(new D());
+
+    d.modify()->id = Coordinate(42, 43);
+    d.modify()->name = "Object2 @ (42, 43)";
+
+    session_->add(d);
+
+    bool caught = false;
+    try {
+      t.commit();
+    } catch (std::exception& e) {
+      std::cerr << "Catching exception: " << e.what() << std::endl;
+      caught = true;
+    }
+
+    BOOST_REQUIRE(caught);
+  }
+
+  bool caught = false;
+
+  try {
+    dbo::Transaction outer(*session_);
+
+    {
+      /*
+       * Check that we fail gracefully when inserting an object with a
+       * duplicate ID
+       */
+      dbo::Transaction t(*session_);
+
+      dbo::ptr<D> d(new D());
+
+      d.modify()->id = Coordinate(42, 43);
+      d.modify()->name = "Object2 @ (42, 43)";
+
+      session_->add(d);
+
+      BOOST_REQUIRE(t.commit() == false); // Doesn't actaully commit
+    }
+  } catch (std::exception& e) {
+    std::cerr << "Catching exception: " << e.what() << std::endl;
+    caught = true;
+  }
+
+  BOOST_REQUIRE(caught);
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test11 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    session_->add(new C("c1"));
+
+    dbo::Query< dbo::ptr<C> > query = session_->find<C>();
+    dbo::QueryModel< dbo::ptr<C> > *model
+      = new dbo::QueryModel< dbo::ptr<C> >();
+
+    model->setQuery(query);
+
+    t.commit();
+
+    boost::any d;
+
+    model->addAllFieldsAsColumns();
+
+    BOOST_REQUIRE(model->columnCount() == 4);
+    BOOST_REQUIRE(model->rowCount() == 1);
+
+    BOOST_REQUIRE(Wt::asString(model->headerData(0)) == "id");
+    BOOST_REQUIRE(Wt::asString(model->headerData(1)) == "version");
+    BOOST_REQUIRE(Wt::asString(model->headerData(2)) == "name");
+    BOOST_REQUIRE(Wt::asString(model->headerData(3)) == "b2_id");
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "c1");
+
+    model->setData(0, 2, std::string("changed"));
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "changed");
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "changed");
+
+    {
+      dbo::Transaction t2(*session_);
+      dbo::ptr<C> c = session_->find<C>();
+      BOOST_REQUIRE(c->name == "changed");
+    }
+
+    model->insertRow(1);
+    model->setData(1, 2, std::string("new C"));
+
+    {
+      dbo::Transaction t2(*session_);
+      BOOST_REQUIRE(session_->find<C>().resultList().size() == 2);
+    }
+
+    model->removeRows(0, 2);
+
+    {
+      dbo::Transaction t2(*session_);
+      BOOST_REQUIRE(session_->find<C>().resultList().size() == 0);
+    }
+
+    delete model;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test12 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    session_->add(new D(Coordinate(5, 6), "yes"));
+    dbo::ptr<D> d1 = session_->find<D>();
+
+    BOOST_REQUIRE(d1->name == "yes");
+    BOOST_REQUIRE(d1->id == Coordinate(5, 6));
+
+    session_->add(new C("c1"));
+
+    dbo::Query< dbo::ptr<C> > query = session_->find<C>();
+    dbo::QueryModel< dbo::ptr<C> > *model
+      = new dbo::QueryModel< dbo::ptr<C> >();
+
+    model->setQuery(query);
+
+    boost::any d;
+
+    model->addAllFieldsAsColumns();
+
+    BOOST_REQUIRE(model->columnCount() == 4);
+    BOOST_REQUIRE(model->rowCount() == 1);
+
+    BOOST_REQUIRE(Wt::asString(model->headerData(0)) == "id");
+    BOOST_REQUIRE(Wt::asString(model->headerData(1)) == "version");
+    BOOST_REQUIRE(Wt::asString(model->headerData(2)) == "name");
+    BOOST_REQUIRE(Wt::asString(model->headerData(3)) == "b2_id");
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "c1");
+
+    model->setData(0, 2, std::string("changed"));
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "changed");
+
+    BOOST_REQUIRE(model->resultRow(0) == session_->find<C>());
+    BOOST_REQUIRE(model->stableResultRow(0) == session_->find<C>());
+
+    {
+      dbo::ptr<C> c = session_->find<C>();
+      BOOST_REQUIRE(c->name == "changed");
+    }
+
+    model->insertRow(1);
+    model->setData(1, 2, std::string("new C"));
+
+    BOOST_REQUIRE(session_->find<C>().resultList().size() == 2);
+
+    model->removeRow(0);
+
+    BOOST_REQUIRE(model->rowCount() == 1);
+
+    model->setData(0, 2, std::string("changed again"));
+
+    BOOST_REQUIRE(Wt::asString(model->data(0, 2)) == "changed again");
+
+    BOOST_REQUIRE(session_->find<C>().resultList().size() == 1);
+
+    {
+      dbo::ptr<C> c = session_->find<C>();
+      BOOST_REQUIRE(c->name == "changed again");
+    }
+
+    t.commit();
+
+    delete model;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test13 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<B> b1 = session_->add(new B("b1", B::State1));
+    dbo::ptr<B> b2 = session_->add(new B("b2", B::State2));
+    dbo::ptr<B> b3 = session_->add(new B("b3", B::State1));
+
+
+    {
+      dbo::collection<dbo::ptr<B> > c;
+      c = session_->query< dbo::ptr<B> >
+	("select B from \"table_b\" B ")
+	.where("B.\"state\" = ?").orderBy("B.\"name\"")
+	.limit(1).bind(0);
+
+      BOOST_REQUIRE(c.size() == 1);
+    }
+
+    dbo::ptr<B> d = session_->query< dbo::ptr<B> >
+      ("select B from \"table_b\" B ")
+      .where("B.\"state\" = ?").orderBy("B.\"name\"")
+      .limit(1).bind(0);
+
+
+    BOOST_REQUIRE(d == b1 || d == b3);
+
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test14 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  A a1;
+  a1.datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1), Wt::WTime(12, 11, 31));
+  a1.date = Wt::WDate(1980, 12, 4);
+  a1.time = Wt::WTime(12, 13, 14, 123);
+  a1.wstring = "Hello";
+  a1.string = "There";
+  a1.checked = false;
+  a1.i = 42;
+  a1.i64 = 9223372036854775804LL;
+  a1.ll = 6066005651767221LL;
+  a1.f = (float)42.42;
+  a1.d = 42.424242;
+
+  B b1;
+  b1.name = "b1";
+  b1.state = B::State1;
+
+  /* Create an A + B  */
+  {
+    dbo::Transaction t(*session_);
+    dbo::ptr<A> a = session_->add(new A(a1));    
+    dbo::ptr<B> b = session_->add(new B(b1));
+
+    BOOST_REQUIRE(!a->b);
+
+    b.modify()->asManyToOne.insert(a);
+
+    BOOST_REQUIRE(a->b == b);
+    BOOST_REQUIRE(b->asManyToOne.count(a) == 1);
+
+    b.modify()->asManyToOne.erase(a);
+
+    BOOST_REQUIRE(!a->b);
+
+    b.modify()->asManyToOne.insert(a);
+  }
+
+  /* Check that A + B are found in other transaction */
+  {
+    dbo::Transaction t(*session_);
+
+    As allAs = session_->find<A>();
+    BOOST_REQUIRE(allAs.size() == 1);
+    dbo::ptr<A> a2 = *allAs.begin();
+    BOOST_REQUIRE(*a2->b == b1);
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test15 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a = session_->add(new A());
+    dbo::ptr<B> b = session_->add(new B("b", B::State1));
+    a.modify()->b = b;
+
+    {
+      dbo::collection<dbo::ptr<A> > c = session_->query< dbo::ptr<A> >
+	("select A from \"table_a\" A ").where("\"b_id\" = ?").bind(b);
+
+      BOOST_REQUIRE(c.size() == 1);
+    }
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test16 )
+{
+  DboFixture f;
+
+  dbo::Session *session = f.session_;
+
+  {
+    dbo::Transaction t(*session);
+
+    A a1;
+    a1.date = Wt::WDate(1976, 6, 14);
+    a1.time = Wt::WTime(13, 14, 15, 102);
+
+    for (unsigned i = 0; i < 255; ++i)
+      a1.binary.push_back(i);
+    a1.datetime = Wt::WDateTime(Wt::WDate(2009, 10, 1), Wt::WTime(12, 11, 31));
+    a1.wstring = "Hello";
+    a1.string = "There";
+    a1.ptime = boost::posix_time::ptime
+      (boost::gregorian::date(2005,boost::gregorian::Jan,1),
+       boost::posix_time::time_duration(1,2,3));
+    a1.pduration = boost::posix_time::hours(1) + boost::posix_time::seconds(10);
+    a1.i = 42;
+    a1.i64 = 9223372036854775805LL;
+    a1.ll = 6066005651767221LL;
+    a1.checked = true;
+    a1.f = (float)42.42;
+    a1.d = 42.424242;
+
+    dbo::ptr<A> a = session->add(new A());
+
+    t.commit();
+
+    {
+      dbo::Transaction t(*session);
+
+      dbo::Query< dbo::ptr<A> > query = session->find<A>();
+      dbo::QueryModel< dbo::ptr<A> > *model
+	= new dbo::QueryModel< dbo::ptr<A> >();
+      model->setQuery(query);
+      model->addColumn ("date");
+      model->addColumn ("time");
+      model->addColumn ("binary");
+      model->addColumn ("datetime");
+      model->addColumn ("wstring");
+      model->addColumn ("string");
+      model->addColumn ("ptime");
+      model->addColumn ("pduration");
+      model->addColumn ("i");
+      model->addColumn ("i64");
+      model->addColumn ("ll");
+      model->addColumn ("checked");
+      model->addColumn ("f");
+      model->addColumn ("d");
+      
+      Wt::WDate date(1982, 12, 2);
+      Wt::WTime time(14, 15, 16, 0);
+
+      std::vector<unsigned char> bin;
+      for (unsigned i = 0; i < 255; ++i)
+	bin.push_back(255 - i);
+      Wt::WString ws("Hey");
+      std::string s("Test");
+      boost::posix_time::ptime p_time 
+	(boost::gregorian::date(2010,boost::gregorian::Sep,9),
+	 boost::posix_time::time_duration(3,2,1));
+      boost::posix_time::time_duration p_duration 
+        = boost::posix_time::hours(1) + boost::posix_time::seconds(10);
+      int i = 50;
+      ::int64_t i64 = 8223372036854775805LL;;
+      long long ll = 7066005651767221LL;
+      float f = (float)53.53;
+      double d = 53.5353;
+      bool checked = false;
+      
+      model->setData(0, 0, boost::any(date));
+      model->setData(0, 1, boost::any(time));
+      model->setData(0, 2, boost::any(bin));
+      model->setData(0, 3, boost::any(Wt::WDateTime(date, time)));
+      model->setData(0, 4, boost::any(ws));
+      model->setData(0, 5, boost::any(s));
+      model->setData(0, 6, boost::any(p_time));
+      model->setData(0, 7, boost::any(p_duration));
+      model->setData(0, 8, boost::any(i));
+      model->setData(0, 9, boost::any(i64));
+      model->setData(0, 10, boost::any(ll));
+      model->setData(0, 11, boost::any(checked));
+      model->setData(0, 12, boost::any(f));
+      model->setData(0, 13, boost::any(d));
+
+      //TODO, also set data using strings to test string to any value conversion
+
+      dbo::ptr<A> aa = session->find<A>().resultValue();
+      BOOST_REQUIRE(aa->date == date);
+      BOOST_REQUIRE(aa->time == time);
+      BOOST_REQUIRE(aa->binary == bin);
+      BOOST_REQUIRE(aa->datetime == Wt::WDateTime(date, time));
+      BOOST_REQUIRE(aa->wstring == ws);
+      BOOST_REQUIRE(aa->string == s);
+      BOOST_REQUIRE(aa->ptime == p_time);
+      BOOST_REQUIRE(aa->pduration == p_duration);
+      BOOST_REQUIRE(aa->i == i);
+      BOOST_REQUIRE(aa->i64 == i64);
+      BOOST_REQUIRE(aa->ll == ll);
+      BOOST_REQUIRE(aa->checked == checked);
+      BOOST_REQUIRE(aa->f == f);
+      BOOST_REQUIRE(aa->d == d);
+
+      delete model;
+    }
+  }
+}
+
+#if 0 // doesn't work, no solution yet
+BOOST_AUTO_TEST_CASE( dbo_test17 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a = session_->add(new A());
+    dbo::ptr<B> b = session_->add(new B("b", B::State1));
+    a.modify()->b = b;
+  }
+
+  {
+    dbo::Transaction t(*session_);
+    dbo::ptr<A> a = session_->find<A>();
+
+    dbo::ptr<B> b = a->b;
+    a.modify()->b.reset(); // 1
+    b.remove(); // 2
+    a.remove(); // 3
+  }
+}
+#endif
+
+BOOST_AUTO_TEST_CASE( dbo_test18 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a = session_->add(new A());
+    dbo::ptr<C> c = session_->add(new C());
+
+    BOOST_REQUIRE(!c->aOneToOne);
+
+    a.modify()->c = c;
+
+    BOOST_REQUIRE(c->aOneToOne == a);
+
+    a.modify()->c.reset();
+
+    BOOST_REQUIRE(!c->aOneToOne);
+
+    c.modify()->aOneToOne = a;
+
+    BOOST_REQUIRE(a->c == c);
+
+    BOOST_REQUIRE(c->aOneToOne->c == c);
+
+    dbo::ptr<A> a2 = c->aOneToOne;
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test19 )
+{
+  DboFixture f;
+
+  dbo::Session *session_ = f.session_;
+
+  {
+    dbo::Transaction t(*session_);
+
+    dbo::ptr<A> a = session_->add(new A());
+    dbo::ptr<B> b = session_->add(new B("b", B::State1));
+    a.modify()->b = b;
+  }
+
+  try {
+    dbo::Transaction t(*session_);
+    dbo::ptr<A> a = session_->find<A>();
+
+    a.remove(); // 3
+
+    throw std::runtime_error("Auch");
+  } catch (std::exception& e) {
+    session_->rereadAll();
+    dbo::Transaction t(*session_);
+    t.commit();
+  }
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test20 )
+{
+  DboFixture f;
+
+#ifndef FIREBIRD
+  {
+    dbo::Session *session_ = f.session_;
+
+    dbo::Transaction t(*session_);
+
+    dbo::QueryModel<std::string> *model = new dbo::QueryModel<std::string>();
+    model->setQuery(session_->query<std::string>("select 'dima '' ?'"));
+    model->addAllFieldsAsColumns();
+
+    std::cerr << model->columnCount() << std::endl
+	      << model->rowCount() << std::endl;
+    std::cerr << Wt::asString(model->data(0, 0)) << std::endl;
+
+    delete model;
+  }
+#endif //FIREBIRD
+}
+
+BOOST_AUTO_TEST_CASE( dbo_test21 )
+{
+  DboFixture f;
+
+  {
+    dbo::Session *session_ = f.session_;
+
+    dbo::Transaction t(*session_);
+
+    dbo::QueryModel<std::string> *model = new dbo::QueryModel<std::string>();
+    model->setQuery(session_->query<std::string>
+		    ("SELECT cast(round(number, 2) as text) AS column_number "
+		     "FROM table"));
+
+    model->addColumn("column_number", "label");
+
+    delete model;
+  }
+}
