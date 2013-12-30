@@ -155,9 +155,9 @@ class LanguagesDatabase
 		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const;
 
 		long long GetLoadDurationinMS() const;
-		int CountSingle() const;
-		int CountPlural() const;
-		int CountLanguages() const;
+		std::size_t CountSingle() const;
+		std::size_t CountPlural() const;
+		std::size_t CountLanguages() const;
 
 	protected:
 		virtual void MapClasses();

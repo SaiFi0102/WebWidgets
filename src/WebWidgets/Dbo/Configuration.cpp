@@ -102,6 +102,16 @@ const char* Wt::Dbo::dbo_traits<ConfigurationInt>::surrogateIdField()
 	return 0;
 }
 
+//ConfigurationLongInt traits
+Wt::Dbo::dbo_traits<ConfigurationLongInt>::IdType Wt::Dbo::dbo_traits<ConfigurationLongInt>::invalidId()
+{
+	return Wt::Dbo::dbo_traits<ConfigurationLongInt>::IdType();
+}
+const char* Wt::Dbo::dbo_traits<ConfigurationLongInt>::surrogateIdField()
+{
+	return 0;
+}
+
 //ConfigurationString traits
 Wt::Dbo::dbo_traits<ConfigurationString>::IdType Wt::Dbo::dbo_traits<ConfigurationString>::invalidId()
 {

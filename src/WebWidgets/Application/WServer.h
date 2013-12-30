@@ -18,6 +18,7 @@ class ConfigurationsDatabase;
 class LanguagesDatabase;
 class StylesDatabase;
 class PagesDatabase;
+class AccessPathsDatabase;
 
 typedef std::vector<const Wt::Auth::OAuthService *> OAuthServiceMap;
 
@@ -32,6 +33,7 @@ class WServer : public Wt::WServer
 		LanguagesDatabase *GetLanguages() const;
 		StylesDatabase *GetStyles() const;
 		PagesDatabase *GetPages() const;
+		AccessPathsDatabase *GetAccessPaths() const;
 
 		const Wt::Auth::AuthService &GetAuthService() const;
 		const Wt::Auth::PasswordService &GetPasswordService() const;
@@ -54,6 +56,7 @@ class WServer : public Wt::WServer
 		LanguagesDatabase *Languages;
 		StylesDatabase *Styles;
 		PagesDatabase *Pages;
+		AccessPathsDatabase *AccessPaths;
 
 		Wt::WLogger &Logger;
 		rapidxml::xml_document<> XmlDoc;
@@ -74,5 +77,6 @@ class WServer : public Wt::WServer
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/StylesDatabase.h"
 #include "DboDatabase/PagesDatabase.h"
+#include "DboDatabase/AccessPathsDatabase.h"
 
 #endif

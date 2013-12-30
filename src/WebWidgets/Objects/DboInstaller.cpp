@@ -28,6 +28,7 @@ void DboInstaller::MapClasses()
 	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
 	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
 	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
 	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
 	DboSession.mapClass<Language>(Language::TableName());
 	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
@@ -38,6 +39,7 @@ void DboInstaller::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void DboInstaller::CreateTables()
@@ -46,8 +48,9 @@ void DboInstaller::CreateTables()
 	DboSession.createTables();
 
 	//INDEXes
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"idx_unique_path\" ON \"") + Page::TableName() + "\" (\"InternalPath\")");
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"idx_unique_language_accept\" ON \"") + Language::TableName() + "\" (\"LanguageAccept\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_path\" ON \"") + Page::TableName() + "\" (\"InternalPath\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Language::TableName() + "\" (\"LanguageAccept\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_url\" ON \"") + AccessPath::TableName() + "\" (\"HostName\", \"InternalPath\")");
 	
 	transaction.commit();
 }
@@ -88,35 +91,35 @@ void DboInstaller::InsertRows()
 	LoggingModule.modify()->VersionMinor = 0;
 	LoggingModule.modify()->AuthorPtr = SaifAuthor;
 
-	Wt::Dbo::ptr<Module> ConfigurationModule = DboSession.add(ModulesDatabase::Configurations);
+	Wt::Dbo::ptr<Module> ConfigurationModule = DboSession.add(new Module(ModulesDatabase::Configurations));
 	ConfigurationModule.modify()->Name = "Configuration";
 	ConfigurationModule.modify()->VersionSeries = 1;
 	ConfigurationModule.modify()->VersionMajor = 0;
 	ConfigurationModule.modify()->VersionMinor = 0;
 	ConfigurationModule.modify()->AuthorPtr = SaifAuthor;
 
-	Wt::Dbo::ptr<Module> LocalizationModule = DboSession.add(ModulesDatabase::Localization);
+	Wt::Dbo::ptr<Module> LocalizationModule = DboSession.add(new Module(ModulesDatabase::Localization));
 	LocalizationModule.modify()->Name = "Localization";
 	LocalizationModule.modify()->VersionSeries = 1;
 	LocalizationModule.modify()->VersionMajor = 0;
 	LocalizationModule.modify()->VersionMinor = 0;
 	LocalizationModule.modify()->AuthorPtr = SaifAuthor;
 
-	Wt::Dbo::ptr<Module> AuthenticationModule = DboSession.add(ModulesDatabase::Authentication);
+	Wt::Dbo::ptr<Module> AuthenticationModule = DboSession.add(new Module(ModulesDatabase::Authentication));
 	AuthenticationModule.modify()->Name = "Authentication";
 	AuthenticationModule.modify()->VersionSeries = 1;
 	AuthenticationModule.modify()->VersionMajor = 0;
 	AuthenticationModule.modify()->VersionMinor = 0;
 	AuthenticationModule.modify()->AuthorPtr = SaifAuthor;
 
-	Wt::Dbo::ptr<Module> StylesModule = DboSession.add(ModulesDatabase::Styles);
+	Wt::Dbo::ptr<Module> StylesModule = DboSession.add(new Module(ModulesDatabase::Styles));
 	StylesModule.modify()->Name = "Styles";
 	StylesModule.modify()->VersionSeries = 1;
 	StylesModule.modify()->VersionMajor = 0;
 	StylesModule.modify()->VersionMinor = 0;
 	StylesModule.modify()->AuthorPtr = SaifAuthor;
 
-	Wt::Dbo::ptr<Module> NavigationModule = DboSession.add(ModulesDatabase::Navigation);
+	Wt::Dbo::ptr<Module> NavigationModule = DboSession.add(new Module(ModulesDatabase::Navigation));
 	NavigationModule.modify()->Name = "Navigation";
 	NavigationModule.modify()->VersionSeries = 1;
 	NavigationModule.modify()->VersionMajor = 0;
@@ -124,10 +127,21 @@ void DboInstaller::InsertRows()
 	NavigationModule.modify()->AuthorPtr = SaifAuthor;
 
 	//Configurations
+	//Hostname
+	Wt::Dbo::ptr<Configuration> Hostname = DboSession.add(new Configuration("Hostname", ServerModule, ConfigurationKeys::String));
+	Hostname.modify()->Title = "Hostname";
+	Hostname.modify()->Details = "This is the host name or domain name used to visit your website. If you have multiple host names, use the one with most priority. Do not enter the 'www.' part.";
+	Hostname.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationString> HostnameVal = DboSession.add(new ConfigurationString());
+	HostnameVal.modify()->Value = "";
+	HostnameVal.modify()->ExampleValue = "mywebsite.com";
+	HostnameVal.modify()->MinLength = 1;
+	Hostname.modify()->StringPtr = HostnameVal;
+
 	//BaseURL
 	Wt::Dbo::ptr<Configuration> BaseUrl = DboSession.add(new Configuration("BaseURL", ServerModule, ConfigurationKeys::String));
-	BaseUrl.modify()->Title = "Base URL of the website";
-	BaseUrl.modify()->Details = "This is the base URL that the user can see when browsing. If empty then the website will use relative paths.";
+	BaseUrl.modify()->Title = "Base URL";
+	BaseUrl.modify()->Details = "This is the base URL that the user can see when browsing. Can be left empty in which case the website will use relative paths.";
 	BaseUrl.modify()->RestartRequired = true;
 	Wt::Dbo::ptr<ConfigurationString> BaseUrlVal = DboSession.add(new ConfigurationString());
 	BaseUrlVal.modify()->Value = "";
@@ -274,9 +288,8 @@ void DboInstaller::InsertRows()
 	LogInfoLevel.modify()->Details = "When enabled informational notices will be included in the logs.";
 	LogInfoLevel.modify()->RestartRequired = true;
 	Wt::Dbo::ptr<ConfigurationBool> LogInfoLevelVal = DboSession.add(new ConfigurationBool());
-	LogInfoLevelVal.modify()->Value = true;
-	LogInfoLevelVal.modify()->DefaultValue = true;
-	LogInfoLevelVal.modify()->RecommendedValue = true;
+	LogInfoLevelVal.modify()->Value = false;
+	LogInfoLevelVal.modify()->DefaultValue = false;
 	LogInfoLevel.modify()->BoolPtr = LogInfoLevelVal;
 
 	//LogSecureLevel
@@ -301,22 +314,62 @@ void DboInstaller::InsertRows()
 	LogWarnLevelVal.modify()->RecommendedValue = true;
 	LogWarnLevel.modify()->BoolPtr = LogWarnLevelVal;
 
-	//DefaultLangauge
-	Wt::Dbo::ptr<Configuration> DefaultLanguage = DboSession.add(new Configuration("DefaultLangauge", LocalizationModule, ConfigurationKeys::String));
-	DefaultLanguage.modify()->Title = "Default Language";
-	DefaultLanguage.modify()->Details = "The default language in which page will be shown.";
-	DefaultLanguage.modify()->RestartRequired = true;
-	Wt::Dbo::ptr<ConfigurationString> DefaultLanguageVal = DboSession.add(new ConfigurationString());
-	DefaultLanguageVal.modify()->Value = "en";
-	DefaultLanguageVal.modify()->DefaultValue = "en";
-	DefaultLanguageVal.modify()->ExampleValue = "\"fr\" for french";
-	DefaultLanguageVal.modify()->MaxLength = 3;
-	DefaultLanguage.modify()->StringPtr = DefaultLanguageVal;
+	//DefaultAccessPath
+	Wt::Dbo::ptr<Configuration> DefaultAccessPath = DboSession.add(new Configuration("DefaultAccessPath", LocalizationModule, ConfigurationKeys::LongInt));
+	DefaultAccessPath.modify()->Title = "Default language access path";
+	DefaultAccessPath.modify()->Details = "The access path that links to default language.";
+	DefaultAccessPath.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationLongInt> DefaultAccessPathVal = DboSession.add(new ConfigurationLongInt());
+	DefaultAccessPathVal.modify()->Value = 1;
+	DefaultAccessPath.modify()->LongIntPtr = DefaultAccessPathVal;
+
+	//HostUnspecificLanguage
+	Wt::Dbo::ptr<Configuration> HostUnspecificLanguage = DboSession.add(new Configuration("HostUnspecificLanguage", LocalizationModule, ConfigurationKeys::Bool));
+	HostUnspecificLanguage.modify()->Title = "Set language from host unspecific access path";
+	HostUnspecificLanguage.modify()->Details = "If there are two conflicting access paths linking to different languages for example one with host name \"englishwebsite.com\" and no internal path and the other with internal path \"fr\" and no host name in that case if this is enabled then the access path without the host name would be used to set language of the user.";
+	HostUnspecificLanguage.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationBool> HostUnspecificLanguageVal = DboSession.add(new ConfigurationBool());
+	HostUnspecificLanguageVal.modify()->Value = false;
+	HostUnspecificLanguageVal.modify()->DefaultValue = false;
+	HostUnspecificLanguage.modify()->BoolPtr = HostUnspecificLanguageVal;
+
+	//InternalPathMode
+	Wt::Dbo::ptr<Configuration> InternalPathMode = DboSession.add(new Configuration("InternalPathMode", LocalizationModule, ConfigurationKeys::Enum));
+	InternalPathMode.modify()->Title = "Presentation of language in internal path";
+	InternalPathMode.modify()->RestartRequired = false;
+
+	Wt::Dbo::ptr<ConfigurationEnum> InternalPathModeVal = DboSession.add(new ConfigurationEnum());
+	Wt::Dbo::ptr<ConfigurationEnumValue> IPMVShow = DboSession.add(new ConfigurationEnumValue());
+	IPMVShow.modify()->Value = 1;
+	IPMVShow.modify()->Title = "Always show language";
+	IPMVShow.modify()->Details = "In this mode language is always shown in the internal path. If the website is accessed without language in the internal path then language will automatically be added.";
+	Wt::Dbo::ptr<ConfigurationEnumValue> IPMVShowHideDefault = DboSession.add(new ConfigurationEnumValue());
+	IPMVShowHideDefault.modify()->Value = 2;
+	IPMVShowHideDefault.modify()->Title = "Always show language but hide default language";
+	IPMVShowHideDefault.modify()->Details = "In this mode all languages except for the default language is always shown in the internal path. If the website is accessed without language in the internal path then language will automatically be added.";
+	Wt::Dbo::ptr<ConfigurationEnumValue> IPMVNoRestrictionHideDefault = DboSession.add(new ConfigurationEnumValue());
+	IPMVNoRestrictionHideDefault.modify()->Value = 3;
+	IPMVNoRestrictionHideDefault.modify()->Title = "No restrictions but hide default language";
+	IPMVNoRestrictionHideDefault.modify()->Details = "In this mode language will not be automatically removed or added except the default language will never be shown.";
+	Wt::Dbo::ptr<ConfigurationEnumValue> IPMVNoRestriction = DboSession.add(new ConfigurationEnumValue());
+	IPMVNoRestriction.modify()->Value = 4;
+	IPMVNoRestriction.modify()->Title = "No restrictions";
+	IPMVNoRestriction.modify()->Details = "In this mode language will not be automatically removed or added in any case.";
+
+	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVShow);
+	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVShowHideDefault);
+	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVNoRestrictionHideDefault);
+	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVNoRestriction);
+
+	InternalPathModeVal.modify()->Value = IPMVNoRestrictionHideDefault->Value;
+	InternalPathModeVal.modify()->DefaultValue = IPMVNoRestrictionHideDefault->Value;
+
+	InternalPathMode.modify()->EnumPtr = InternalPathModeVal;
 
 	//EnableTokens
 	Wt::Dbo::ptr<Configuration> EnableTokens = DboSession.add(new Configuration("EnableTokens", AuthenticationModule, ConfigurationKeys::Bool));
 	EnableTokens.modify()->Title = "Enable Remember-Me Tokens";
-	EnableTokens.modify()->Details = "If enabled then remember me feature on login will be enabled. This means that if users agree to keep them self logged in, they will not have to login again even after end of session. Cookies will be set as tokens.";
+	EnableTokens.modify()->Details = "If enabled then remember me feature before login will be enabled. This means that if users agree to keep them self logged in, they will not have to login again even after end of session. Cookies will be set as tokens.";
 	EnableTokens.modify()->RestartRequired = true;
 	Wt::Dbo::ptr<ConfigurationBool> EnableTokensVal = DboSession.add(new ConfigurationBool());
 	EnableTokensVal.modify()->Value = true;
@@ -416,6 +469,30 @@ void DboInstaller::InsertRows()
 	Wt::Dbo::ptr<ConfigurationInt> HomePageVal = DboSession.add(new ConfigurationInt());
 	HomePageVal.modify()->Value = 1;
 	HomePage.modify()->IntPtr = HomePageVal;
+
+	//ResourcesURL
+	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", StylesModule, ConfigurationKeys::String));
+	ResourcesURL.modify()->Title = "Resources folder URL";
+	ResourcesURL.modify()->Details = "Path to Wt's resources folder.";
+	ResourcesURL.modify()->RestartRequired = true;
+	Wt::Dbo::ptr<ConfigurationString> ResourcesURLVal = DboSession.add(new ConfigurationString());
+	ResourcesURLVal.modify()->Value = "/resources";
+	ResourcesURLVal.modify()->DefaultValue = "/resources";
+	ResourcesURLVal.modify()->ExampleValue = "/resources";
+	ResourcesURLVal.modify()->MinLength = 1;
+	ResourcesURL.modify()->StringPtr = ResourcesURLVal;
+
+	//StylesURL
+	Wt::Dbo::ptr<Configuration> StylesURL = DboSession.add(new Configuration("StylesURL", StylesModule, ConfigurationKeys::String));
+	StylesURL.modify()->Title = "Images folder URL";
+	StylesURL.modify()->Details = "Path to the images folder that contain general and style images.";
+	StylesURL.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationString> StylesURLVal = DboSession.add(new ConfigurationString());
+	StylesURLVal.modify()->Value = "/styles";
+	StylesURLVal.modify()->DefaultValue = "/styles";
+	StylesURLVal.modify()->ExampleValue = "/styles";
+	StylesURLVal.modify()->MinLength = 1;
+	StylesURL.modify()->StringPtr = StylesURLVal;
 
 	//Localization
 	//English
@@ -616,6 +693,12 @@ void DboInstaller::InsertRows()
 	EnglishLanguagePtr.modify()->LanguageSingleCollection.insert(DboSession.add(new LanguageSingle("Wt.Auth.lostpasswordmail.subject", "Lost password instructions", WtModule, Wt::Dbo::ptr<Language>(), true)));
 	EnglishLanguagePtr.modify()->LanguageSingleCollection.insert(DboSession.add(new LanguageSingle("Wt.Auth.lostpasswordmail.body", "Hello {1},\r\n\r\nThis mail has been sent to you, because someone (presumably you?) indicated that he wishes to choose a new password, because the current password escapes his mind.\r\n\r\nIf you requested this, then choose a new password by clicking on the following link or copying the URL into your browser. If you didn't request this, you can safely ignore and discard this email.\r\n \r\nPlease copy and paste the following URL into your browser: (Note: be sure to copy the entire URL, including any part of it which goes onto a second line.)\r\n \r\n{3}", WtModule, Wt::Dbo::ptr<Language>(), true)));
 	EnglishLanguagePtr.modify()->LanguageSingleCollection.insert(DboSession.add(new LanguageSingle("Wt.Auth.lostpasswordmail.htmlbody", "<h3>Hello {1},</h3>\r\n\r\n<p>This mail has been sent to you, because someone (presumably you?)  indicated that he wishes to choose a new password, because the current password escapes his mind.</p>\r\n\r\n<p>If you requested this, then choose a new password by clicking on the following link or copying the URL into your browser. If you didn't request this, you can safely ignore and discard this email.</p>\r\n \r\n<p>Please <a href=\"{3}\">click here to choose a new password</a> or copy and paste the following URL into your browser: <i>(Note: be sure to copy the entire URL, including any part of it which goes onto a second line.)</i></p>\r\n\r\n<b>{3}</b>", WtModule, Wt::Dbo::ptr<Language>(), true)));
+
+	//Access Paths
+	Wt::Dbo::ptr<AccessPath> DefaultLanguageAccessPath = DboSession.add(new AccessPath());
+	DefaultLanguageAccessPath.modify()->HostName = "";
+	DefaultLanguageAccessPath.modify()->InternalPath = "en";
+	DefaultLanguageAccessPath.modify()->LanguagePtr = EnglishLanguagePtr;
 
 	//Pages
 	Wt::Dbo::ptr<Page> LandingHomePage = DboSession.add(new Page(1, NavigationModule));

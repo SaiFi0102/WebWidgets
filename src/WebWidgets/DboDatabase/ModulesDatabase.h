@@ -27,7 +27,7 @@ class ModulesDatabase
 		void FetchAll();
 
 		Module GetDbo(long long Id) const;
-		int CountModules() const;
+		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 
 	protected:

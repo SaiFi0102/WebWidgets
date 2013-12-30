@@ -11,16 +11,18 @@ class ConfigurationDouble;
 class ConfigurationEnum;
 class ConfigurationFloat;
 class ConfigurationInt;
+class ConfigurationLongInt;
 class ConfigurationString;
 class ConfigurationEnumValue;
 
 typedef Wt::Dbo::collection< Wt::Dbo::ptr< Configuration > > ConfigurationCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationBool > > ConfigurationBoolCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationEnum > > ConfigurationEnumCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationDouble > > ConfigurationDoubleCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationFloat > > ConfigurationFloatCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationInt > > ConfigurationIntCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationString > > ConfigurationStringCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationBool > > BoolCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationEnum > > EnumCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationDouble > > DoubleCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationFloat > > FloatCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationInt > > IntCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationLongInt > > LongIntCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationString > > StringCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationEnumValue > > EnumValueCollections;
 
 //Configuration Keys structure
@@ -33,7 +35,7 @@ struct ConfigurationKeys
 		Enum =		2,
 		Float =		3,
 		Int =		4,
-		//LongInt =	5,
+		LongInt =	5,
 		String =	6,
 	};
 
@@ -110,6 +112,14 @@ namespace Wt
 			static IdType invalidId();
 			static const char *surrogateIdField();
 		};
+		//Overloaded dbo_traits for ConfigurationLongInt DBO
+		template<>
+		struct dbo_traits<ConfigurationLongInt> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId();
+			static const char *surrogateIdField();
+		};
 		//Overloaded dbo_traits for ConfigurationString DBO
 		template<>
 		struct dbo_traits<ConfigurationString> : public dbo_default_traits
@@ -131,6 +141,7 @@ class Configuration : public Wt::Dbo::Dbo<Configuration>
 		Wt::Dbo::weak_ptr<ConfigurationEnum>	EnumPtr;
 		Wt::Dbo::weak_ptr<ConfigurationFloat>	FloatPtr;
 		Wt::Dbo::weak_ptr<ConfigurationInt>		IntPtr;
+		Wt::Dbo::weak_ptr<ConfigurationLongInt>	LongIntPtr;
 		Wt::Dbo::weak_ptr<ConfigurationString>	StringPtr;
 
 		//Fields
@@ -157,6 +168,7 @@ class Configuration : public Wt::Dbo::Dbo<Configuration>
 			Wt::Dbo::hasOne(a, EnumPtr, "Configuration");
 			Wt::Dbo::hasOne(a, FloatPtr, "Configuration");
 			Wt::Dbo::hasOne(a, IntPtr, "Configuration");
+			Wt::Dbo::hasOne(a, LongIntPtr, "Configuration");
 			Wt::Dbo::hasOne(a, StringPtr, "Configuration");
 		}
 		static const char *TableName()
@@ -301,7 +313,7 @@ class ConfigurationInt : public Wt::Dbo::Dbo<ConfigurationInt>
 	public:
 		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		int Value;
-		int DefaultValue;
+		boost::optional<int> DefaultValue;
 		boost::optional<int> RecommendedValue;
 
 		boost::optional<int> MinValue;
@@ -319,6 +331,33 @@ class ConfigurationInt : public Wt::Dbo::Dbo<ConfigurationInt>
 		static const char *TableName()
 		{
 			return "configurationints";
+		}
+};
+
+//ConfigurationLongInt DBO Class
+class ConfigurationLongInt : public Wt::Dbo::Dbo<ConfigurationLongInt>
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
+		long long Value;
+		boost::optional<long long> DefaultValue;
+		boost::optional<long long> RecommendedValue;
+
+		boost::optional<long long> MinValue;
+		boost::optional<long long> MaxValue;
+
+		template<class Action>void persist(Action &a)
+		{
+			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::field(a, Value,			"Value");
+			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
+			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
+			Wt::Dbo::field(a, MinValue,			"MinValue");
+			Wt::Dbo::field(a, MaxValue,			"MaxValue");
+		}
+		static const char *TableName()
+		{
+			return "configurationlongints";
 		}
 };
 

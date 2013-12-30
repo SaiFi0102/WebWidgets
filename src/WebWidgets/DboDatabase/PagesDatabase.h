@@ -70,7 +70,7 @@ class PagesDatabase
 		Page GetDbo(long long PageId, long long ModuleId) const;
 		Page GetDbo(const std::string &InternalPath) const;
 
-		int CountPages() const;
+		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
 
 	protected:

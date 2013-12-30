@@ -28,6 +28,7 @@ void PagesDatabase::MapClasses()
 	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
 	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
 	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
 	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
 	DboSession.mapClass<Language>(Language::TableName());
 	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
@@ -38,6 +39,7 @@ void PagesDatabase::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void PagesDatabase::FetchAll()
@@ -120,7 +122,7 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
 	return *itr;
 }
 
-int PagesDatabase::CountPages() const
+std::size_t PagesDatabase::CountPages() const
 {
 	READ_LOCK;
 	return PageContainer.size();

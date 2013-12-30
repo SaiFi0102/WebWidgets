@@ -7,10 +7,12 @@
 class Language;
 class LanguageSingle;
 class LanguagePlural;
+class AccessPath;
 struct LanguageSingleKeys;
 struct LanguagePluralKeys;
 
 typedef Wt::Dbo::collection< Wt::Dbo::ptr< Language > > LanguageCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr< AccessPath > > AccessPathCollections;
 namespace Wt
 {
 	namespace Dbo
@@ -106,6 +108,7 @@ class Language : public Wt::Dbo::Dbo<Language>
 		Language();
 
 		//hasMany
+		AccessPathCollections AccessPathCollection;
 		LanguageSingleCollections LanguageSingleCollection;
 		LanguagePluralCollections LanguagePluralCollection;
 
@@ -117,6 +120,7 @@ class Language : public Wt::Dbo::Dbo<Language>
 			Wt::Dbo::field(a, PluralExpression,	"PluralExpression");
 			Wt::Dbo::field(a, PluralCases,		"PluralCases");
 
+			Wt::Dbo::hasMany(a, AccessPathCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, LanguageSingleCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, LanguagePluralCollection, Wt::Dbo::ManyToOne, "Language");
 		}
@@ -172,5 +176,7 @@ class LanguagePlural : public Wt::Dbo::Dbo<LanguagePlural>
 	private:
 		LanguagePluralKeys _Id;
 };
+
+#include "Dbo/AccessPath.h"
 
 #endif

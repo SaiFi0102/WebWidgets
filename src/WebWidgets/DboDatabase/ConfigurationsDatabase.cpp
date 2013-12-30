@@ -29,6 +29,7 @@ void ConfigurationsDatabase::MapClasses()
 	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
 	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
 	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
 	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
 	DboSession.mapClass<Language>(Language::TableName());
 	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
@@ -39,6 +40,7 @@ void ConfigurationsDatabase::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void ConfigurationsDatabase::FetchAll()
@@ -64,28 +66,24 @@ void ConfigurationsDatabase::FetchAll()
 	IntMaps intmap;
 	intmap.swap(IntMap);
 
+	LongIntMaps longintmap;
+	longintmap.swap(LongIntMap);
+
 	StringMaps stringmap;
 	stringmap.swap(StringMap);
 
-	int count = 0;
-	std::swap(count, Count);
+	std::size_t count = 0;
+	boost::swap(count, Count);
 
 	//Strong transaction like exception safety
 	try
 	{
-		//Declarations
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationBool> > BoolCollections;
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationDouble> > DoubleCollections; 
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationEnum> > EnumCollections;
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationFloat> > FloatCollections;
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationInt> > IntCollections;
-		typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationString> > StringCollections;
-
 		BoolCollections BoolCollection;
 		DoubleCollections DoubleCollection;
 		EnumCollections EnumCollection;
 		FloatCollections FloatCollection;
 		IntCollections IntCollection;
+		LongIntCollections LongIntCollection;
 		StringCollections StringCollection;
 
 		//Fetch em all
@@ -95,6 +93,7 @@ void ConfigurationsDatabase::FetchAll()
 		EnumCollection = DboSession.find<ConfigurationEnum>();
 		FloatCollection = DboSession.find<ConfigurationFloat>();
 		IntCollection = DboSession.find<ConfigurationInt>();
+		LongIntCollection = DboSession.find<ConfigurationLongInt>();
 		StringCollection = DboSession.find<ConfigurationString>();
 
 		//Bool
@@ -137,6 +136,14 @@ void ConfigurationsDatabase::FetchAll()
 			IntMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
 		}
 
+		//LongInt
+		for(LongIntCollections::const_iterator itr = LongIntCollection.begin();
+			itr != LongIntCollection.end();
+			++itr, Count++)
+		{
+			LongIntMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+		}
+
 		//String
 		for(StringCollections::const_iterator itr = StringCollection.begin();
 			itr != StringCollection.end();
@@ -144,6 +151,7 @@ void ConfigurationsDatabase::FetchAll()
 		{
 			StringMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
 		}
+
 		transaction.commit();
 	}
 	catch(...)
@@ -154,8 +162,9 @@ void ConfigurationsDatabase::FetchAll()
 		EnumMap.swap(enummap);
 		FloatMap.swap(floatmap);
 		IntMap.swap(intmap);
+		LongIntMap.swap(longintmap);
 		StringMap.swap(stringmap);
-		std::swap(Count, count);
+		boost::swap(Count, count);
 		throw;
 	}
 
@@ -269,6 +278,27 @@ Wt::Dbo::ptr<ConfigurationInt> ConfigurationsDatabase::GetIntPtr(const std::stri
 	return itr->second;
 }
 
+ConfigurationLongInt ConfigurationsDatabase::GetLongIntDbo(const std::string &Name, long long ModuleId) const
+{
+	READ_LOCK;
+	Wt::Dbo::ptr<ConfigurationLongInt> Ptr = GetLongIntPtr(Name, ModuleId);
+	if(!Ptr)
+	{
+		return ConfigurationLongInt();
+	}
+	return *Ptr;
+}
+Wt::Dbo::ptr<ConfigurationLongInt> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
+{
+	READ_LOCK;
+	LongIntMaps::const_iterator itr = LongIntMap.find(std::make_pair(ModuleId, Name));
+	if(itr == LongIntMap.end())
+	{
+		return Wt::Dbo::ptr<ConfigurationLongInt>();
+	}
+	return itr->second;
+}
+
 ConfigurationString ConfigurationsDatabase::GetStringDbo(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -297,6 +327,7 @@ bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId
 	Wt::Dbo::ptr<ConfigurationBool> BoolPtr = GetBoolPtr(Name, ModuleId);
 	if(!BoolPtr)
 	{
+		_Server.log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return BoolPtr->Value;
@@ -309,6 +340,7 @@ double ConfigurationsDatabase::GetDouble(const std::string &Name, long long Modu
 	Wt::Dbo::ptr<ConfigurationDouble> DoublePtr = GetDoublePtr(Name, ModuleId);
 	if(!DoublePtr)
 	{
+		_Server.log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return DoublePtr->Value;
@@ -321,6 +353,7 @@ int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId,
 	Wt::Dbo::ptr<ConfigurationEnum> EnumPtr = GetEnumPtr(Name, ModuleId);
 	if(!EnumPtr)
 	{
+		_Server.log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return EnumPtr->Value;
@@ -333,6 +366,7 @@ float ConfigurationsDatabase::GetFloat(const std::string &Name, long long Module
 	Wt::Dbo::ptr<ConfigurationFloat> FloatPtr = GetFloatPtr(Name, ModuleId);
 	if(!FloatPtr)
 	{
+		_Server.log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return FloatPtr->Value;
@@ -345,9 +379,23 @@ int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, 
 	Wt::Dbo::ptr<ConfigurationInt> IntPtr = GetIntPtr(Name, ModuleId);
 	if(!IntPtr)
 	{
+		_Server.log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return IntPtr->Value;
+}
+
+//Long integer getter
+long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long ModuleId, long long Default) const
+{
+	READ_LOCK;
+	Wt::Dbo::ptr<ConfigurationLongInt> LongIntPtr = GetLongIntPtr(Name, ModuleId);
+	if(!LongIntPtr)
+	{
+		_Server.log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		return Default;
+	}
+	return LongIntPtr->Value;
 }
 
 //String getter
@@ -357,6 +405,7 @@ std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long Mo
 	Wt::Dbo::ptr<ConfigurationString> StringPtr = GetStringPtr(Name, ModuleId);
 	if(!StringPtr)
 	{
+		_Server.log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	if(!StringPtr->Value.is_initialized())
@@ -372,7 +421,7 @@ long long ConfigurationsDatabase::GetLoadDurationinMS() const
 	return LoadDuration.total_milliseconds();
 }
 
-int ConfigurationsDatabase::CountConfigurations() const
+std::size_t ConfigurationsDatabase::CountConfigurations() const
 {
 	READ_LOCK;
 	return Count;

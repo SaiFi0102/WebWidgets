@@ -29,6 +29,7 @@ void LanguagesDatabase::MapClasses()
 	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
 	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
 	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
 	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
 	DboSession.mapClass<Language>(Language::TableName());
 	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
@@ -39,6 +40,7 @@ void LanguagesDatabase::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void LanguagesDatabase::FetchAll()
@@ -250,9 +252,12 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	Locale.setDecimalPoint(GetSinglePtr(Code, "DecimalPointCharacter", ModulesDatabase::Localization)->String);
-	Locale.setGroupSeparator(GetSinglePtr(Code, "NumberThousandSeparator", ModulesDatabase::Localization)->String);
-	Locale.setDateFormat(GetSinglePtr(Code, "DateFormat", ModulesDatabase::Localization)->String);
+	Wt::Dbo::ptr<LanguageSingle> DecimalPointCharacter = GetSinglePtr(Code, "DecimalPointCharacter", ModulesDatabase::Localization);
+	Wt::Dbo::ptr<LanguageSingle> NumberThousandSeparator = GetSinglePtr(Code, "NumberThousandSeparator", ModulesDatabase::Localization);
+	Wt::Dbo::ptr<LanguageSingle> DateFormat = GetSinglePtr(Code, "DateFormat", ModulesDatabase::Localization);
+	Locale.setDecimalPoint(DecimalPointCharacter ? DecimalPointCharacter->String : ".");
+	Locale.setGroupSeparator(NumberThousandSeparator ? NumberThousandSeparator->String : ",");
+	Locale.setDateFormat(DateFormat? DateFormat->String : "MMMM dd, yyyy");
 	return Locale;
 }
 Wt::WLocale LanguagesDatabase::GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
@@ -266,17 +271,17 @@ long long LanguagesDatabase::GetLoadDurationinMS() const
 	READ_LOCK;
 	return LoadDuration.total_milliseconds();
 }
-int LanguagesDatabase::CountSingle() const
+std::size_t LanguagesDatabase::CountSingle() const
 {
 	READ_LOCK;
 	return LanguageSingleContainer.get<0>().size();
 }
-int LanguagesDatabase::CountPlural() const
+std::size_t LanguagesDatabase::CountPlural() const
 {
 	READ_LOCK;
 	return LanguagePluralContainer.get<0>().size();
 }
-int LanguagesDatabase::CountLanguages() const
+std::size_t LanguagesDatabase::CountLanguages() const
 {
 	READ_LOCK;
 	return LanguageContainer.get<0>().size();

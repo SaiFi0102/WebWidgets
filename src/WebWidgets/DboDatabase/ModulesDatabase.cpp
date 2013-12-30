@@ -28,6 +28,7 @@ void ModulesDatabase::MapClasses()
 	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
 	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
 	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
 	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
 	DboSession.mapClass<Language>(Language::TableName());
 	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
@@ -38,6 +39,7 @@ void ModulesDatabase::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void ModulesDatabase::FetchAll()
@@ -100,7 +102,7 @@ Module ModulesDatabase::GetDbo(Wt::Dbo::dbo_traits<Module>::IdType Id) const
 	return *Ptr;
 }
 
-int ModulesDatabase::CountModules() const
+std::size_t ModulesDatabase::CountModules() const
 {
 	READ_LOCK;
 	return ModuleMap.size();

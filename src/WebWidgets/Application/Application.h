@@ -14,10 +14,18 @@ class Application : public Wt::WApplication
 		static Application *instance();
 		static Application *CreateApplication(const Wt::WEnvironment &env);
 
-	protected:
-		void SetLanguageFromInternalPath(bool SetInternalPath = false);
+		void setLocale(const Wt::WLocale &locale);
+		Wt::Signal<void> &LocaleChanged();
 
-		Wt::WLocale EnviromentLocale;
+	protected:
+		void SetLanguageFromInternalPath();
+
+		Wt::Signal<void> _LocaleChanged;
+
+		Wt::WLocale _UserLocale;
+		Wt::WLocale _SessionDefaultLocale;
+		bool _LanguageFromHostname;
+		bool _SkipLanguageInternalPath;
 };
 
 #endif

@@ -72,6 +72,7 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 		Languages = new LanguagesDatabase(*SQLPool, *this);
 		Styles = new StylesDatabase(*SQLPool, *this);
 		Pages = new PagesDatabase(*SQLPool, *this);
+		AccessPaths = new AccessPathsDatabase(*SQLPool, *this);
 	}
 	catch(std::exception &e)
 	{
@@ -82,8 +83,8 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	
-	/*try
+	/*
+	try
 	{
 		Installer->DropTables();
 	}
@@ -98,7 +99,7 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 		//throw e;
 	}
 
-	///*
+	//*//*
 	try
 	{
 		Installer->CreateTables();
@@ -200,7 +201,7 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 	try
 	{
 		log("info") << "Loading styles/templates from database";
-		Styles->FetchAll();
+		Styles->FetchAll(true);
 		log("success") << "Styles: " << Styles->CountStyles() << " Styles, " << Styles->CountTemplates() << " Templates, " << Styles->CountStyleTemplates() << " Styled Templates, " << Styles->CountStyleCssRules() << " Style CSS Rules and " << Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << Styles->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
@@ -232,6 +233,27 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 	catch(std::exception &e)
 	{
 		log("fatal") << "Error while loading pages from database: " << e.what();
+		throw e;
+	}
+
+	/* *************************************************************************
+	 * ****************************  Access Paths  *****************************
+	 * *************************************************************************/
+	//Fetch
+	try
+	{
+		log("info") << "Loading access paths from database";
+		AccessPaths->FetchAll();
+		log("success") << "AccessPaths: " << AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << AccessPaths->GetLoadDurationinMS() << " Ms";
+	}
+	catch(Wt::Dbo::Exception &e)
+	{
+		log("fatal") << "Database error loading access paths from database: " << e.what();
+		throw e;
+	}
+	catch(std::exception &e)
+	{
+		log("fatal") << "Error while loading access paths from database: " << e.what();
 		throw e;
 	}
 
@@ -270,9 +292,13 @@ StylesDatabase *WServer::GetStyles() const
 {
 	return Styles;
 }
-PagesDatabase * WServer::GetPages() const
+PagesDatabase *WServer::GetPages() const
 {
 	return Pages;
+}
+AccessPathsDatabase *WServer::GetAccessPaths() const
+{
+	return AccessPaths;
 }
 
 const Wt::Auth::AuthService &WServer::GetAuthService() const
@@ -312,8 +338,8 @@ bool WServer::Start()
 		PTStart = boost::posix_time::microsec_clock::local_time();
 
 		log("success") << "Server successfully started! Time taken to start: "
-			<< boost::posix_time::time_duration(PTStart - PTBeforeLoad).total_seconds()
-			<< " Seconds";
+			<< boost::posix_time::time_duration(PTStart - PTBeforeLoad).total_milliseconds()
+			<< " MS";
 		return true;
 	}
 	return false;
@@ -321,8 +347,8 @@ bool WServer::Start()
 
 void WServer::ConfigureAuth()
 {
-	AuthService.setAuthTokensEnabled(Configurations->GetBool("EnableTokens", GetModules()->AuthenticationModuleId(), true), Configurations->GetStr("LoginCookie", GetModules()->AuthenticationModuleId(), "logintoken"));
-	AuthService.setEmailVerificationEnabled(Configurations->GetBool("EmailVerification", GetModules()->AuthenticationModuleId(), false));
+	AuthService.setAuthTokensEnabled(Configurations->GetBool("EnableTokens", ModulesDatabase::Authentication, true), Configurations->GetStr("LoginCookie", ModulesDatabase::Authentication, "logintoken"));
+	AuthService.setEmailVerificationEnabled(Configurations->GetBool("EmailVerification", ModulesDatabase::Authentication, false));
 
 	Wt::Auth::PasswordVerifier *verifier = new Wt::Auth::PasswordVerifier();
 	verifier->addHashFunction(new Wt::Auth::BCryptHashFunction(7));
@@ -330,11 +356,11 @@ void WServer::ConfigureAuth()
 	PasswordService.setAttemptThrottlingEnabled(true);
 	PasswordService.setStrengthValidator(new Wt::Auth::PasswordStrengthValidator());
 
-	if(Wt::Auth::GoogleService::configured() && GetConfigurations()->GetBool("GoogleOAuth", GetModules()->AuthenticationModuleId(), false))
+	if(Wt::Auth::GoogleService::configured() && GetConfigurations()->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false))
 	{
 		OAuthServices.push_back(new Wt::Auth::GoogleService(AuthService));
 	}
-	if(Wt::Auth::FacebookService::configured() && GetConfigurations()->GetBool("FacebookOAuth", GetModules()->AuthenticationModuleId(), false))
+	if(Wt::Auth::FacebookService::configured() && GetConfigurations()->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false))
 	{
 		OAuthServices.push_back(new Wt::Auth::FacebookService(AuthService));
 	}
@@ -364,7 +390,7 @@ void WServer::CreateWtXmlConfiguration()
 	
 	//<session-management> child element <tracking>
 	rapidxml::xml_node<> *NodeTracking = XmlDoc.allocate_node(rapidxml::node_element, "tracking");
-	switch(Configurations->GetInt("SessionTracking", GetModules()->ServerModuleId(), 1))
+	switch(Configurations->GetEnum("SessionTracking", ModulesDatabase::Server, 1))
 	{
 		default:
 		case 1:
@@ -380,7 +406,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "reload-is-new-session", "false"));
 
 	//<session-management> child element <timeout>
-	int ConfSessionTimeout = Configurations->GetInt("SessionTimeout", GetModules()->ServerModuleId(), 600);
+	int ConfSessionTimeout = Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);
 	if(ConfSessionTimeout < 60) ConfSessionTimeout = 60;
 	std::string ConfSessionTimeoutStr = boost::lexical_cast<std::string>(ConfSessionTimeout);
 	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "timeout", ConfSessionTimeoutStr.c_str()));
@@ -409,39 +435,39 @@ void WServer::CreateWtXmlConfiguration()
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "debug", "false"));
 
 	//<log-file> element
-	std::string LogFileStr = Configurations->GetStr("LogDirectory", GetModules()->LoggingModuleId());
+	std::string LogFileStr = Configurations->GetStr("LogDirectory", ModulesDatabase::Logging) + "/server.log";
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-file", LogFileStr.c_str()));
 
 	//<log-config> element
 	std::string LogConfigStr = "*";
-	if(!Configurations->GetBool("LogDebugLevel", GetModules()->LoggingModuleId(), false))
+	if(!Configurations->GetBool("LogDebugLevel", ModulesDatabase::Logging, false))
 	{
 		LogConfigStr += " -debug";
 	}
-	if(!Configurations->GetBool("LogInfoLevel", GetModules()->LoggingModuleId(), false))
+	if(!Configurations->GetBool("LogInfoLevel", ModulesDatabase::Logging, false))
 	{
 		LogConfigStr += " -info";
 	}
-	if(!Configurations->GetBool("LogWarnLevel", GetModules()->LoggingModuleId(), true))
+	if(!Configurations->GetBool("LogWarnLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -warning";
 	}
-	if(!Configurations->GetBool("LogSecureLevel", GetModules()->LoggingModuleId(), true))
+	if(!Configurations->GetBool("LogSecureLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -secure";
 	}
-	if(!Configurations->GetBool("LogErrorLevel", GetModules()->LoggingModuleId(), true))
+	if(!Configurations->GetBool("LogErrorLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -error";
 	}
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-config", LogConfigStr.c_str()));
 
 	//<max-request-size> element
-	std::string MaxReqSizeStr = boost::lexical_cast<std::string>(Configurations->GetInt("MaxRequestSize", GetModules()->ServerModuleId(), 128));
+	std::string MaxReqSizeStr = boost::lexical_cast<std::string>(Configurations->GetInt("MaxRequestSize", ModulesDatabase::Server, 128));
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "max-request-size", MaxReqSizeStr.c_str()));
 
 	//<ajax-puzzle> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "ajax-puzzle", Configurations->GetBool("DosPuzzle", GetModules()->ServerModuleId(), false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "ajax-puzzle", Configurations->GetBool("DosPuzzle", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<strict-event-serialization> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "strict-event-serialization", "false")); //TODO: Gotta understand this first
@@ -450,7 +476,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "redirect-message", "Click here if the page does not refreshes."));
 
 	//<behind-reverse-proxy> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "behind-reverse-proxy", Configurations->GetBool("ReverseProxy", GetModules()->ServerModuleId(), false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "behind-reverse-proxy", Configurations->GetBool("ReverseProxy", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<progressive-bootstrap> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "progressive-bootstrap", "false"));
@@ -462,7 +488,7 @@ void WServer::CreateWtXmlConfiguration()
 	rapidxml::xml_node<> *NodeProperties = XmlDoc.allocate_node(rapidxml::node_element, "properties");
 	NodeAppSett->append_node(NodeProperties);
 
-	std::string PropertyBaseUrl = Configurations->GetStr("BaseURL", GetModules()->ServerModuleId());
+	std::string PropertyBaseUrl = Configurations->GetStr("BaseURL", ModulesDatabase::Server);
 	if(!PropertyBaseUrl.empty())
 	{
 		rapidxml::xml_node<> *NodePropertyBaseURL = XmlDoc.allocate_node(rapidxml::node_element, "property", PropertyBaseUrl.c_str());
@@ -470,21 +496,16 @@ void WServer::CreateWtXmlConfiguration()
 		NodeProperties->append_node(NodePropertyBaseURL);
 	}
 
-	std::string ResourceUrlStr = PropertyBaseUrl + "resources/";
+	std::string ResourceUrlStr =  Configurations->GetStr("ResourcesURL", ModulesDatabase::Styles, "resources/");
 	rapidxml::xml_node<> *NodePropertyResourceURL = XmlDoc.allocate_node(rapidxml::node_element, "property", ResourceUrlStr.c_str());
 	NodePropertyResourceURL->append_attribute(XmlDoc.allocate_attribute("name", "resourcesURL"));
 	NodeProperties->append_node(NodePropertyResourceURL);
-	
-	std::string ExtUrlStr = PropertyBaseUrl + "resources/ext/";
-	rapidxml::xml_node<> *NodePropertyExtURL = XmlDoc.allocate_node(rapidxml::node_element, "property", ExtUrlStr.c_str());
-	NodePropertyExtURL->append_attribute(XmlDoc.allocate_attribute("name", "extBaseURL"));
-	NodeProperties->append_node(NodePropertyExtURL);
 
 	//Google OAuth
-	std::string GoogleClientIdStr = Configurations->GetStr("GoogleClientId", GetModules()->AuthenticationModuleId());
-	std::string GoogleClientSecretStr = Configurations->GetStr("GoogleClientSecret", GetModules()->AuthenticationModuleId());
+	std::string GoogleClientIdStr = Configurations->GetStr("GoogleClientId", ModulesDatabase::Authentication);
+	std::string GoogleClientSecretStr = Configurations->GetStr("GoogleClientSecret", ModulesDatabase::Authentication);
 	std::string RedirectStr = PropertyBaseUrl + "oauth2callback";
-	if(Configurations->GetBool("GoogleOAuth", Modules->AuthenticationModuleId(), false) && !GoogleClientIdStr.empty() && !GoogleClientSecretStr.empty())
+	if(Configurations->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false) && !GoogleClientIdStr.empty() && !GoogleClientSecretStr.empty())
 	{
 		rapidxml::xml_node<> *NodeGoogleClientId = XmlDoc.allocate_node(rapidxml::node_element, "property", GoogleClientIdStr.c_str());
 		NodeGoogleClientId->append_attribute(XmlDoc.allocate_attribute("name", "google-oauth2-client-id"));
@@ -500,9 +521,9 @@ void WServer::CreateWtXmlConfiguration()
 	}
 
 	//Facebook OAuth
-	std::string FacebookAppIdStr = Configurations->GetStr("FacebookAppId", GetModules()->AuthenticationModuleId());
-	std::string FacebookAppSecretStr = Configurations->GetStr("FacebookAppSecret", GetModules()->AuthenticationModuleId());
-	if(Configurations->GetBool("FacebookOAuth", Modules->AuthenticationModuleId(), false) && !FacebookAppIdStr.empty() && !FacebookAppSecretStr.empty())
+	std::string FacebookAppIdStr = Configurations->GetStr("FacebookAppId", ModulesDatabase::Authentication);
+	std::string FacebookAppSecretStr = Configurations->GetStr("FacebookAppSecret", ModulesDatabase::Authentication);
+	if(Configurations->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false) && !FacebookAppIdStr.empty() && !FacebookAppSecretStr.empty())
 	{
 		rapidxml::xml_node<> *NodeFacebookAppId = XmlDoc.allocate_node(rapidxml::node_element, "property", FacebookAppIdStr.c_str());
 		NodeFacebookAppId->append_attribute(XmlDoc.allocate_attribute("name", "facebook-oauth2-app-id"));
@@ -518,7 +539,7 @@ void WServer::CreateWtXmlConfiguration()
 	}
 
 	//Write to file
-	std::fstream XmlFile("wt_config.xml", std::ios::out | std::ios::trunc);
+	std::ofstream XmlFile("wt_config.xml", std::ios::trunc);
 	XmlFile << XmlDoc;
 	XmlFile.close();
 }
@@ -537,6 +558,8 @@ WServer::~WServer()
 	}
 
 	delete Installer;
+	delete AccessPaths;
+	delete Pages;
 	delete Styles;
 	delete Languages;
 	delete Configurations;
