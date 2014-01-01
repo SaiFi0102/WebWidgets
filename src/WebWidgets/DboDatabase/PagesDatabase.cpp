@@ -90,7 +90,7 @@ Page PagesDatabase::GetDbo(long long PageId, long long ModuleId) const
 	}
 	return *Ptr;
 }
-Page PagesDatabase::GetDbo(const std::string &InternalPath) const
+/*Page PagesDatabase::GetDbo(const std::string &InternalPath) const
 {
 	READ_LOCK;
 	Wt::Dbo::ptr<Page> Ptr = GetPtr(InternalPath);
@@ -99,7 +99,7 @@ Page PagesDatabase::GetDbo(const std::string &InternalPath) const
 		return Page();
 	}
 	return *Ptr;
-}
+}*/
 
 Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
 {
@@ -111,7 +111,7 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) c
 	}
 	return *itr;
 }
-Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
+/*Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
 {
 	READ_LOCK;
 	PageByInternalPath::iterator itr = PageContainer.get<ByInternalPath>().find(InternalPath);
@@ -120,7 +120,7 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
 		return Wt::Dbo::ptr<Page>();
 	}
 	return *itr;
-}
+}*/
 
 std::size_t PagesDatabase::CountPages() const
 {

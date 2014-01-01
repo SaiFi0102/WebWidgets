@@ -27,16 +27,7 @@ class PagesDatabase
 				return PagePtr.id().ModulePtr.id();
 			}
 		};
-		struct Page_key_InternalPath
-		{
-			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<Page> PagePtr) const
-			{
-				return PagePtr->InternalPath;
-			}
-		};
 		struct ByCompositeKey{};
-		struct ByInternalPath{};
 
 		typedef boost::multi_index_container<
 			Wt::Dbo::ptr<Page>,
@@ -50,16 +41,10 @@ class PagesDatabase
 						Page_key_id,
 						Page_key_ModuleId
 					>
-				>,
-				//Index by Internal Path string
-				boost::multi_index::hashed_unique<
-					boost::multi_index::tag<ByInternalPath>,
-					Page_key_InternalPath
 				>
 			>
 		> PageContainers;
 		typedef PageContainers::index<ByCompositeKey>::type PageByCompositeKey;
-		typedef PageContainers::index<ByInternalPath>::type PageByInternalPath;
 
 	public:
 		PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
@@ -68,7 +53,7 @@ class PagesDatabase
 		void FetchAll();
 
 		Page GetDbo(long long PageId, long long ModuleId) const;
-		Page GetDbo(const std::string &InternalPath) const;
+		//Page GetDbo(const std::string &InternalPath) const;
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
@@ -76,7 +61,7 @@ class PagesDatabase
 	protected:
 		virtual void MapClasses();
 		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
-		Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
+		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
 
 		PageContainers PageContainer;
 		boost::posix_time::time_duration LoadDuration;

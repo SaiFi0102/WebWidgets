@@ -2,28 +2,8 @@
 #define CONFIGURATION_DBO_H
 
 #include <ostream>
-#include <Wt/Dbo/Dbo>
+#include "DboTraits.h"
 #include "Dbo/Module.h"
-
-class Configuration;
-class ConfigurationBool;
-class ConfigurationDouble;
-class ConfigurationEnum;
-class ConfigurationFloat;
-class ConfigurationInt;
-class ConfigurationLongInt;
-class ConfigurationString;
-class ConfigurationEnumValue;
-
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Configuration > > ConfigurationCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationBool > > BoolCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationEnum > > EnumCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationDouble > > DoubleCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationFloat > > FloatCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationInt > > IntCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationLongInt > > LongIntCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationString > > StringCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< ConfigurationEnumValue > > EnumValueCollections;
 
 //Configuration Keys structure
 struct ConfigurationKeys
@@ -50,86 +30,6 @@ struct ConfigurationKeys
 	bool operator== (const ConfigurationKeys &other) const;
 };
 std::ostream &operator<< (std::ostream &o, const ConfigurationKeys &c);
-
-namespace Wt
-{
-	namespace Dbo
-	{
-		//Overloaded Wt::Dbo::field() for Configuration Keys structure
-		template<class Action>
-		void field(Action &action, ConfigurationKeys &Keys, const std::string &name, int size = -1)
-		{
-			field(action, Keys.Name, "Name", 256);
-			belongsTo(action, Keys.ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			field(action, Keys.Type, "Type");
-		}
-
-		//Overloaded dbo_traits for Configuration DBO
-		template<>
-		struct dbo_traits<::Configuration> : public dbo_default_traits
-		{
-			typedef ConfigurationKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationBool DBO
-		template<>
-		struct dbo_traits<ConfigurationBool> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationDouble DBO
-		template<>
-		struct dbo_traits<ConfigurationDouble> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationEnum DBO
-		template<>
-		struct dbo_traits<ConfigurationEnum> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationFloat DBO
-		template<>
-		struct dbo_traits<ConfigurationFloat> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationInt DBO
-		template<>
-		struct dbo_traits<ConfigurationInt> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationLongInt DBO
-		template<>
-		struct dbo_traits<ConfigurationLongInt> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-		//Overloaded dbo_traits for ConfigurationString DBO
-		template<>
-		struct dbo_traits<ConfigurationString> : public dbo_default_traits
-		{
-			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-	}
-}
 
 //Configuration DBO class
 class Configuration : public Wt::Dbo::Dbo<Configuration>

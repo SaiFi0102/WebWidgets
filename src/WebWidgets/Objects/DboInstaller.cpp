@@ -48,7 +48,6 @@ void DboInstaller::CreateTables()
 	DboSession.createTables();
 
 	//INDEXes
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_path\" ON \"") + Page::TableName() + "\" (\"InternalPath\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Language::TableName() + "\" (\"LanguageAccept\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_url\" ON \"") + AccessPath::TableName() + "\" (\"HostName\", \"InternalPath\")");
 	
@@ -462,13 +461,13 @@ void DboInstaller::InsertRows()
 	GoogleClientSecret.modify()->StringPtr = GoogleClientSecretVal;
 
 	//HomePage
-	Wt::Dbo::ptr<Configuration> HomePage = DboSession.add(new Configuration("HomePage", NavigationModule, ConfigurationKeys::Int));
+	Wt::Dbo::ptr<Configuration> HomePage = DboSession.add(new Configuration("HomePage", NavigationModule, ConfigurationKeys::LongInt));
 	HomePage.modify()->Title = "Home Page";
 	HomePage.modify()->Details = "The page which will be shown on the default page.";
 	HomePage.modify()->RestartRequired = false;
-	Wt::Dbo::ptr<ConfigurationInt> HomePageVal = DboSession.add(new ConfigurationInt());
+	Wt::Dbo::ptr<ConfigurationLongInt> HomePageVal = DboSession.add(new ConfigurationLongInt());
 	HomePageVal.modify()->Value = 1;
-	HomePage.modify()->IntPtr = HomePageVal;
+	HomePage.modify()->LongIntPtr = HomePageVal;
 
 	//ResourcesURL
 	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", StylesModule, ConfigurationKeys::String));
@@ -694,22 +693,33 @@ void DboInstaller::InsertRows()
 	EnglishLanguagePtr.modify()->LanguageSingleCollection.insert(DboSession.add(new LanguageSingle("Wt.Auth.lostpasswordmail.body", "Hello {1},\r\n\r\nThis mail has been sent to you, because someone (presumably you?) indicated that he wishes to choose a new password, because the current password escapes his mind.\r\n\r\nIf you requested this, then choose a new password by clicking on the following link or copying the URL into your browser. If you didn't request this, you can safely ignore and discard this email.\r\n \r\nPlease copy and paste the following URL into your browser: (Note: be sure to copy the entire URL, including any part of it which goes onto a second line.)\r\n \r\n{3}", WtModule, Wt::Dbo::ptr<Language>(), true)));
 	EnglishLanguagePtr.modify()->LanguageSingleCollection.insert(DboSession.add(new LanguageSingle("Wt.Auth.lostpasswordmail.htmlbody", "<h3>Hello {1},</h3>\r\n\r\n<p>This mail has been sent to you, because someone (presumably you?)  indicated that he wishes to choose a new password, because the current password escapes his mind.</p>\r\n\r\n<p>If you requested this, then choose a new password by clicking on the following link or copying the URL into your browser. If you didn't request this, you can safely ignore and discard this email.</p>\r\n \r\n<p>Please <a href=\"{3}\">click here to choose a new password</a> or copy and paste the following URL into your browser: <i>(Note: be sure to copy the entire URL, including any part of it which goes onto a second line.)</i></p>\r\n\r\n<b>{3}</b>", WtModule, Wt::Dbo::ptr<Language>(), true)));
 
+	//Pages
+	Wt::Dbo::ptr<Page> LandingHomePage = DboSession.add(new Page(1, NavigationModule));
+	LandingHomePage.modify()->Title = "Home";
+	LandingHomePage.modify()->DefaultInternalPath = "home";
+
+	Wt::Dbo::ptr<Page> SitemapPage = DboSession.add(new Page(2, NavigationModule));
+	SitemapPage.modify()->Title = "Site map";
+	SitemapPage.modify()->DefaultInternalPath = "sitemap";
+
 	//Access Paths
+	//English language
 	Wt::Dbo::ptr<AccessPath> DefaultLanguageAccessPath = DboSession.add(new AccessPath());
 	DefaultLanguageAccessPath.modify()->HostName = "";
 	DefaultLanguageAccessPath.modify()->InternalPath = "en";
 	DefaultLanguageAccessPath.modify()->LanguagePtr = EnglishLanguagePtr;
 
-	//Pages
-	Wt::Dbo::ptr<Page> LandingHomePage = DboSession.add(new Page(1, NavigationModule));
-	LandingHomePage.modify()->Title = "Home";
-	LandingHomePage.modify()->InternalPath = "home";
-	LandingHomePage.modify()->DefaultInternalPath = "home";
+	//Home page
+	Wt::Dbo::ptr<AccessPath> HomePageAccessPath = DboSession.add(new AccessPath());
+	HomePageAccessPath.modify()->HostName = "";
+	HomePageAccessPath.modify()->InternalPath = "home";
+	HomePageAccessPath.modify()->PagePtr = LandingHomePage;
 
-	Wt::Dbo::ptr<Page> SitemapPage = DboSession.add(new Page(2, NavigationModule));
-	SitemapPage.modify()->Title = "Site map";
-	SitemapPage.modify()->InternalPath = "sitemap";
-	SitemapPage.modify()->DefaultInternalPath = "sitemap";
+	//Sitemap page
+	Wt::Dbo::ptr<AccessPath> SitemapPageAccessPath = DboSession.add(new AccessPath());
+	SitemapPageAccessPath.modify()->HostName = "";
+	SitemapPageAccessPath.modify()->InternalPath = "sitemap";
+	SitemapPageAccessPath.modify()->PagePtr = SitemapPage;
 
 	transaction.commit();
 }

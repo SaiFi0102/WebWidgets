@@ -1,34 +1,7 @@
 #ifndef MODULE_DBO_H
 #define MODULE_DBO_H
 
-#include <Wt/Dbo/Dbo>
-
-class Configuration;
-class Module;
-class Page;
-class Template;
-class LanguageSingle;
-class LanguagePlural;
-class Author;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Configuration > > ConfigurationCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Module > > ModuleCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Page > > PageCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Template > > TemplateCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< LanguageSingle > > LanguageSingleCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< LanguagePlural > > LanguagePluralCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Author > > AuthorCollections;
-
-template<>
-struct Wt::Dbo::dbo_traits<Author> : public Wt::Dbo::dbo_default_traits
-{
-	static const char *surrogateIdField() { return 0; }
-};
-
-template<>
-struct Wt::Dbo::dbo_traits<Module> : public Wt::Dbo::dbo_default_traits
-{
-	static const char *surrogateIdField() { return 0; }
-};
+#include "DboTraits.h"
 
 class Module : public Wt::Dbo::Dbo<Module>
 {

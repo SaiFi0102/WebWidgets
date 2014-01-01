@@ -1,69 +1,8 @@
 ﻿#ifndef LANGUAGE_DBO_H
 #define LANGUAGE_DBO_H
 
-#include <Wt/Dbo/Dbo>
+#include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
-
-class Language;
-class LanguageSingle;
-class LanguagePlural;
-class AccessPath;
-struct LanguageSingleKeys;
-struct LanguagePluralKeys;
-
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Language > > LanguageCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< AccessPath > > AccessPathCollections;
-namespace Wt
-{
-	namespace Dbo
-	{
-		//Overloaded Wt::Dbo::field() for Language Single Keys structure
-		template<class Action>
-		void field(Action &action, LanguageSingleKeys &Keys, const std::string &name, int size = -1)
-		{
-			belongsTo(action, Keys.LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			field(action, Keys.Key, "Key", 256);
-			belongsTo(action, Keys.ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		};
-
-		//Overloaded Wt::Dbo::field() for Language Plural Keys structure
-		template<class Action>
-		void field(Action &action, LanguagePluralKeys &Keys, const std::string &name, int size = -1)
-		{
-			belongsTo(action, Keys.LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			field(action, Keys.Key, "Key", 256);
-			field(action, Keys.Case, "Case");
-			belongsTo(action, Keys.ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		};
-
-		//Overloaded dbo_traits for Language DBO
-		template<>
-		struct dbo_traits<Language> : public dbo_default_traits
-		{
-			typedef std::string IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-
-		//Overloaded dbo_traits for LanguageSingle DBO
-		template<>
-		struct dbo_traits<LanguageSingle> : public dbo_default_traits
-		{
-			typedef LanguageSingleKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-
-		//Overloaded dbo_traits for LanguagePlural DBO
-		template<>
-		struct dbo_traits<LanguagePlural> : public dbo_default_traits
-		{
-			typedef LanguagePluralKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-	}
-}
 
 //Language Single Keys structure
 struct LanguageSingleKeys

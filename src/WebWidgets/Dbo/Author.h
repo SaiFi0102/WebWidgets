@@ -1,10 +1,8 @@
 #ifndef AUTHOR_DBO_H
 #define AUTHOR_DBO_H
 
+#include "DboTraits.h"
 #include "Dbo/Module.h"
-
-class Style;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr< Style > > StyleCollections;
 
 class Author : public Wt::Dbo::Dbo<Author>
 {

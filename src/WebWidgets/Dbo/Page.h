@@ -1,7 +1,7 @@
 #ifndef PAGE_DBO_H
 #define PAGE_DBO_H
 
-#include <Wt/Dbo/Dbo>
+#include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
 
 struct PageKeys
@@ -17,32 +17,13 @@ struct PageKeys
 };
 std::ostream &operator<< (std::ostream &o, const PageKeys &c);
 
-namespace Wt
-{
-	namespace Dbo
-	{
-		template<class Action>
-		void field(Action &action, PageKeys &Keys, const std::string &name, int size = -1)
-		{
-			field(action, Keys.id, "id");
-			belongsTo(action, Keys.ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		template<>
-		struct dbo_traits<Page> : public dbo_default_traits
-		{
-			typedef PageKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
-		};
-	}
-}
-
 class Page : public Wt::Dbo::Dbo<Page>
 {
 	public:
-		std::string	InternalPath;
 		std::string	DefaultInternalPath;
 		std::string	Title;
+
+		AccessPathCollections AccessPathCollection;
 
 		//PageCollections ChildrenPages;
 		//Wt::Dbo::ptr<Page> ParentPage;
@@ -53,9 +34,10 @@ class Page : public Wt::Dbo::Dbo<Page>
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::id(a, _Id, "Page");
-			Wt::Dbo::field(a, InternalPath, "InternalPath", 50);
 			Wt::Dbo::field(a, DefaultInternalPath, "DefaultInternalPath", 50);
 			Wt::Dbo::field(a, Title, "Title");
+
+			Wt::Dbo::hasMany(a, AccessPathCollection, Wt::Dbo::ManyToOne, "Page");
 
 			//Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
 			//Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
@@ -69,5 +51,7 @@ class Page : public Wt::Dbo::Dbo<Page>
 		PageKeys _Id;
 		friend class PagesDatabase;
 };
+
+#include "Dbo/AccessPath.h"
 
 #endif
