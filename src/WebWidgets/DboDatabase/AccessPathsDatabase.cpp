@@ -57,7 +57,7 @@ void AccessPathsDatabase::FetchAll()
 	try
 	{
 		Wt::Dbo::Transaction transaction(DboSession);
-		AccessPathCollections AccessPathCollection = DboSession.find<AccessPath>();
+		AccessPathCollections AccessPathCollection = DboSession.find<AccessPath>().orderBy("CHAR_LENGTH(\"InternalPath\") ASC");
 	
 		//All AccessPaths
 		for(AccessPathCollections::const_iterator itr = AccessPathCollection.begin();
