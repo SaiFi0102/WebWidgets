@@ -10,9 +10,21 @@ Application::Application(const Wt::WEnvironment &env)
 	: Wt::WApplication(env), _LanguageFromHostname(false), _LocaleChanged(this), _SkipLanguageInternalPath(false)
 {
 	WServer *Server = WServer::instance();
-	_UserLocale = env.locale();
-	long long DefaultAccessPathId = Server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-	Wt::WLocale ConfigDefaultLocale = Server->GetLanguages()->GetLocaleFromCode(Server->GetAccessPaths()->GetDbo(DefaultAccessPathId).LanguagePtr.id());
+
+	//Use database back end localized strings instead of WMessageResourceBundle
+	setLocalizedStrings(new DboLocalizedStrings(Server->GetLanguages()));
+
+	_ClientLocale = env.locale();
+	AccessPath DefaultAccessPath = Server->GetAccessPaths()->GetDbo(Server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	Wt::WLocale ConfigDefaultLocale;
+	if(DefaultAccessPath.LanguagePtr)
+	{
+		ConfigDefaultLocale = Server->GetLanguages()->GetLocaleFromCode(DefaultAccessPath.LanguagePtr.id());
+	}
+	else
+	{
+		ConfigDefaultLocale = Server->GetLanguages()->GetLocaleFromCode("en");
+	}
 
 	//Check if user is using an AccessPath before checking LanguageAccept for Language
 	std::string _hostname = env.hostName();
@@ -70,9 +82,6 @@ Application::Application(const Wt::WEnvironment &env)
 	//Connect SetLanguageFromInternalPath() and Set language from internal path
 	internalPathChanged().connect(boost::bind(&Application::SetLanguageFromInternalPath, this));
 	SetLanguageFromInternalPath();
-
-	//Use database back end localized strings instead of WMessageResourceBundle
-	setLocalizedStrings(new DboLocalizedStrings(Server->GetLanguages()));
 
 	//CSS Stylesheet
 	//this->styleSheet().ruleModified()

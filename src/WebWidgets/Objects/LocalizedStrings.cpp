@@ -39,10 +39,7 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId,
 		}
 
 		//Return false if default locale does not have the string either
-		if(!Languages->GetSingleString(Locale, key, ModuleId, result))
-		{
-			return false;
-		}
+		return Languages->GetSingleString(Locale, key, ModuleId, result);
 	}
 	return true;
 }

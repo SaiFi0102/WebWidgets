@@ -1,5 +1,6 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/ModulesDatabase.h"
+#include <Wt/WApplication>
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -252,12 +253,31 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	Wt::Dbo::ptr<LanguageSingle> DecimalPointCharacter = GetSinglePtr(Code, "DecimalPointCharacter", ModulesDatabase::Localization);
-	Wt::Dbo::ptr<LanguageSingle> NumberThousandSeparator = GetSinglePtr(Code, "NumberThousandSeparator", ModulesDatabase::Localization);
-	Wt::Dbo::ptr<LanguageSingle> DateFormat = GetSinglePtr(Code, "DateFormat", ModulesDatabase::Localization);
-	Locale.setDecimalPoint(DecimalPointCharacter ? DecimalPointCharacter->String : ".");
-	Locale.setGroupSeparator(NumberThousandSeparator ? NumberThousandSeparator->String : ",");
-	Locale.setDateFormat(DateFormat? DateFormat->String : "MMMM dd, yyyy");
+	AccessPath DefaultAccessPath = _Server.GetAccessPaths()->GetDbo(_Server.GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	std::string DefaultLanguage = "en";
+	if(DefaultAccessPath.LanguagePtr)
+	{
+		DefaultLanguage = DefaultAccessPath.LanguagePtr.id();
+	}
+
+	std::string DecimalPointCharacter = ".";
+	std::string NumberThousandSeparator = ",";
+	std::string DateFormat = "MMMM dd, yyyy";
+	if(!_Server.GetLanguages()->GetSingleString(Code, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter))
+	{
+		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter);
+	}
+	if(!_Server.GetLanguages()->GetSingleString(Code, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator))
+	{
+		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator);
+	}
+	if(!_Server.GetLanguages()->GetSingleString(Code, "DateFormat", ModulesDatabase::Localization, DateFormat))
+	{
+		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "DateFormat", ModulesDatabase::Localization, DateFormat);
+	}
+	Locale.setDecimalPoint(DecimalPointCharacter);
+	Locale.setGroupSeparator(NumberThousandSeparator);
+	Locale.setDateFormat(DateFormat);
 	return Locale;
 }
 Wt::WLocale LanguagesDatabase::GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const

@@ -22,7 +22,7 @@ class Application : public Wt::WApplication
 
 		Wt::Signal<void> _LocaleChanged;
 
-		Wt::WLocale _UserLocale;
+		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
 		bool _LanguageFromHostname;
 		bool _SkipLanguageInternalPath;
