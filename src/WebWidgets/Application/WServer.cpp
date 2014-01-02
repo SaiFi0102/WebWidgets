@@ -13,28 +13,13 @@
 //#include <Wt/Dbo/backend/Postgres>
 //#include <Wt/Dbo/backend/Firebird>
 
-WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, const std::string& wtConfigurationFile)
-	: Wt::WServer(wtApplicationPath, wtConfigurationFile), Logger(Logger), PasswordService(AuthService)
+WServer::WServer(const std::string& wtApplicationPath, const std::string& wtConfigurationFile)
+	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService)
+{ }
+void WServer::Initialize()
 {
 	//Start time
 	PTBeforeLoad = boost::posix_time::microsec_clock::local_time();
-
-	try
-	{
-		//Configure the logger
-		Logger.configure("* -debug");
-		Logger.addField("datetime", false);
-		Logger.addField("type", false);
-		Logger.addField("message", true);
-
-		Logger.entry("info");
-		log("info") << "Starting up server!";
-	}
-	catch(std::exception &e)
-	{
-		std::cerr << "Error while configuring the logger: " << e.what();
-		throw e;
-	}
 
 	/* *************************************************************************
 	 * ***********************  Connect to SQL Server  *************************
@@ -326,7 +311,7 @@ Wt::WLogEntry WServer::log(const std::string &type) const
 	{
 		return app->log(type);
 	}
-	return Logger.entry(type) << Wt::WLogger::timestamp << Wt::WLogger::sep << '[' << type << ']' << Wt::WLogger::sep;
+	return Wt::WServer::log(type);
 }
 
 boost::posix_time::ptime WServer::StartPTime() const

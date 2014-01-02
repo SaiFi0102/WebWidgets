@@ -2,7 +2,6 @@
 #define SERVER_WAPPLICATION_H
 
 #include <Wt/WServer>
-#include <Wt/WLogger>
 
 #include <Wt/Auth/AuthService>
 #include <Wt/Auth/PasswordService>
@@ -25,7 +24,7 @@ typedef std::vector<const Wt::Auth::OAuthService *> OAuthServiceMap;
 class WServer : public Wt::WServer
 {
 	public:
-		WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
+		WServer(const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
 		virtual ~WServer();
 		
 		ModulesDatabase *GetModules() const;
@@ -58,17 +57,19 @@ class WServer : public Wt::WServer
 		PagesDatabase *Pages;
 		AccessPathsDatabase *AccessPaths;
 
-		Wt::WLogger &Logger;
 		rapidxml::xml_document<> XmlDoc;
 		boost::posix_time::ptime PTBeforeLoad;
 		boost::posix_time::ptime PTStart;
 
 	private:
 		void CreateWtXmlConfiguration();
+		void Initialize();
 
 		Wt::Auth::AuthService AuthService;
 		Wt::Auth::PasswordService PasswordService;
 		OAuthServiceMap OAuthServices;
+
+		friend int main(int argc, char** argv);
 };
 
 #include "Objects/DboInstaller.h"

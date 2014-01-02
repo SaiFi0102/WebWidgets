@@ -7,12 +7,11 @@ int main(int argc, char **argv)
 	/* *************************************************************************
 	 * *************************  Start Web Server *****************************
 	 * *************************************************************************/
-	Wt::WLogger Logger;
-
+	WServer Server = WServer(argv[0], "wt_config.xml");
 	try
 	{
 		//Initialize Server
-		WServer Server(Logger, argv[0], "wt_config.xml");
+		Server.Initialize();
 
 		//Configuration
 		Server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);
@@ -28,10 +27,10 @@ int main(int argc, char **argv)
 	}
 	catch(Wt::WServer::Exception &e)
 	{
-		Logger.entry("fatal") << Wt::WLogger::timestamp << Wt::WLogger::sep << "[Fatal]" << Wt::WLogger::sep << "Error starting the server: " << e.what();
+		Server.log("fatal") << "Error starting the server: " << e.what();
 	}
 	catch(std::exception &e)
 	{
-		Logger.entry("fatal") << Wt::WLogger::timestamp << Wt::WLogger::sep << "[Fatal]" << Wt::WLogger::sep << "Server exception error: " << e.what();
+		Server.log("fatal") << "Server exception error: " << e.what();
 	}
 }
