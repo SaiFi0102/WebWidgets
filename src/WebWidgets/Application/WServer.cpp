@@ -83,53 +83,57 @@ WServer::WServer(Wt::WLogger &Logger, const std::string& wtApplicationPath, cons
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	/*
-	try
+	bool REINSTALLDBO = false;
+	if(REINSTALLDBO)
 	{
-		Installer->DropTables();
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error dropping tables: " <<  e.what();
-		//throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while dropping tables: " << e.what();
-		//throw e;
-	}
+		//Drop
+		try
+		{
+			Installer->DropTables();
+		}
+		catch(Wt::Dbo::Exception &e)
+		{
+			log("fatal") << "Database error dropping tables: " <<  e.what();
+			//throw e;
+		}
+		catch(std::exception &e)
+		{
+			log("fatal") << "Error while dropping tables: " << e.what();
+			//throw e;
+		}
 
-	//*//*
-	try
-	{
-		Installer->CreateTables();
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error creating tables: " <<  e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while creating tables: " << e.what();
-		throw e;
-	}//*/
+		//Create
+		try
+		{
+			Installer->CreateTables();
+		}
+		catch(Wt::Dbo::Exception &e)
+		{
+			log("fatal") << "Database error creating tables: " <<  e.what();
+			throw e;
+		}
+		catch(std::exception &e)
+		{
+			log("fatal") << "Error while creating tables: " << e.what();
+			throw e;
+		}
 
-	/*
-	try
-	{
-		Installer->InsertRows();
+		//Insert
+		try
+		{
+			Installer->InsertRows();
+		}
+		catch(Wt::Dbo::Exception &e)
+		{
+			log("fatal") << "Database error inserting default data: " <<  e.what();
+			throw e;
+		}
+		catch(std::exception &e)
+		{
+			log("fatal") << "Error while inserting default data: " << e.what();
+			throw e;
+		}
 	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error inserting default data: " <<  e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while inserting default data: " << e.what();
-		throw e;
-	}//*/
 
 	/* *************************************************************************
 	 * ******************************  Modules  ********************************

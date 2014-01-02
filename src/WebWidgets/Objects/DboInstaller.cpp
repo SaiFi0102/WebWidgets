@@ -460,14 +460,23 @@ void DboInstaller::InsertRows()
 	GoogleClientSecretVal.modify()->MinLength = 1;
 	GoogleClientSecret.modify()->StringPtr = GoogleClientSecretVal;
 
-	//HomePage
-	Wt::Dbo::ptr<Configuration> HomePage = DboSession.add(new Configuration("HomePage", NavigationModule, ConfigurationKeys::LongInt));
-	HomePage.modify()->Title = "Home Page";
-	HomePage.modify()->Details = "The page which will be shown on the default page.";
-	HomePage.modify()->RestartRequired = false;
-	Wt::Dbo::ptr<ConfigurationLongInt> HomePageVal = DboSession.add(new ConfigurationLongInt());
-	HomePageVal.modify()->Value = 1;
-	HomePage.modify()->LongIntPtr = HomePageVal;
+	//HomePageAccessPathId
+	Wt::Dbo::ptr<Configuration> HomePageAccessPathId = DboSession.add(new Configuration("HomePageAccessPathId", NavigationModule, ConfigurationKeys::LongInt));
+	HomePageAccessPathId.modify()->Title = "Home page access path";
+	HomePageAccessPathId.modify()->Details = "This is the page which will be treated as the default or landing page.";
+	HomePageAccessPathId.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationLongInt> HomePageAccessPathIdVal = DboSession.add(new ConfigurationLongInt());
+	HomePageAccessPathIdVal.modify()->Value = 3;
+	HomePageAccessPathId.modify()->LongIntPtr = HomePageAccessPathIdVal;
+
+	//MobileAccessPathId
+	Wt::Dbo::ptr<Configuration> MobileAccessPathId = DboSession.add(new Configuration("MobileAccessPathId", NavigationModule, ConfigurationKeys::LongInt));
+	MobileAccessPathId.modify()->Title = "Mobile version access path";
+	MobileAccessPathId.modify()->Details = "The access path from where mobile version will be accessed.";
+	MobileAccessPathId.modify()->RestartRequired = false;
+	Wt::Dbo::ptr<ConfigurationLongInt> MobileAccessPathIdVal = DboSession.add(new ConfigurationLongInt());
+	MobileAccessPathIdVal.modify()->Value = 2;
+	MobileAccessPathId.modify()->LongIntPtr = MobileAccessPathIdVal;
 
 	//ResourcesURL
 	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", StylesModule, ConfigurationKeys::String));
@@ -708,6 +717,11 @@ void DboInstaller::InsertRows()
 	DefaultLanguageAccessPath.modify()->HostName = "";
 	DefaultLanguageAccessPath.modify()->InternalPath = "en";
 	DefaultLanguageAccessPath.modify()->LanguagePtr = EnglishLanguagePtr;
+
+	//Mobile version
+	Wt::Dbo::ptr<AccessPath> MobileVersionAccessPath = DboSession.add(new AccessPath());
+	MobileVersionAccessPath.modify()->HostName = "";
+	MobileVersionAccessPath.modify()->InternalPath = "mobile";
 
 	//Home page
 	Wt::Dbo::ptr<AccessPath> HomePageAccessPath = DboSession.add(new AccessPath());

@@ -14,18 +14,26 @@ class Application : public Wt::WApplication
 		static Application *instance();
 		static Application *CreateApplication(const Wt::WEnvironment &env);
 
+		std::string InternalPathAfterReserved(const std::string &after = "") const;
+
 		void setLocale(const Wt::WLocale &locale);
 		Wt::Signal<void> &LocaleChanged();
+
+		bool IsMobileVersion() const;
+		Wt::Signal<bool> &MobileVersionChanged();
 
 	protected:
 		void SetLanguageFromInternalPath();
 
 		Wt::Signal<void> _LocaleChanged;
-
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
 		bool _LanguageFromHostname;
 		bool _SkipLanguageInternalPath;
+
+		bool _MobileVersionFromHostname;
+		bool _MobileVersionFromInternalPath;
+		Wt::Signal<bool> _MobileVersionChanged;
 };
 
 #endif

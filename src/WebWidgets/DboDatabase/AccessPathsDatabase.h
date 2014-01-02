@@ -8,6 +8,7 @@
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
+class Application;
 class AccessPathsDatabase
 {
 	private:
@@ -88,11 +89,12 @@ class AccessPathsDatabase
 
 		AccessPath GetDbo(long long Id) const;
 		AccessPath GetDbo(const std::string &HostName, const std::string &InternalPath) const;
-		std::string FirstAccessPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
+		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;
 		bool AccessPathExists(const std::string &HostName, const std::string &InternalPath) const;
 		bool LanguageAccessPathExists(long long Id) const;
 		bool LanguageAccessPathExists(const std::string &HostName, const std::string &InternalPath) const;
+
 		std::size_t CountAccessPaths() const;
 		long long GetLoadDurationinMS() const;
 
@@ -100,12 +102,15 @@ class AccessPathsDatabase
 		virtual void MapClasses();
 		Wt::Dbo::ptr<AccessPath> GetPtr(long long Id) const;
 		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
+		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(long long Id) const;
+		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
 
 		AccessPathContainers AccessPathContainer;
 		boost::posix_time::time_duration LoadDuration;
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
 		mutable boost::shared_mutex mutex;
+		friend class Application;
 };
 
 #endif
