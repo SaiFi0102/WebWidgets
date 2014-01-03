@@ -408,6 +408,8 @@ public:
 
   WebController *controller() { return webController_; }
 
+  virtual void newLogEntryCreated(const std::string &type, const std::string &contents) { };
+
 private:
   WebController *webController_;
 
