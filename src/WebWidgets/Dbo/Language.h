@@ -3,6 +3,8 @@
 
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
+#include <Wt/WString>
+#include <Wt/Dbo/WtSqlTraits>
 
 //Language Single Keys structure
 struct LanguageSingleKeys
@@ -39,15 +41,15 @@ class Language : public Wt::Dbo::Dbo<Language>
 {
 	public:
 		std::string	Code; //en, zh, ur, ISO 639-1: two-letter code
-		std::string	Name; //English, Chinese, Russian
-		std::string NativeName; // English, 中文, Русский
+		Wt::WString	Name; //English, Chinese, Russian
+		Wt::WString NativeName; // English, 中文, Русский
 		std::string	LanguageAccept; //en*, wildcard allowed
 		std::string	PluralExpression; //For most languages "n > 1 ? 2 : 1" where n = number of that item provided, 2 : 1, 1 means case 1(singular) and case 2(plural)
 		int			PluralCases; //In English and most languages there are 2, Singular and Plural, for example file and files
 		bool		Installed; //Weather its installed or just for the name
 
 		Language();
-		Language(const std::string &Code, const std::string &Name, const std::string &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed);
+		Language(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed);
 
 		//hasMany
 		AccessPathCollections AccessPathCollection;
@@ -62,6 +64,7 @@ class Language : public Wt::Dbo::Dbo<Language>
 			Wt::Dbo::field(a, LanguageAccept,	"LanguageAccept", 256);
 			Wt::Dbo::field(a, PluralExpression,	"PluralExpression");
 			Wt::Dbo::field(a, PluralCases,		"PluralCases");
+			Wt::Dbo::field(a, Installed,		"Installed");
 
 			Wt::Dbo::hasMany(a, AccessPathCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, LanguageSingleCollection, Wt::Dbo::ManyToOne, "Language");

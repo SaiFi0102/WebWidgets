@@ -65,7 +65,7 @@ void LanguagesDatabase::FetchAll()
 	try
 	{
 		Wt::Dbo::Transaction transaction(DboSession);
-		LanguageCollections LanguageCollection = DboSession.find<Language>();
+		LanguageCollections LanguageCollection = DboSession.find<Language>().where("\"Installed\" = 1");
 
 		//All languages
 		for(LanguageCollections::const_iterator itr = LanguageCollection.begin();
@@ -73,8 +73,8 @@ void LanguagesDatabase::FetchAll()
 			++itr)
 		{
 			//Fetch em all
-			LanguageSingleCollections LanguageSingleCollection = DboSession.find<LanguageSingle>().where("Language_Code = ?").bind((*itr)->Code);
-			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("Language_Code = ?").bind((*itr)->Code);
+			LanguageSingleCollections LanguageSingleCollection = DboSession.find<LanguageSingle>().where("\"Language_Code\" = ?").bind((*itr)->Code);
+			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("\"Language_Code\" = ?").bind((*itr)->Code);
 
 			//Insert language ptr
 			LanguageContainer.get<0>().insert(*itr);
