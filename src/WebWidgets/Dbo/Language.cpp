@@ -125,7 +125,11 @@ const char* Wt::Dbo::dbo_traits<LanguagePlural>::surrogateIdField()
 }
 
 Language::Language()
-	: PluralCases(-1)
+	: PluralCases(-1), Installed(false)
+{ }
+
+Language::Language(const std::string &Code, const std::string &Name, const std::string &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
+	: Code(Code), Name(Name), NativeName(NativeName), LanguageAccept(LanguageAccept), PluralExpression(PluralExpression), PluralCases(PluralCases), Installed(Installed)
 { }
 
 LanguageSingle::LanguageSingle()

@@ -38,13 +38,16 @@ std::ostream &operator<< (std::ostream &o, const LanguagePluralKeys &c);
 class Language : public Wt::Dbo::Dbo<Language>
 {
 	public:
-		std::string	Code; //en, cn, eng, urd, ur
-		std::string	Name; //English, 中文 (Chinese), Русский (Russian)
+		std::string	Code; //en, zh, ur, ISO 639-1: two-letter code
+		std::string	Name; //English, Chinese, Russian
+		std::string NativeName; // English, 中文, Русский
 		std::string	LanguageAccept; //en*, wildcard allowed
 		std::string	PluralExpression; //For most languages "n > 1 ? 2 : 1" where n = number of that item provided, 2 : 1, 1 means case 1(singular) and case 2(plural)
 		int			PluralCases; //In English and most languages there are 2, Singular and Plural, for example file and files
+		bool		Installed; //Weather its installed or just for the name
 
 		Language();
+		Language(const std::string &Code, const std::string &Name, const std::string &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed);
 
 		//hasMany
 		AccessPathCollections AccessPathCollection;
@@ -53,8 +56,9 @@ class Language : public Wt::Dbo::Dbo<Language>
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, Code,				"Code", 3);
+			Wt::Dbo::id(a, Code,				"Code", 2);
 			Wt::Dbo::field(a, Name,				"Name", 256);
+			Wt::Dbo::field(a, NativeName,		"NativeName", 256);
 			Wt::Dbo::field(a, LanguageAccept,	"LanguageAccept", 256);
 			Wt::Dbo::field(a, PluralExpression,	"PluralExpression");
 			Wt::Dbo::field(a, PluralCases,		"PluralCases");
