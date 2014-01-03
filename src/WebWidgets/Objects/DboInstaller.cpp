@@ -736,4 +736,10 @@ void DboInstaller::InsertRows()
 	SitemapPageAccessPath.modify()->PagePtr = SitemapPage;
 
 	transaction.commit();
+
+	Wt::Dbo::Transaction transaction2(DboSession);
+	DefaultAccessPathVal.modify()->Value = DefaultLanguageAccessPath.id();
+	HomePageAccessPathIdVal.modify()->Value = HomePageAccessPath.id();
+	MobileAccessPathIdVal.modify()->Value = MobileVersionAccessPath.id();
+	transaction2.commit();
 }
