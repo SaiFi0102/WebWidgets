@@ -1,200 +1,61 @@
-
 #ifndef SERVER_SIGNAL_H_
 #define SERVER_SIGNAL_H_
 
 #include <Wt/WObject>
-#include <bitset>
+#include <boost/thread.hpp>
 
 #include <boost/bind.hpp>
 #ifndef WT_NO_BOOST_INTRUSIVE
 #include <boost/intrusive/list.hpp>
 #endif
-#include <boost/utility.hpp>
-
 
 namespace Wt
 {
 	template <typename A1 = NoClass, typename A2 = NoClass,
-		  typename A3 = NoClass, typename A4 = NoClass,
-		  typename A5 = NoClass, typename A6 = NoClass>
+	  typename A3 = NoClass, typename A4 = NoClass,
+	  typename A5 = NoClass, typename A6 = NoClass>
 	class ServerSignal
 	{
 	public:
 		class Connection
 		{
-		public:
-			~Connection();
-		}
-	  /*! \brief Creates a signal.
-	   *
-	   * The \p sender is the object that will be identified as
-	   * WObject::sender() when executing connected slots may be passed as
-	   * an argument.
-	   *
-	   * The \p sender should not be \c 0 when you want to map the signal
-	   * using the WSignalMapper.
-	   */
-	  ServerSignal(WServer *sender = 0);
+			public:
+				~Connection();
 
-	  /*! \brief Destructor.
-	   */
-	  ~ServerSignal();
+				void block() const;
+				void unblock() const;
+				void blocked() const;
 
-	  virtual Wt::Signals::connection connect(WObject *target,
-							 WObject::Method method);
+			private:
+				Connection(ServerSignal *Signal) {};
+				ServerSignal *_signal;
+				bool _blocked;
+		};
 
-	  template <class F> Wt::Signals::connection connect(const F& function);
-	  Wt::Signals::connection connect(const boost::bound& f);
-	#endif
+		ServerSignal(WServer *sender = 0);
+		~ServerSignal();
 
-	  /*! \brief Connects a slot that takes no arguments.
-	   *
-	   * This is always possible (even when the signal specifies a number
-	   * of arguments).
-	   *
-	   * The slot is as a \p method of an object \p target of class \p T,
-	   * which equals class \p V, or is a base class of class \p V. Thus,
-	   * the following statement must return a non-null pointer:
-	   *
-	   * \code
-	   * V *v = dynamic_cast<V *>(target);
-	   * \endcode
-	   *
-	   * In practice, to facilitate automatic disconnects on deletion of
-	   * the \p target, class \p T must be also be a descendant of WObject,
-	   * but this is not enforced by the interface.
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)());
+		template <class F> Connection *connect(const F& function);
+		//Wt::Signals::connection connect(const boost::bound& f);
+		virtual bool isConnected() const;
 
-	  /*! \brief Connects a slot that takes one argument.
-	   *
-	   * This is only possible for signals that take at least one argument.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(A1));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&));
-
-	  /*! \brief Connects a slot that takes two arguments.
-	   *
-	   * This is only possible for signals that take at least two arguments.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(A1, A2));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-										A2));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(A1,
-										const A2&));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-										const A2&));
-
-	  /*! \brief Connects a slot that takes three arguments.
-	   *
-	   * This is only possible for signals that take at least three arguments.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target,
-						   void (V::*method)(A1,A2,A3));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-										A2,A3));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-										const A2&,
-										A3));
-
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target, void (V::*method)(const A1&,
-										const A2&,
-										const A3&));
-
-	  /*! \brief Connects a slot that takes four arguments.
-	   *
-	   * This is only possible for signals that take at least four arguments.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target,
-						   void (V::*method)(A1,A2,A3,A4));
-
-	  /*! \brief Connects a slot that takes five arguments.
-	   *
-	   * This is only possible for signals that take at least five arguments.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target,
-						   void (V::*method)(A1,A2,A3,A4,A5));
-
-	  /*! \brief Connects a slot that takes six arguments.
-	   *
-	   * This is only possible for signals that take at least six arguments.
-	   *
-	   * \sa connect(T *target, void (V::*method)())
-	   */
-	  template<class T, class V>
-		Wt::Signals::connection connect(T *target,
-						   void (V::*method)(A1,A2,A3,A4,A5,A6));
-
-	  /*! \brief Emits the signal.
-	   *
-	   * The arguments must exactly match the arguments of the target
-	   * function.
-	   *
-	   * This will cause all connected slots to be triggered, with the given
-	   * arguments.
-	   */
-	  void emit(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
+		void emit(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
+			A3 a3 = NoClass::none, A4 a4 = NoClass::none,
+			A5 a5 = NoClass::none, A6 a6 = NoClass::none) const;
+		void operator()(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
 			A3 a3 = NoClass::none, A4 a4 = NoClass::none,
 			A5 a5 = NoClass::none, A6 a6 = NoClass::none) const;
 
-	  /*! \brief Emits the signal.
-	   *
-	   * This is equivalent to emit().
-	   *
-	   * \sa emit
-	   */
-	  void operator()(A1 a1 = NoClass::none, A2 a2 = NoClass::none,
-			  A3 a3 = NoClass::none, A4 a4 = NoClass::none,
-			  A5 a5 = NoClass::none, A6 a6 = NoClass::none) const;
-
-	  virtual bool isConnected() const;
-
 	private:
-	  Signal(const Signal<A1, A2, A3, A4, A5, A6>&);
+		typedef std::set<Connection *> ConnectionsSet;
 
-	#ifdef WT_CNOR
-	  typedef Wt::Signals::signal6<void, A1, A2, A3, A4, A5, A6> BoostSignalType;
-	#else
-	#  if (_MSC_VER >= 1700) && defined(_VARIADIC_MAX) && (_VARIADIC_MAX < 6)
-	  // MSVS 2012's std::bind implementation may support only 5 arguments
-	  // http://blogs.msdn.com/b/vcblog/archive/2011/09/12/10209291.aspx
-	  typedef Wt::Signals::signal<void(A1, A2, A3, A4, A5)> BoostSignalType;
-	#  define A6_MUST_BE_NOCLASS
-	#  else
-	  typedef Wt::Signals::signal<void(A1, A2, A3, A4, A5, A6)> BoostSignalType;
-	#  endif
-	#endif
+		Signal(const Signal<A1, A2, A3, A4, A5, A6> &);
+		void disconnect(Connection *conn);
+		void block(Connection *conn, bool should_block) const;
 
-	  BoostSignalType *impl_;
+		WServer *_sender;
+		ConnectionsSet _connections;
+		mutable boost::shared_mutex mutex;
 	};
 
 	#ifndef WT_CNOR

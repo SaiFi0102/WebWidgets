@@ -185,6 +185,7 @@ Wt/WSelectionBox.C
 Wt/WServer.C
 Wt/WShadow.C
 Wt/WSignal.C
+Wt/ServerSignal.C
 Wt/WSlider.C
 Wt/WSocketNotifier.C
 Wt/WSortFilterProxyModel.C
