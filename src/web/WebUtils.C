@@ -19,7 +19,7 @@
 #include <stdio.h>
 #include <fstream>
 
-#ifdef WIN32
+#ifdef WT_WIN32
 #include <windows.h>
 #define snprintf _snprintf
 #else
@@ -42,8 +42,8 @@
 #ifdef isnan
 #undef isnan
 #endif
-#ifdef isfin
-#undef isfun
+#ifdef isinf
+#undef isinf
 #endif
 
 namespace Wt {

@@ -67,7 +67,7 @@ public:
 	       const Message& message)
   {
     std::ostream request_stream(&requestBuf_);
-    request_stream << method << " " << path << " HTTP/1.0\r\n";
+    request_stream << method << " " << path << " HTTP/1.1\r\n";
     request_stream << "Host: " << server << ":" 
 		   << boost::lexical_cast<std::string>(port) << "\r\n";
 
@@ -264,11 +264,11 @@ private:
       response_stream >> status_code;
       std::string status_message;
       std::getline(response_stream, status_message);
-      if (!response_stream || http_version.substr(0, 5) != "HTTP/")
-      {
+      if (!response_stream || http_version.substr(0, 5) != "HTTP/") {
 	err_ = boost::system::errc::make_error_code
 	  (boost::system::errc::protocol_error);
 	complete();
+	return;
       }
 
       LOG_DEBUG(status_code << " " << status_message);
@@ -297,6 +297,8 @@ private:
       if (!addResponseSize(s))
 	return;
 
+      chunkedResponse_ = false;
+
       // Process the response headers.
       std::istream response_stream(&responseBuf_);
       std::string header;
@@ -306,6 +308,14 @@ private:
 	  std::string name = boost::trim_copy(header.substr(0, i));
 	  std::string value = boost::trim_copy(header.substr(i+1));
 	  response_.addHeader(name, value);
+
+	  if (boost::iequals(name, "Transfer-Encoding") &&
+	      boost::iequals(value, "chunked")) {
+	    chunkedResponse_ = true;
+	    currentChunkSize_ = 0;
+	    chunkSizeParsePos_ = 0;
+	    chunkState_ = ChunkSize;
+	  }
 	}
       }
 
@@ -313,7 +323,7 @@ private:
       if (responseBuf_.size() > 0) {
 	std::stringstream ss;
 	ss << &responseBuf_;
-	response_.addBodyText(ss.str());
+	addBodyText(ss.str());
       }
 
       // Start reading remaining data until EOF.
@@ -342,7 +352,7 @@ private:
 
       LOG_DEBUG(ss.str());
 
-      response_.addBodyText(ss.str());
+      addBodyText(ss.str());
 
       // Continue reading remaining data until EOF.
       startTimer();
@@ -359,6 +369,97 @@ private:
       complete();
     }
   }
+
+  void addBodyText(const std::string& text)
+  {
+    if (chunkedResponse_) {
+      std::string::const_iterator pos = text.begin();
+      while (pos != text.end()) {
+	switch (chunkState_) {
+	case ChunkSize: {
+	  unsigned char ch = *(pos++);
+
+	  switch (chunkSizeParsePos_) {
+	  case -2:
+	    if (ch != '\r') {
+	      protocolError(); return;
+	    }
+
+	    chunkSizeParsePos_ = -1;
+
+	    break;
+	  case -1:
+	    if (ch != '\n') {
+	      protocolError(); return;
+	    }
+
+	    chunkSizeParsePos_ = 0;
+	    
+	    break;
+	  case 0:
+	    if (ch >= '0' && ch <= '9') {
+	      currentChunkSize_ <<= 4;
+	      currentChunkSize_ |= (ch - '0');
+	    } else if (ch >= 'a' && ch <= 'f') {
+	      currentChunkSize_ <<= 4;
+	      currentChunkSize_ |= (10 + ch - 'a');
+	    } else if (ch >= 'A' && ch <= 'F') {
+	      currentChunkSize_ <<= 4;
+	      currentChunkSize_ |= (10 + ch - 'A');
+	    } else if (ch == '\r') {
+	      chunkSizeParsePos_ = 2;
+	    } else if (ch == ';') {
+	      chunkSizeParsePos_ = 1;
+	    } else {
+	       protocolError(); return;
+	    }
+
+	    break;
+	  case 1:
+	    /* Ignoring extensions and syntax for now */
+	    if (ch == '\r')
+	      chunkSizeParsePos_ = 2;
+
+	    break;
+	  case 2:
+	    if (ch != '\n') {
+	      protocolError(); return;
+	    }
+
+	    if (currentChunkSize_ == 0) {
+	      complete();
+	      return;
+	    }
+	      
+	    chunkState_ = ChunkData;
+	  }
+
+	  break;
+	}
+	case ChunkData:
+
+	  std::size_t thisChunk
+	    = std::min(std::size_t(text.end() - pos), currentChunkSize_);
+	  response_.addBodyText(std::string(pos, pos + thisChunk));
+	  currentChunkSize_ -= thisChunk;
+	  pos += thisChunk;
+
+	  if (currentChunkSize_ == 0) {
+	    chunkSizeParsePos_ = -2;
+	    chunkState_ = ChunkSize;
+	  }
+	}
+      }
+    } else
+      response_.addBodyText(text);
+  }
+
+  void protocolError()
+  {
+    err_ = boost::system::errc::make_error_code
+      (boost::system::errc::protocol_error);
+    complete();
+  } 
 
   void complete()
   {
@@ -386,6 +487,10 @@ private:
   std::string sessionId_;
   int timeout_;
   std::size_t maximumResponseSize_, responseSize_;
+  bool chunkedResponse_;
+  enum ChunkState { ChunkSize, ChunkData } chunkState_;
+  std::size_t currentChunkSize_;
+  int chunkSizeParsePos_;
   boost::system::error_code err_;
   Message response_;
   Signal<boost::system::error_code, Message> done_;
@@ -503,14 +608,20 @@ Client::Client(WObject *parent)
   : WObject(parent),
     ioService_(0),
     timeout_(10),
-    maximumResponseSize_(64*1024)
+    maximumResponseSize_(64*1024),
+    followRedirect_(false),
+    redirectCount_(0),
+    maxRedirects_(20)
 { }
 
 Client::Client(WIOService& ioService, WObject *parent)
   : WObject(parent),
     ioService_(&ioService),
     timeout_(10),
-    maximumResponseSize_(64*1024)
+    maximumResponseSize_(64*1024),
+    followRedirect_(false),
+    redirectCount_(0),
+    maxRedirects_(20)
 { }
 
 Client::~Client()
@@ -524,6 +635,7 @@ void Client::abort()
     impl_->stop();
 
   impl_.reset();
+  redirectCount_ = 0;
 }
 
 void Client::setTimeout(int seconds)
@@ -631,7 +743,11 @@ bool Client::request(Http::Method method, const std::string& url,
     return false;
   }
 
-  impl_->done().connect(this, &Client::emitDone);
+  if (followRedirect()) {
+    impl_->done().connect(boost::bind(&Client::handleRedirect, this, method, _1, _2));
+  } else {
+    impl_->done().connect(this, &Client::emitDone);
+  }
   impl_->setTimeout(timeout_);
   impl_->setMaximumResponseSize(maximumResponseSize_);
 
@@ -649,8 +765,49 @@ bool Client::request(Http::Method method, const std::string& url,
   return true;
 }
 
+bool Client::followRedirect() const
+{
+  return followRedirect_;
+}
+
+void Client::setFollowRedirect(bool followRedirect)
+{
+  followRedirect_ = followRedirect;
+}
+
+int Client::maxRedirects() const
+{
+  return maxRedirects_;
+}
+
+void Client::setMaxRedirects(int maxRedirects)
+{
+  maxRedirects_ = maxRedirects;
+}
+
+void Client::handleRedirect(Http::Method method, boost::system::error_code err, const Message& response)
+{
+  int status = response.status();
+  // Status codes 303 and 307 are implemented, although this should not
+  // occur when using HTTP/1.0
+  if (!err && (((status == 301 || status == 302 || status == 307) && method == Get) || status == 303)) {
+    const std::string *newUrl = response.getHeader("Location");
+    ++ redirectCount_;
+    if (newUrl) {
+      if (redirectCount_ <= maxRedirects_) {
+	get(*newUrl);
+	return;
+      } else {
+	LOG_WARN("Redirect count of " << maxRedirects_ << " exceeded! Redirect URL: " << *newUrl);
+      }
+    }
+  }
+  emitDone(err, response);
+}
+
 void Client::emitDone(boost::system::error_code err, const Message& response)
 {
+  redirectCount_ = 0;
   done_.emit(err, response);
 }
 
@@ -675,9 +832,10 @@ bool Client::parseUrl(const std::string &url, URL &parsedUrl)
   // find host
   std::size_t j = rest.find('/');
 
-  if (j == std::string::npos)
+  if (j == std::string::npos) {
     parsedUrl.host = rest;
-  else {
+    parsedUrl.path = "/";
+  } else {
     parsedUrl.host = rest.substr(0, j);
     parsedUrl.path = rest.substr(j);
   }

@@ -15,7 +15,7 @@
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 
-#ifdef WIN32
+#ifdef WT_WIN32
 #define snprintf _snprintf
 #include <winsock2.h>
 #endif
@@ -23,8 +23,8 @@
 
 #define BYTEAOID 17
 
-//#define DEBUG(x) x
 #define DEBUG(x)
+//#define DEBUG(x) x
 
 namespace Wt {
   namespace Dbo {
@@ -57,6 +57,16 @@ public:
 
 };
 
+namespace {
+  struct LibraryInitializer {
+    LibraryInitializer() {
+#if !defined(MYSQL_NO_LIBRARY_INIT)
+      mysql_library_init(0, NULL, NULL);
+#endif
+    }
+  } libraryInitializer;
+}
+
 /*!
  * \brief MySQL prepared statement.
  * @todo should the getResult requests all be type checked...
@@ -72,13 +82,14 @@ class MySQLStatement : public SqlStatement
       row_ = affectedRows_ = 0;
       result_ = 0;
       out_pars_ = 0;
+      errors_ = 0;
       lastOutCount_ = 0;
 
       stmt_ =  mysql_stmt_init(conn_.connection()->mysql);
       mysql_stmt_attr_set(stmt_, STMT_ATTR_UPDATE_MAX_LENGTH, &mysqltrue_);
       if(mysql_stmt_prepare(stmt_, sql_.c_str(), sql_.length()) != 0) {
-        throw  MySQLException(std::string("error creating prepared statement ")+
-                              mysql_stmt_error(stmt_));
+        throw MySQLException("error creating prepared statement: '"
+			      + sql + "': " + mysql_stmt_error(stmt_));
       }
       if(mysql_stmt_param_count(stmt_)> 0)
       {
@@ -100,27 +111,34 @@ class MySQLStatement : public SqlStatement
 
     virtual ~MySQLStatement()
     {
-      std::cerr << "closing prepared stmt " << sql_ << std::endl;
+      DEBUG(std::cerr << "closing prepared stmt " << sql_ << std::endl);
       for(unsigned int i = 0;   i < mysql_stmt_param_count(stmt_) ; ++i)
           freeColumn(i);
       if (in_pars_) free(in_pars_);
 
       if(out_pars_) free_outpars();
 
+      if (errors_) delete[] errors_;
+
       if(result_) {
         mysql_free_result(result_);
       }
 
       mysql_stmt_close(stmt_);
+      stmt_ = 0;
     }
 
     virtual void reset()
     {
       state_ = Done;
+      has_truncation_ = false;
     }
 
     virtual void bind(int column, const std::string& value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << value << std::endl);
 
@@ -143,6 +161,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, short value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << value << std::endl);
       short * data = (short *)malloc(sizeof(short));
@@ -157,6 +178,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, int value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << value << std::endl);
       int * data = (int *)malloc(sizeof(int));
@@ -170,6 +194,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, long long value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << value << std::endl);
       long long * data = (long long *)malloc(sizeof(long long));
@@ -196,6 +223,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, double value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << value << std::endl);
       double * data = (double *)malloc(sizeof(double));
@@ -210,6 +240,9 @@ class MySQLStatement : public SqlStatement
     virtual void bind(int column, const boost::posix_time::ptime& value,
                       SqlDateTimeType type)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << boost::posix_time::to_simple_string(value) << std::endl);
 
@@ -249,6 +282,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, const boost::posix_time::time_duration& value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " "
             << boost::posix_time::to_simple_string(value) << std::endl);
 
@@ -277,6 +313,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bind(int column, const std::vector<unsigned char>& value)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " (blob, size=" <<
             value.size() << ")" << std::endl);
 
@@ -302,6 +341,9 @@ class MySQLStatement : public SqlStatement
 
     virtual void bindNull(int column)
     {
+      if (in_pars_ == 0)
+        throw MySQLException(std::string("Try to bind too much?"));
+
       DEBUG(std::cerr << this << " bind " << column << " null" << std::endl);
 
       freeColumn(column);
@@ -386,21 +428,22 @@ class MySQLStatement : public SqlStatement
           //bind the output..
           bind_output();
           if ((status = mysql_stmt_fetch(stmt_)) == 0 ||
-              status ==  MYSQL_DATA_TRUNCATED) {
-            //perhaps should set state to indicate truncated
+	      status == MYSQL_DATA_TRUNCATED) {
+	    if (status == MYSQL_DATA_TRUNCATED)
+	      has_truncation_ = true;
+	    else
+	      has_truncation_ = false;
             row_++;
             return true;
           } else {
-            if(status == MYSQL_NO_DATA  ){
+            if(status == MYSQL_NO_DATA ) {
               lastOutCount_ = mysql_num_fields(result_);
               mysql_free_result(result_);
               mysql_stmt_free_result(stmt_);
-              mysql_stmt_reset(stmt_);//too drastic?...
               result_ = 0;
               state_ = Done;
               return false;
-            }
-            else{
+            } else {
               throw MySQLException(std::string("MySQL: row fetch failure: ") +
                                    mysql_stmt_error(stmt_));
             }
@@ -421,10 +464,19 @@ class MySQLStatement : public SqlStatement
 
       if(*(out_pars_[column].length) > 0){
         char * str;
-        out_pars_[column].buffer = malloc(*(out_pars_[column].length)+1);
-        out_pars_[column].buffer_length = *(out_pars_[column].length)+1;
+	if (*(out_pars_[column].length) + 1 > out_pars_[column].buffer_length) {
+	  free(out_pars_[column].buffer);
+	  out_pars_[column].buffer = malloc(*(out_pars_[column].length)+1);
+	  out_pars_[column].buffer_length = *(out_pars_[column].length)+1;
+	}
         mysql_stmt_fetch_column(stmt_,  &out_pars_[column], column, 0);
-        str = static_cast<char*>( out_pars_[column].buffer);
+
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
+
+
+	str = static_cast<char*>( out_pars_[column].buffer);
         *value = std::string(str, *out_pars_[column].length);
 
         DEBUG(std::cerr << this
@@ -438,6 +490,10 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, short *value)
     {
+      if (has_truncation_ && *out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
       if (*(out_pars_[column].is_null) == 1)
          return false;
 
@@ -448,39 +504,51 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, int *value)
     {
+
       if (*(out_pars_[column].is_null) == 1)
         return false;
       switch (out_pars_[column].buffer_type ){
       case MYSQL_TYPE_TINY:
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
         *value = (int)*static_cast<bool*>(out_pars_[column].buffer);
         break;
       case MYSQL_TYPE_LONG:
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
         *value = *static_cast<int*>(out_pars_[column].buffer);
         break;
 
       case MYSQL_TYPE_LONGLONG:
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
         *value = (int)*static_cast<long long*>(out_pars_[column].buffer);
         break;
 
       case MYSQL_TYPE_NEWDECIMAL:
-        std::string *strValue = new std::string();
-        if (!getResult(column, strValue, 0))
-          return false;
+	{
+	  std::string strValue;
+	  if (!getResult(column, &strValue, 0))
+	    return false;
 
-        try{
-          *value = boost::lexical_cast<int>(*strValue);
-        } catch( boost::bad_lexical_cast const& ) {
-          try{
-            *value = (int)boost::lexical_cast<double>(*strValue);
-          } catch( boost::bad_lexical_cast const& ) {
-            std::cout << "Error: MYSQL_TYPE_NEWDECIMAL "
-                      << "could not be casted to int" << std::endl;
-          }
-
-
-          return false;
-        }
+	  try{
+	    *value = boost::lexical_cast<int>(strValue);
+	  } catch( boost::bad_lexical_cast const& ) {
+	    try{
+	      *value = (int)boost::lexical_cast<double>(strValue);
+	    } catch( boost::bad_lexical_cast const& ) {
+	      std::cout << "Error: MYSQL_TYPE_NEWDECIMAL " << strValue
+		<< "could not be casted to int" << std::endl;
+	      return false;
+	    }
+	  }
+	}
         break;
+      default:
+	return false;
       }
 
       DEBUG(std::cerr << this
@@ -491,6 +559,10 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, long long *value)
     {
+      if (has_truncation_ && *out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
       if (*(out_pars_[column].is_null) == 1)
         return false;
       switch (out_pars_[column].buffer_type ){
@@ -504,6 +576,12 @@ class MySQLStatement : public SqlStatement
           *value = *static_cast<long long*>(out_pars_[column].buffer);
           break;
 
+        default:
+
+	  throw MySQLException("MySQL: getResult(long long): unknown type: "
+			       + boost::lexical_cast<int>
+			       (out_pars_[column].buffer_type ));
+	  break;
       }
 
       DEBUG(std::cerr << this
@@ -514,6 +592,10 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, float *value)
     {
+      if (has_truncation_ && *out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
       if (*(out_pars_[column].is_null) == 1)
          return false;
 
@@ -527,10 +609,40 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, double *value)
     {
+
       if (*(out_pars_[column].is_null) == 1)
          return false;
+      switch (out_pars_[column].buffer_type ){
+      case MYSQL_TYPE_DOUBLE:
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
+        *value = *static_cast<double*>(out_pars_[column].buffer);
+        break;
+      case MYSQL_TYPE_FLOAT:
+        if (has_truncation_ && *out_pars_[column].error)
+	  throw MySQLException("MySQL: getResult(): truncated result for column "
+	    + boost::lexical_cast<int>(column));
+        *value = *static_cast<float*>(out_pars_[column].buffer);
+        break;
+      case MYSQL_TYPE_NEWDECIMAL:
+	{
+	  std::string strValue;
+	  if (!getResult(column, &strValue, 0))
+	    return false;
 
-       *value = *static_cast<double*>(out_pars_[column].buffer);
+	  try {
+	    *value = boost::lexical_cast<double>(strValue);
+	  } catch( boost::bad_lexical_cast const& ) {
+	    std::cout << "Error: MYSQL_TYPE_NEWDECIMAL " << strValue
+	      << "could not be casted to double" << std::endl;
+	    return false;
+	  }
+	}
+        break;
+      default:
+	return false;
+      }
 
       DEBUG(std::cerr << this
             << " result double " << column << " " << *value << std::endl);
@@ -541,6 +653,10 @@ class MySQLStatement : public SqlStatement
     virtual bool getResult(int column, boost::posix_time::ptime *value,
                            SqlDateTimeType type)
     {
+      if (has_truncation_ && *out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
       if (*(out_pars_[column].is_null) == 1)
          return false;
 
@@ -565,6 +681,10 @@ class MySQLStatement : public SqlStatement
 
     virtual bool getResult(int column, boost::posix_time::time_duration* value)
     {
+      if (has_truncation_ && *out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
       if (*(out_pars_[column].is_null) == 1)
          return false;
 
@@ -585,11 +705,19 @@ class MySQLStatement : public SqlStatement
         return false;
 
       if(*(out_pars_[column].length) > 0){
-        out_pars_[column].buffer = malloc(*(out_pars_[column].length));
-        out_pars_[column].buffer_length = *(out_pars_[column].length);
+	if (*(out_pars_[column].length) > out_pars_[column].buffer_length) {
+	  free(out_pars_[column].buffer);
+	  out_pars_[column].buffer = malloc(*(out_pars_[column].length));
+	  out_pars_[column].buffer_length = *(out_pars_[column].length);
+	}
         mysql_stmt_fetch_column(stmt_,  &out_pars_[column], column, 0);
 
-        std::size_t vlength = *(out_pars_[column].length);
+      if (*out_pars_[column].error)
+	throw MySQLException("MySQL: getResult(): truncated result for column "
+	  + boost::lexical_cast<int>(column));
+
+
+	std::size_t vlength = *(out_pars_[column].length);
         unsigned char *v =
             static_cast<unsigned char*>(out_pars_[column].buffer);
 
@@ -615,10 +743,12 @@ class MySQLStatement : public SqlStatement
     MySQL& conn_;
     std::string sql_;
     char name_[64];
+    bool has_truncation_;
     MYSQL_RES *result_;
     MYSQL_STMT* stmt_;
     MYSQL_BIND* in_pars_;
     MYSQL_BIND* out_pars_;
+    my_bool* errors_;
     unsigned int lastOutCount_;
     // true value to use because mysql specifies that pointer to the boolean
     // is passed in many cases....
@@ -627,71 +757,71 @@ class MySQLStatement : public SqlStatement
     long long lastId_, row_, affectedRows_;
 
     void bind_output() {
-      if(out_pars_) free_outpars();
-      out_pars_ =(MYSQL_BIND *)malloc(
-            mysql_num_fields(result_) * sizeof(struct st_mysql_bind));
-      memset(out_pars_, 0,
-              mysql_num_fields(result_) * sizeof(struct st_mysql_bind));
-      for(unsigned int i = 0; i < mysql_num_fields(result_); ++i){
-        MYSQL_FIELD* field = mysql_fetch_field_direct(result_, i);
-        out_pars_[i].buffer_type = field->type;
-        switch(field->type){
-        case MYSQL_TYPE_TINY:
-          out_pars_[i].buffer = malloc(1);
-          out_pars_[i].buffer_length = 1;
-          break;
+      if (!out_pars_) {
+	out_pars_ =(MYSQL_BIND *)malloc(
+	      mysql_num_fields(result_) * sizeof(struct st_mysql_bind));
+	memset(out_pars_, 0,
+		mysql_num_fields(result_) * sizeof(struct st_mysql_bind));
+	errors_ = new my_bool[mysql_num_fields(result_)];
+	for(unsigned int i = 0; i < mysql_num_fields(result_); ++i){
+	  MYSQL_FIELD* field = mysql_fetch_field_direct(result_, i);
+	  out_pars_[i].buffer_type = field->type;
+	  out_pars_[i].error = &errors_[i];
+	  switch(field->type){
+	  case MYSQL_TYPE_TINY:
+	    out_pars_[i].buffer = malloc(1);
+	    out_pars_[i].buffer_length = 1;
+	    break;
 
-        case MYSQL_TYPE_SHORT:
-          out_pars_[i].buffer = malloc(sizeof(short));
-          out_pars_[i].buffer_length = sizeof(short);
-          break;
+	  case MYSQL_TYPE_SHORT:
+	    out_pars_[i].buffer = malloc(sizeof(short));
+	    out_pars_[i].buffer_length = sizeof(short);
+	    break;
 
-        case MYSQL_TYPE_LONG:
-          out_pars_[i].buffer = malloc(sizeof(int));
-          out_pars_[i].buffer_length = sizeof(int);
-          break;
-        case MYSQL_TYPE_FLOAT:
-          out_pars_[i].buffer = malloc(sizeof(float));
-          out_pars_[i].buffer_length = sizeof(float);
-          break;
+	  case MYSQL_TYPE_LONG:
+	    out_pars_[i].buffer = malloc(sizeof(int));
+	    out_pars_[i].buffer_length = sizeof(int);
+	    break;
+	  case MYSQL_TYPE_FLOAT:
+	    out_pars_[i].buffer = malloc(sizeof(float));
+	    out_pars_[i].buffer_length = sizeof(float);
+	    break;
 
-        case MYSQL_TYPE_NEWDECIMAL: // newdecimal is stored as string.
-          out_pars_[i].buffer = 0;
-          out_pars_[i].buffer_length = 0;
-          break;
-        case MYSQL_TYPE_LONGLONG:
-          out_pars_[i].buffer = malloc(sizeof(long long));
-          out_pars_[i].buffer_length = sizeof(long long);
-          break;
-        case MYSQL_TYPE_DOUBLE:
-          out_pars_[i].buffer = malloc(sizeof(double));
-          out_pars_[i].buffer_length = sizeof(double);
-          break;
+	  case MYSQL_TYPE_LONGLONG:
+	    out_pars_[i].buffer = malloc(sizeof(long long));
+	    out_pars_[i].buffer_length = sizeof(long long);
+	    break;
+	  case MYSQL_TYPE_DOUBLE:
+	    out_pars_[i].buffer = malloc(sizeof(double));
+	    out_pars_[i].buffer_length = sizeof(double);
+	    break;
 
-        case MYSQL_TYPE_TIME:
-        case MYSQL_TYPE_DATE:
-        case MYSQL_TYPE_DATETIME:
-        case MYSQL_TYPE_TIMESTAMP:
-          out_pars_[i].buffer = malloc(sizeof(struct st_mysql_time));
-          out_pars_[i].buffer_length = sizeof(struct st_mysql_time);
-          break;
+	  case MYSQL_TYPE_TIME:
+	  case MYSQL_TYPE_DATE:
+	  case MYSQL_TYPE_DATETIME:
+	  case MYSQL_TYPE_TIMESTAMP:
+	    out_pars_[i].buffer = malloc(sizeof(struct st_mysql_time));
+	    out_pars_[i].buffer_length = sizeof(struct st_mysql_time);
+	    break;
 
-        case MYSQL_TYPE_STRING:
-        case MYSQL_TYPE_VAR_STRING:
-        case MYSQL_TYPE_BLOB:
-          out_pars_[i].buffer = 0;
-          out_pars_[i].buffer_length = 0; // actually get data later- see
-          //http://dev.mysql.com/doc/refman/5.0/en/mysql-stmt-fetch.html
-          break;
-        default:
-          std::cerr << "MySQL Backend Programming Error: unknown type "
-                    << field->type << std::endl;
-        }
-        out_pars_[i].buffer_type = field->type;
-        out_pars_[i].is_null = (my_bool *)malloc(sizeof(char));
-        out_pars_[i].length =
-            (unsigned long *) malloc(sizeof(unsigned long));
-        out_pars_[i].error = (my_bool *)malloc(sizeof(char));
+	  case MYSQL_TYPE_NEWDECIMAL: // newdecimal is stored as string.
+	  case MYSQL_TYPE_STRING:
+	  case MYSQL_TYPE_VAR_STRING:
+	  case MYSQL_TYPE_BLOB:
+	    out_pars_[i].buffer = malloc(256);
+	    out_pars_[i].buffer_length = 256; // Reserve 256 bytes, if the content is longer, it will be reallocated later
+	    //http://dev.mysql.com/doc/refman/5.0/en/mysql-stmt-fetch.html
+	    break;
+	  default:
+	    std::cerr << "MySQL Backend Programming Error: unknown type "
+		      << field->type << std::endl;
+	  }
+	  out_pars_[i].buffer_type = field->type;
+	  out_pars_[i].is_null = (my_bool *)malloc(sizeof(char));
+	  out_pars_[i].length =
+	      (unsigned long *) malloc(sizeof(unsigned long));
+	  out_pars_[i].error = (my_bool *)malloc(sizeof(char));
+	}
       }
       mysql_stmt_bind_result(stmt_, out_pars_);
     }
@@ -736,33 +866,31 @@ MySQL::MySQL(const std::string &db,  const std::string &dbuser,
              const std::string &dbpasswd, const std::string dbhost,
              unsigned int dbport, const std::string &dbsocket,
              int fractionalSecondsPart)
-: impl_(NULL),
-  dbname_(db),
-  dbuser_(dbuser),
-  dbpasswd_(dbpasswd),
-  dbhost_(dbhost),
-  dbsocket_(dbsocket),
-  dbport_(dbport)
+: impl_(new MySQL_impl())
 {
   setFractionalSecondsPart(fractionalSecondsPart);
 
-  connect();
+  try {
+    connect(db, dbuser, dbpasswd, dbhost, dbport, dbsocket);
+  } catch (...) {
+    delete impl_;
+    throw;
+  }
 }
 
 MySQL::MySQL(const MySQL& other)
   : SqlConnection(other),
-    impl_(NULL),
-    dbname_(other.dbname_),
-    dbuser_(other.dbuser_),
-    dbpasswd_(other.dbpasswd_),
-    dbhost_(other.dbhost_),
-    dbsocket_(other.dbsocket_),
-    dbport_(other.dbport_)
+    impl_(new MySQL_impl())
 {
   setFractionalSecondsPart(other.fractionalSecondsPart_);
 
-  if (!other.dbname_.empty())
-    connect();
+  try {
+    if (!other.dbname_.empty())
+      connect(other.dbname_, other.dbuser_, other.dbpasswd_, other.dbhost_, other.dbport_, other.dbsocket_);
+  } catch (...) {
+    delete impl_;
+    throw;
+  }
 }
 
 MySQL::~MySQL()
@@ -772,7 +900,7 @@ MySQL::~MySQL()
     mysql_close(impl_->mysql);
 
   if (impl_){
-    free(impl_);
+    delete impl_;
     impl_ = 0;
   }
 }
@@ -782,39 +910,44 @@ MySQL *MySQL::clone() const
   return new MySQL(*this);
 }
 
-bool MySQL::connect()
+bool MySQL::connect(const std::string &db,  const std::string &dbuser,
+             const std::string &dbpasswd, const std::string &dbhost,
+             unsigned int dbport, const std::string &dbsocket)
 {
-  if(!impl_)
-    impl_ = (MySQL_impl *)malloc(sizeof(MySQL_impl));
+  if (impl_->mysql)
+    throw MySQLException("MySQL : Already connected, disconnect first");
 
-  if(!dbname_.empty()){
-    if((impl_->mysql = mysql_init(NULL))){
-      my_bool reconnect = true;
-      if(!mysql_options(impl_->mysql, MYSQL_OPT_RECONNECT, &reconnect))
-      {
-        if(mysql_real_connect(impl_->mysql, dbhost_.c_str(), dbuser_.c_str(),
-                              dbpasswd_.empty() ? 0 : dbpasswd_.c_str(),
-                              dbname_.c_str(), dbport_,
-                              //dbsocket_.c_str(),
-                              "/var/run/mysqld/mysqld.sock",
-                              CLIENT_FOUND_ROWS) != impl_->mysql){
-          std::string errtext = mysql_error(impl_->mysql);
-          mysql_close(impl_->mysql);
-          throw MySQLException(
-                std::string("MySQL : Failed to connect to database server: ")
-                + errtext);
-        }
+  if((impl_->mysql = mysql_init(NULL))){
+    my_bool reconnect = true;
+    if(!mysql_options(impl_->mysql, MYSQL_OPT_RECONNECT, &reconnect)) {
+      if(mysql_real_connect(impl_->mysql, dbhost.c_str(), dbuser.c_str(),
+	dbpasswd.empty() ? 0 : dbpasswd.c_str(),
+	db.c_str(), dbport,
+	dbsocket.c_str(),
+	CLIENT_FOUND_ROWS) != impl_->mysql) {
+	  std::string errtext = mysql_error(impl_->mysql);
+	  mysql_close(impl_->mysql);
+	  impl_->mysql = 0;
+	  throw MySQLException(
+	    std::string("MySQL : Failed to connect to database server: ")
+	    + errtext);
+      } else {
+	// success!
+	dbname_ = db;
+	dbuser_ = dbuser;
+	dbpasswd_ = dbpasswd;
+	dbhost_ = dbhost;
+	dbsocket_ = dbsocket;
+	dbport_ = dbport;
       }
-      else
-      {
-        throw MySQLException("MySQL : Failed to set the reconnect option");
-      }
+    } else {
+      mysql_close(impl_->mysql);
+      impl_->mysql = 0;
+      throw MySQLException("MySQL : Failed to set the reconnect option");
     }
-    else
-    {
-      throw MySQLException(
-            std::string("MySQL : Failed to initialize database: ") + dbname_);
-    }
+  } else {
+    throw MySQLException(
+      std::string("MySQL : Failed to initialize database: ") + dbname_);
   }
 
   init();
@@ -840,10 +973,8 @@ void MySQL::executeSql(const std::string &sql)
     std::cerr << sql << std::endl;
 
   if( mysql_query(impl_->mysql, sql.c_str()) != 0 ){
-    std::cerr << "MySQL error performing query: " <<
-                 mysql_error(impl_->mysql) << std::endl;
-    throw MySQLException(std::string("MySQL error performing query: ")
-                         + mysql_error(impl_->mysql));
+    throw MySQLException("MySQL error performing query: '" +
+			 sql + "': " + mysql_error(impl_->mysql));
   }
   //use any results up
   MYSQL_RES* res = mysql_store_result(impl_->mysql);
@@ -861,7 +992,7 @@ std::string MySQL::autoincrementSql() const
   return "AUTO_INCREMENT";
 }
 
-std::string MySQL::autoincrementInsertSuffix() const
+std::string MySQL::autoincrementInsertSuffix(const std::string &id) const
 {
   return std::string();
 }

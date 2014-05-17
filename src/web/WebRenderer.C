@@ -11,6 +11,7 @@
 #include "Wt/WApplication"
 #include "Wt/WContainerWidget"
 #include "Wt/WRandom"
+#include "Wt/WRegExp"
 #include "Wt/WWebWidget"
 #include "Wt/WStringStream"
 #include "Wt/WTheme"
@@ -26,7 +27,7 @@
 #include "WebSession.h"
 #include "WebUtils.h"
 
-#ifdef WIN32
+#ifdef WT_WIN32
 #include <process.h> // for getpid()
 #ifdef min
 #undef min
@@ -341,6 +342,7 @@ void WebRenderer::streamBootContent(WebResponse& response,
   bootJs.setCondition("HYBRID", hybrid);
   bootJs.setCondition("PROGRESS", hybrid && !session_.env().ajax());
   bootJs.setCondition("DEFER_SCRIPT", true);
+  bootJs.setCondition("WEBGL_DETECT", conf.webglDetect());
 
   std::string internalPath
     = hybrid ? session_.app()->internalPath() : session_.env().internalPath();
@@ -1248,7 +1250,7 @@ void WebRenderer::serveMainpage(WebResponse& response)
     app->oldInternalPath_ = app->newInternalPath_;
 
     if (session_.state() == WebSession::JustCreated &&
-	conf.progressiveBoot()) {
+	conf.progressiveBoot(app->environment().internalPath())) {
       session_.redirect
 	(session_.fixRelativeUrl
 	 (session_.bookmarkUrl(app->newInternalPath_)));
@@ -1753,32 +1755,75 @@ void WebRenderer::learningIncomplete()
 std::string WebRenderer::headDeclarations() const
 {
   EscapeOStream result;
+ 
+  const Configuration& conf = session_.env().server()->configuration();
+
+  const std::vector<MetaHeader>& confMetaHeaders = conf.metaHeaders();
+  std::vector<MetaHeader> metaHeaders;
+
+  for (unsigned i = 0; i < confMetaHeaders.size(); ++i) {
+    const MetaHeader& m = confMetaHeaders[i];
+
+    bool add = true;
+    if (!m.userAgent.empty()) {
+      WT_USTRING s = WT_USTRING::fromUTF8(session_.env().userAgent());
+      WRegExp expr(WT_USTRING::fromUTF8(m.userAgent));
+      if (!expr.exactMatch(s))
+	add = false;
+    }
+
+    if (add)
+      metaHeaders.push_back(confMetaHeaders[i]);
+  }
 
   if (session_.app()) {
-    for (unsigned i = 0; i < session_.app()->metaHeaders_.size(); ++i) {
-      const WApplication::MetaHeader& m = session_.app()->metaHeaders_[i];
+    const std::vector<MetaHeader>& appMetaHeaders
+      = session_.app()->metaHeaders_;
 
-      result << "<meta";
+    for (unsigned i = 0; i < appMetaHeaders.size(); ++i) {
+      const MetaHeader& m = appMetaHeaders[i];
 
-      if (!m.name.empty()) {
-	std::string attribute;
-	switch (m.type) {
-	case MetaName: attribute = "name"; break;
-	case MetaProperty: attribute = "property"; break;
-	case MetaHttpHeader: attribute = "http-equiv"; break;
+      bool add = true;
+      for (unsigned j = 0; j < metaHeaders.size(); ++j) {
+	MetaHeader& m2 = metaHeaders[j];
+
+	if (m.type == m2.type && m.name == m2.name) {
+	  m2.content = m.content;
+	  add = false;
+	  break;
 	}
-
-	appendAttribute(result, attribute, m.name);
       }
 
-      if (!m.lang.empty())
-	appendAttribute(result, "lang", m.lang);
-
-      appendAttribute(result, "content", m.content.toUTF8());
-
-      closeSpecial(result);
+      if (add)
+	metaHeaders.push_back(m);
     }
-    
+  }
+
+  for (unsigned i = 0; i < metaHeaders.size(); ++i) {
+    const MetaHeader& m = metaHeaders[i];
+
+    result << "<meta";
+
+    if (!m.name.empty()) {
+      std::string attribute;
+      switch (m.type) {
+      case MetaName: attribute = "name"; break;
+      case MetaProperty: attribute = "property"; break;
+      case MetaHttpHeader: attribute = "http-equiv"; break;
+      }
+
+      appendAttribute(result, attribute, m.name);
+    }
+
+    if (!m.lang.empty())
+      appendAttribute(result, "lang", m.lang);
+
+    appendAttribute(result, "content", m.content.toUTF8());
+
+    closeSpecial(result);
+  }
+
+  if (session_.app()) {
     for (unsigned i = 0; i < session_.app()->metaLinks_.size(); ++i) {
       const WApplication::MetaLink& ml = session_.app()->metaLinks_[i];
 
@@ -1801,8 +1846,11 @@ std::string WebRenderer::headDeclarations() const
     }
   } else
     if (session_.env().agentIsIE()) {
+      /*
+       * WARNING: Similar code in WApplication.C must be kept in sync for 
+       *          progressive boot.
+       */
       if (session_.env().agent() < WEnvironment::IE9) {
-	const Configuration& conf = session_.env().server()->configuration(); 
 	bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
 	  != std::string::npos;
 
@@ -1815,6 +1863,9 @@ std::string WebRenderer::headDeclarations() const
 	closeSpecial(result);
       } else if (session_.env().agent() == WEnvironment::IE10) {
 	result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=10\"";
+	closeSpecial(result);
+      } else {
+	result << "<meta http-equiv=\"X-UA-Compatible\" content=\"IE=11\"";
 	closeSpecial(result);
       }
     }

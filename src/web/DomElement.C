@@ -137,6 +137,10 @@ std::string cssCamelNames_[] =
 
 const std::string unsafeChars_ = " $&+,:;=?@'\"<>#%{}|\\^~[]`";
 
+inline char hexLookup(int n) {
+  return "0123456789abcdef"[(n & 0xF)];
+}
+
 }
 
 namespace Wt {
@@ -205,30 +209,20 @@ DomElement::~DomElement()
 std::string DomElement::urlEncodeS(const std::string& url,
                                    const std::string &allowed)
 {
-  std::stringstream result;
-#ifndef WT_CNOR
-  result << std::hex;
-#endif
+  WStringStream result;
 
   for (unsigned i = 0; i < url.length(); ++i) {
     unsigned char c = url[i];
     if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
       if (allowed.find(c) != std::string::npos) {
-        // overridden
-        result.put(c);
+        result << (char)c;
       } else {
         result << '%';
-        if ((int)c < 16) {
-          result << '0';
-        }
-#ifndef WT_CNOR
-        result << (int)c;
-#else
-        result << Utils::toHexString(c);
-#endif // WT_CNOR
+	result << hexLookup(c >> 4);
+        result << hexLookup(c);
       }
     } else
-      result.put(c);
+      result << (char)c;
   }
 
   return result.str();
@@ -770,12 +764,6 @@ void DomElement::asHTML(EscapeOStream& out,
     }
   }
 
-  if (needButtonWrap) {
-    PropertyMap::const_iterator i = properties_.find(PropertyStyleDisplay);
-    if (i != properties_.end() && i->second == "none")
-      return;
-  }
-
   /*
    * We also should not wrap anchors, map area elements and form elements.
    */
@@ -946,6 +934,12 @@ void DomElement::asHTML(EscapeOStream& out,
     case PropertySelected:
       if (i->second == "true")
 	out << " selected=\"selected\"";
+      break;
+    case PropertySelectedIndex:
+      if (i->second == "-1") {
+	DomElement *self = const_cast<DomElement *>(this);
+	self->callMethod("selectedIndex=-1");
+      }
       break;
     case PropertyMultiple:
       if (i->second == "true")
@@ -1240,7 +1234,7 @@ std::string DomElement::asJavaScript(EscapeOStream& out,
       if (removeAllChildren_ >= 0) {
 	declare(out);
 	if (removeAllChildren_ == 0)
-	  out << var_ << ".innerHTML='';\n";
+	  out << WT_CLASS << ".setHtml(" << var_ << ", '');\n";
 	else {
 	  out << "$(" << var_ << ").children(':gt(" << (removeAllChildren_ - 1)
 	      << ")').remove();";
@@ -1498,7 +1492,13 @@ void DomElement::setJavaScriptProperties(EscapeOStream& out,
       out << var_ << ".indeterminate=" << i->second << ";";
       break;
     case PropertyDisabled:
-      out << var_ << ".disabled=" << i->second << ';';
+      if (type_ == DomElement_A) {
+	if (i->second == "true")
+	  out << var_ << ".setAttribute('disabled', 'disabled');";
+	else
+	  out << var_ << ".removeAttribute('disabled', 'disabled');";
+      } else
+	out << var_ << ".disabled=" << i->second << ';';
       break;
     case PropertyReadOnly:
       out << var_ << ".readOnly=" << i->second << ';';

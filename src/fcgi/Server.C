@@ -44,8 +44,8 @@ namespace Wt {
 /*
  * From the FCGI Specifaction
  */
-const int FCGI_BEGIN_REQUEST = 1;
-const int FCGI_ABORT_REQUEST = 2;
+// const int FCGI_BEGIN_REQUEST = 1; // unused
+// const int FCGI_ABORT_REQUEST = 2; // unused
 const int FCGI_END_REQUEST   = 3;
 const int FCGI_PARAMS        = 4;
 
@@ -70,16 +70,19 @@ bool Server::bindUDStoStdin(const std::string& socketPath, Wt::WServer& server)
 
   if (bind(s, (struct sockaddr *)& local, len) == -1) {
     LOG_ERROR_S(&server, "fatal: bind(): " << strerror(errno));
+    close(s);
     return false;
   }
 
   if (listen(s, 5) == -1) {
     LOG_ERROR_S(&server, "fatal: listen(): " << strerror(errno));
+    close(s);
     return false;
   }
 
   if (dup2(s, STDIN_FILENO) == -1) {
     LOG_ERROR_S(&server, "fatal: dup2(): " << strerror(errno));
+    close(s);
     return false;
   }
 
@@ -329,8 +332,10 @@ void Server::checkConfig()
 		<< conf.runDirectory() << "'");
       exit(1);
     }
-  } else
+  } else {
     unlink((conf.runDirectory() + "/test").c_str());
+    fclose(test);
+  }
 }
 
 int Server::run()
@@ -409,8 +414,6 @@ bool Server::writeToSocket(int socket, const unsigned char *buf, int bufsize)
 void Server::handleRequest(int serverSocket)
 {
   int clientSocket = -1;
-  bool debug = false;
-
   try {
     /*
      * handle a new request
@@ -468,7 +471,7 @@ void Server::handleRequest(int serverSocket)
 	&& !cookies.empty() && !scriptName.empty()
 	&& !conf.reloadIsNewSession()) {
       std::string cookieSessionId
-	= WebController::sessionFromCookie(cookies, scriptName,
+	= WebController::sessionFromCookie(cookies.c_str(), scriptName,
 					   conf.sessionIdLength());
       if (!cookieSessionId.empty()) {
 	sessionId = cookieSessionId;
@@ -527,7 +530,7 @@ void Server::handleRequest(int serverSocket)
 	  exit(1);
 	} else if (pid == 0) {
 	  /* the child process */
-	  execChild(debug, sessionId);
+	  execChild(true, sessionId);
 	  exit(1);
 	} else {
 	  LOG_INFO_S(&wt_, "spawned dedicated process for " << sessionId

@@ -4,7 +4,7 @@
  * See the LICENSE file for terms of use.
  */
 
-//#define DEBUG_LAYOUT
+// #define DEBUG_LAYOUT
 
 #include "Wt/WFontMetrics"
 #include "Wt/WLogger"
@@ -845,14 +845,16 @@ int Block::cssFontWeight() const
 			&& type_ <= DomElement_H6)))
     v = "bolder";
 
-  if (!v.empty()) {
-    try {
-      return boost::lexical_cast<int>(v);
-    } catch (boost::bad_lexical_cast& blc) {
-      if (v == "normal")
-	return 400;
-      else if (v == "bold")
-	return 700;
+  if (!v.empty() && v != "bolder" && v != "lighter") {
+    if (v == "normal")
+      return 400;
+    else if (v == "bold")
+      return 700;
+    else {
+      try {
+	return boost::lexical_cast<int>(v);
+      } catch (boost::bad_lexical_cast& blc) {
+      }
     }
   }
 
@@ -1386,7 +1388,7 @@ void Block::layoutTable(PageState &ps,
       rWidth = width - totalSpacing;
       rTotalMaxWidth = totalMaxWidth - totalSpacing;
 
-      for (unsigned i = 0; i < setColumnWidths[i]; ++i)
+      for (unsigned i = 0; i < widths.size(); ++i)
 	setColumnWidths[i] = -1.0;
     }
 
@@ -1443,9 +1445,10 @@ void Block::layoutTable(PageState &ps,
       // Note: should actually interpret CSS 'table-header-group' value for
       // display
       repeatHead = children_[i];
-    } else
-      if (children_[i]->type_ != DomElement_UNKNOWN)
-	break;
+      break;
+    } else if (children_[i]->type_ == DomElement_TBODY ||
+	       children_[i]->type_ == DomElement_TR)
+      break;
   }
   bool protectRows = repeatHead != 0;
 
@@ -2173,7 +2176,12 @@ double Block::layoutBlock(PageState &ps,
 	     * This layout computes the 'hypothetical' static layout
 	     * properties
 	     */
-	    PageState absolutePs = ps;
+	    PageState absolutePs;
+	    absolutePs.y = ps.y;
+	    absolutePs.page = ps.page;
+	    absolutePs.minX = ps.minX;
+	    absolutePs.maxX = ps.maxX;
+	    absolutePs.floats = ps.floats;
 	    c->layoutBlock(absolutePs, false, renderer, 0, 0);
 	  } else {
 	    double copyMinX = ps.minX;
@@ -2956,9 +2964,6 @@ void Block::render(WTextRenderer& renderer, WPainter& painter, int page)
     }
   }
 
-  if (type_ == DomElement_THEAD)
-    currentTheadBlock_ = blockLayout.empty() ? 0 : &blockLayout.front();
-
   unsigned first = (type_ == DomElement_LI) ? 1 : 0;
   for (unsigned i = first; i < inlineLayout.size(); ++i) {
     LayoutBox& lb = inlineLayout[i];
@@ -3056,10 +3061,9 @@ void Block::actualRender(WTextRenderer& renderer, WPainter& painter,
 #endif // DEBUG_LAYOUT
 
     if (type_ == DomElement_THEAD) {
-      /*
-       * This is the first or a repeated THEAD element
-       * (for a repeated:) move children here + render
-       */
+      if (currentTheadBlock_ == 0 && !blockLayout.empty())
+	currentTheadBlock_ = &blockLayout.front();
+
       for (unsigned j = 0; j < children_.size(); ++j) {
         if (currentTheadBlock_ != &lb)
           children_[j]->reLayout(*currentTheadBlock_, lb);
@@ -3145,6 +3149,14 @@ void Block::renderText(const std::string& text, WTextRenderer& renderer,
 	      painter.drawText(WRectF(x, rect.top(),
 				      wordWidth, rect.height()),
 			       AlignLeft | AlignTop, word);
+
+#ifdef DEBUG_LAYOUT
+	      painter.save();
+	      painter.setPen(WPen(cyan));
+	      painter.drawRect(WRectF(x, rect.top(),
+				      wordWidth, rect.height()));
+	      painter.restore();
+#endif // DEBUG_LAYOUT
 
 	      x += wordWidth;
 	    }

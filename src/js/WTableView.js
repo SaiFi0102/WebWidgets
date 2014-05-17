@@ -14,11 +14,22 @@ WT_DECLARE_WT_MEMBER
 
    var self = this;
    var WT = APP.WT;
+   var rtl = $(document.body).hasClass('Wt-rtl');
 
    /** @const */ var EnsureVisible = 0;
    /** @const */ var PositionAtTop = 1;
    /** @const */ var PositionAtBottom = 2;
    /** @const */ var PositionAtCenter = 3;
+
+   function rtlScrollLeft(o) {
+     if (rtl) {
+       if (WT.isGecko)
+	 return -o.scrollLeft;
+       else
+	 return o.scrollWidth - o.clientWidth - o.scrollLeft;
+     } else
+       return o.scrollLeft;
+   }
 
    var scrollX1 = 0, scrollX2 = 0, scrollY1 = 0, scrollY2 = 0;
 
@@ -26,9 +37,9 @@ WT_DECLARE_WT_MEMBER
     * We need to remember this for when going through a hide()
     * show() cycle.
     */
-   var scrollTop = 0, scrollLeft = 0, currentWidth = 0, currentHeight = 0;
+   var scrollTop = 0, scrollLeft, currentWidth = 0, currentHeight = 0;
 
-   contentsContainer.onscroll = function() {
+   this.onContentsContainerScroll = function() {
      scrollLeft = headerContainer.scrollLeft
 		   = contentsContainer.scrollLeft;
      scrollTop = headerColumnsContainer.scrollTop
@@ -41,10 +52,11 @@ WT_DECLARE_WT_MEMBER
          && (contentsContainer.scrollTop < scrollY1
 	 || contentsContainer.scrollTop > scrollY2
 	 || contentsContainer.scrollLeft < scrollX1
-	 || contentsContainer.scrollLeft > scrollX2))
-       APP.emit(el, 'scrolled', contentsContainer.scrollLeft,
+	 || contentsContainer.scrollLeft > scrollX2)) {
+       APP.emit(el, 'scrolled', rtlScrollLeft(contentsContainer),
 	        contentsContainer.scrollTop, contentsContainer.clientWidth,
-	        contentsContainer.clientHeight);
+	        contentsContainer.clientHeight);       
+     }
    };
 
    contentsContainer.wtResize = function(o, w, h) {
@@ -54,7 +66,7 @@ WT_DECLARE_WT_MEMBER
        var height = o.clientHeight == o.firstChild.clientHeight
          ? -1
          : o.clientHeight;
-       APP.emit(el, 'scrolled', o.scrollLeft, o.scrollTop,
+       APP.emit(el, 'scrolled', rtlScrollLeft(o), o.scrollTop,
 		o.clientWidth, height);
      }
    };
@@ -191,6 +203,12 @@ WT_DECLARE_WT_MEMBER
      contentsContainer.scrollLeft = scrollLeft;
      contentsContainer.scrollTop = scrollTop;
      headerColumnsContainer.scrollTop = scrollTop;
+   };
+
+   this.scrollToPx = function(x, y) {
+     scrollTop = y;
+     scrollLeft = x;
+     this.resetScroll();
    };
 
    this.scrollTo = function(x, y, hint) {
@@ -372,10 +390,19 @@ WT_DECLARE_WT_MEMBER
 
      if (!WT.isIE && (scrollTop != contentsContainer.scrollTop
          || scrollLeft != contentsContainer.scrollLeft)) {
-       headerContainer.scrollLeft = contentsContainer.scrollLeft
-				      = scrollLeft;
+       if (typeof scrollLeft === 'undefined') {
+	 if (rtl && WT.isGecko) {	   
+	   headerContainer.scrollLeft = contentsContainer.scrollLeft
+	     = scrollLeft = 0;
+	 } else {
+	   scrollLeft = contentsContainer.scrollLeft;
+	 }
+       } else {
+	 headerContainer.scrollLeft = contentsContainer.scrollLeft
+	   = scrollLeft;
+       }
        headerColumnsContainer.scrollTop = contentsContainer.scrollTop
-					    = scrollTop;
+	 = scrollTop;	 
      }
 
      var tw = el.offsetWidth - WT.px(el, 'borderLeftWidth')
@@ -383,19 +410,20 @@ WT_DECLARE_WT_MEMBER
 
      var scrollwidth = contentsContainer.offsetWidth
        - contentsContainer.clientWidth;
-     tw -= scrollwidth;
      tw -= headerColumnsContainer.clientWidth;
 
      if (tw > 200  // XXX: IE's incremental rendering foobars completely
          && (tw != contentsContainer.tw)) {
        contentsContainer.tw = tw;
 
-       contentsContainer.style.width = (tw + scrollwidth) + 'px';
+       contentsContainer.style.width = tw + 'px';
        headerContainer.style.width = tw + 'px';
 
-       // IE moves the scrollbar left in rtl mode.
-       if (!WT.isIE)
+       var rtl = $(document.body).hasClass('Wt-rtl');
+       if (!rtl)
 	 headerContainer.style.marginRight = scrollwidth + 'px';
+       else
+	 headerContainer.style.marginLeft = scrollwidth + 'px';
      }
 
      var scrollheight = contentsContainer.offsetHeight

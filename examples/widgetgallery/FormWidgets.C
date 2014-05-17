@@ -1,7 +1,7 @@
 /*
-  *Copyright (C) 2008 Emweb bvba, Kessel-Lo, Belgium.
+ * Copyright (C) 2008 Emweb bvba, Kessel-Lo, Belgium.
  *
-  *See the LICENSE file for terms of use.
+ * See the LICENSE file for terms of use.
  */
 #include "FormWidgets.h"
 #include "TopicTemplate.h"
@@ -83,6 +83,7 @@ Wt::WWidget *FormWidgets::introduction()
 
 
 #include "examples/LineEdit.cpp"
+#include "examples/InputMask.cpp"
 #include "examples/LineEditEvent.cpp"
 #include "examples/TextArea.cpp"
 #include "examples/TextEdit.cpp"
@@ -98,6 +99,7 @@ Wt::WWidget *FormWidgets::textEditors()
   result->bindWidget("TextEdit", TextEdit());
   result->bindWidget("SpinBox", SpinBox());
   result->bindWidget("TextSide", TextSide());
+  result->bindWidget("InputMask", InputMask());
 
   // Show the XML-template as text
   result->bindString("lineEdit-template", reindent(tr("lineEdit-template")),
@@ -246,7 +248,6 @@ Wt::WWidget *FormWidgets::fileUpload()
 #include "examples/PushButtonOnce.cpp"
 #include "examples/PushButtonLink.cpp"
 #include "examples/PushButtonDropdownAppended.cpp"
-#include "examples/PushButtonDropdownPrepended.cpp"
 #include "examples/PushButtonColor.cpp"
 #include "examples/PushButtonSize.cpp"
 #include "examples/PushButtonPrimary.cpp"
@@ -260,8 +261,6 @@ Wt::WWidget *FormWidgets::pushButton()
   result->bindWidget("PushButtonLink", PushButtonLink());
   result->bindWidget("PushButtonDropdownAppended",
                      PushButtonDropdownAppended());
-  result->bindWidget("PushButtonDropdownPrepended",
-                     PushButtonDropdownPrepended());
   result->bindWidget("PushButtonColor", PushButtonColor());
   result->bindWidget("PushButtonSize", PushButtonSize());
   result->bindWidget("PushButtonPrimary", PushButtonPrimary());
@@ -270,9 +269,6 @@ Wt::WWidget *FormWidgets::pushButton()
   // Show the XML-templates as text
   result->bindString("appendedDropdownButton-template",
                      reindent(tr("appendedDropdownButton-template")),
-                     Wt::PlainText);
-  result->bindString("prependedDropdownButton-template",
-                     reindent(tr("prependedDropdownButton-template")),
                      Wt::PlainText);
   result->bindString("pushButtonColor-template",
                      reindent(tr("pushButtonColor-template")), Wt::PlainText);

@@ -40,6 +40,10 @@ class WTableRow;
 class WT_API WTableCell : public WContainerWidget
 {
 public:
+  /*! \brief Create a table cell.
+   */
+  WTableCell();
+
   /*! \brief Sets the row span.
    *
    * The row span indicates how many table rows this WTableCell
@@ -89,6 +93,8 @@ public:
   /*! \brief Returns the table column containing this cell.
    */
   WTableColumn *tableColumn() const;
+
+  virtual bool isVisible() const;
 
 private:
   WTableCell(WTableRow *row, int column);

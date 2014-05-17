@@ -300,6 +300,20 @@ public:
 
   virtual void enableAjax();
 
+  ///
+  /// \brief Sets input accept attributes
+  ///
+  /// The accept attribute may be specified to provide user agents with a hint
+  /// of what file types will be accepted.
+  /// Use html input accept attributes as input.
+  ///
+  /// \code
+  /// WFileUpload *fu = new WFileUpload(root());
+  /// fu->setFilters("image/*");
+  /// \endcode
+  ///
+  void setFilters(const std::string& acceptAttributes);
+
 private:
   static const char *CHANGE_SIGNAL;
   static const char *UPLOADED_SIGNAL;
@@ -324,6 +338,7 @@ private:
   WResource *fileUploadTarget_;
   WProgressBar *progressBar_;
 
+  std::string acceptAttributes_;
   void create();
 
   void onData(::uint64_t current, ::uint64_t total);

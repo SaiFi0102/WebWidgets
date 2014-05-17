@@ -187,6 +187,10 @@ public:
    *
    * By default, a button does not link to an URL and you should
    * listen to the clicked() signal to react to a click event.
+   *
+   * \warning In Bootstrap theme, you should set a link before it's rendered
+   *          since it commit's the button to be rendered as an anchor.
+   *          (see also http://redmine.emweb.be/issues/1802).
    */
   void setLink(const WLink& link);
 
@@ -271,7 +275,16 @@ public:
    */
   AnchorTarget linkTarget() const { return linkState_.target; }
 
+  /*! \brief Links a popup menu to the button.
+   *
+   * When the button is clicked, the linked popup menu is shown.
+   */
   void setMenu(WPopupMenu *menu);
+
+  /*! \brief Returns an associated popup menu.
+   *
+   * \sa setMenu()
+   */
   WPopupMenu *menu() const { return popupMenu_; }
 
   virtual void refresh();
@@ -297,6 +310,8 @@ public:
    * \sa setCheckable()
    */
   EventSignal<>& unChecked();
+
+  virtual bool setFirstFocus();
 
 private:
   static const char *CHECKED_SIGNAL;

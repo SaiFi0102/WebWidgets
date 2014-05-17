@@ -305,6 +305,7 @@ WMessageResources::WMessageResources(const char *builtin)
 {
   std::istringstream s(builtin,  std::ios::in | std::ios::binary);
   readResourceStream(s, defaults_, "<internal resource bundle>");
+  loaded_ = true;
 }
 
 std::set<std::string> 
@@ -479,8 +480,7 @@ bool WMessageResources::readResourceStream(std::istream &s,
     else if (m1 == 0xFF && m2 == 0xFE)
       encoding = UTF16LE;
     else {
-      s.unget();
-      s.unget();
+      s.seekg(0, std::ios::beg);
     }
   }
 

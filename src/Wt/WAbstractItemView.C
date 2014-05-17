@@ -29,6 +29,7 @@ public:
   DefaultPagingBar(WAbstractItemView *view)
     : view_(view)
   {
+    view_->addStyleClass("Wt-itemview-paged");
     setStyleClass("Wt-pagingbar");
 
     firstButton_ = new WPushButton(tr("Wt.WAbstractItemView.PageBar.First"),
@@ -135,6 +136,8 @@ public:
       result |= ItemIsUserCheckable;
     if (headerFlags & HeaderIsTristate)
       result |= ItemIsTristate;
+    if (headerFlags & HeaderIsXHTMLText)
+      result |= ItemIsXHTMLText;
 
     return result;
   }
@@ -904,16 +907,17 @@ void WAbstractItemView::selectionHandleClick(const WModelIndex& index,
       extendSelection(index);
     else {
       if (!(modifiers & (ControlModifier | MetaModifier))) {
-	//if (isSelected(index)) -> strange MacOS X behavor
-	//  return;
-	//else {
 	select(index, ClearAndSelect);
-	//}
       } else
 	select(index, ToggleSelect);
     }
-  } else
-    select(index, Select);
+  } else {
+    if ((modifiers & (ControlModifier | MetaModifier)) &&
+	isSelected(index))
+      clearSelection();
+    else
+      select(index, Select);
+  }
 }
 
 WModelIndexSet WAbstractItemView::selectedIndexes() const

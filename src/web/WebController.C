@@ -44,6 +44,27 @@
 #include <boost/filesystem.hpp>
 #endif
 
+namespace {
+
+bool matchesPath(const std::string& path, const std::string& prefix)
+{
+  if (boost::starts_with(path, prefix)) {
+    unsigned prefixLength = prefix.length();
+
+    if (path.length() > prefixLength) {
+      char next = path[prefixLength];
+
+      if (next == '/')
+	return true; 
+    } else
+      return true;
+  }
+
+  return false;
+}
+
+}
+
 namespace Wt {
 
 LOGGER("WebController");
@@ -217,15 +238,18 @@ void WebController::removeSession(const std::string& sessionId)
   }
 }
 
-std::string WebController::appSessionCookie(std::string url)
+std::string WebController::appSessionCookie(const std::string& url)
 {
   return Utils::urlEncode(url);
 }
 
-std::string WebController::sessionFromCookie(std::string cookies,
-					     std::string scriptName,
+std::string WebController::sessionFromCookie(const char *cookies,
+					     const std::string& scriptName,
 					     int sessionIdLength)
 {
+  if (!cookies)
+    return std::string();
+
   std::string cookieName = appSessionCookie(scriptName);
 
 #ifndef WT_HAVE_GNU_REGEX
@@ -237,7 +261,7 @@ std::string WebController::sessionFromCookie(std::string cookies,
 
   boost::smatch what;
 
-  if (boost::regex_match(cookies, what, cookieSession_e))
+  if (boost::regex_match(std::string(cookies), what, cookieSession_e))
     return what[1];
   else
     return std::string();
@@ -467,10 +491,7 @@ bool WebController::handleApplicationEvent(const ApplicationEvent& event)
     WebSession::Handler handler(session, true);
 
     if (!session->dead()) {
-      if (session->app())
-	session->app()->notify(WEvent(WEvent::Impl(&handler, event.function)));
-      else
-	session->notify(WEvent(WEvent::Impl(&handler, event.function)));
+      session->externalNotify(WEvent::Impl(&handler, event.function));
 
       if (session->app() && session->app()->isQuited())
 	session->kill();
@@ -614,7 +635,7 @@ void WebController::handleRequest(WebRequest *request)
 		   "persistent session requested Id: " << sessionId << ", "
 		   << "persistent Id: " << singleSessionId_);
 
-	if (sessions_.empty() || request->requestMethod() == "GET")
+	if (sessions_.empty() || strcmp(request->requestMethod(), "GET") == 0)
 	  sessionId = singleSessionId_;
       } else
 	sessionId = singleSessionId_;
@@ -689,42 +710,41 @@ WApplication *WebController::doCreateApplication(WebSession *session)
   return ep->appCallback()(session->env());
 }
 
-const EntryPoint *
-WebController::getEntryPoint(WebRequest *request)
+const EntryPoint *WebController::getEntryPoint(WebRequest *request)
 {
-  std::string scriptName = request->scriptName();
-  std::string pathInfo = request->pathInfo();
+  const std::string& scriptName = request->scriptName();
+  const std::string& pathInfo = request->pathInfo();
 
   // Only one default entry point.
   if (conf_.entryPoints().size() == 1
       && conf_.entryPoints()[0].path().empty())
     return &conf_.entryPoints()[0];
 
-  // Multiple entry points. This case probably only happens with built-in http
-  for (unsigned i = 0; i < conf_.entryPoints().size(); ++i) {
-    const Wt::EntryPoint& ep = conf_.entryPoints()[i];
-    if (scriptName == ep.path())
-      return &ep;
-  }
+  // Multiple entry points.
+  int bestMatch = -1;
+  std::size_t bestLength = 0;
 
-  // Multiple entry points: also recognized when prefixed with
-  // scriptName. For FCGI/ISAPI connectors, we only receive URLs
-  // that are subdirs of the scriptname.
   for (unsigned i = 0; i < conf_.entryPoints().size(); ++i) {
     const Wt::EntryPoint& ep = conf_.entryPoints()[i];
-    if (boost::starts_with(pathInfo, ep.path())) {
-      if (pathInfo.length() > ep.path().length()) {
-        char next = pathInfo[ep.path().length()];
-        if (next == '/') {
-          return &ep;
-        }
-      } else {
-        return &ep;
+
+    if (ep.path().empty()) {
+      if (bestLength == 0)
+	bestMatch = i;
+    } else {
+      if (ep.path().length() > bestLength) {
+	if (matchesPath(scriptName + pathInfo, ep.path()) ||
+	    matchesPath(pathInfo, ep.path())) {
+	  bestLength = ep.path().length();
+	  bestMatch = i;
+	}
       }
     }
   }
-  
-  return 0;
+
+  if (bestMatch >= 0)
+    return &conf_.entryPoints()[bestMatch];
+  else
+    return 0;
 }
 
 std::string

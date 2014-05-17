@@ -28,7 +28,7 @@
 #include <cmath>
 #include <math.h>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) && (_MSC_VER < 1800)
 namespace {
   double round(double x)
   {
@@ -166,6 +166,10 @@ WTableView::WTableView(WContainerWidget *parent)
        "if (obj) obj.autoJavaScript();}");
 
     connectObjJS(canvas_->mouseWentDown(), "mouseDown");
+
+    /* Two-lines needed for WT_PORT */
+    EventSignalBase& ccScrolled = contentsContainer_->scrolled();
+    connectObjJS(ccScrolled, "onContentsContainerScroll");
   } else {
     plainTable_ = new WTable();
     plainTable_->setStyleClass("Wt-plaintable");
@@ -326,7 +330,7 @@ int WTableView::spannerCount(const Side side) const
 		 / rowHeight().toPixels());
   }
   case Left:
-    return firstColumn_ - rowHeaderCount();
+    return firstColumn_; // headers are included
   case Right:
     return columnCount() - (lastColumn_ + 1);
   default:
@@ -940,7 +944,12 @@ void WTableView::setColumnWidth(int column, const WLength& width)
   if (renderState_ >= NeedRerenderHeader)
     return;
 
-  WWidget *hc = headers_->widget(column);
+  WWidget *hc;
+  if (column < rowHeaderCount())
+    hc = headerColumnsHeaderContainer_->widget(column);
+  else
+    hc = headers_->widget(column - rowHeaderCount());
+
   hc->setWidth(rWidth.toPixels() + 1);
   if (!ajaxMode())
     hc->parent()->resize(rWidth.toPixels() + 1, hc->height());
@@ -986,6 +995,7 @@ WTableView::ColumnWidget *WTableView::columnContainer(int renderedColumn) const
     return dynamic_cast<ColumnWidget *>
       (headerColumnsTable_->widget(renderedColumn));
   else if (table_->count() > 0) {
+    // -1 is last column
     if (renderedColumn < 0)
       return dynamic_cast<ColumnWidget *>(table_->widget(table_->count() - 1));
     else
@@ -1401,6 +1411,7 @@ void WTableView::onViewportChange(int left, int top, int width, int height)
 {
   assert(ajaxMode());
 
+  
   viewportLeft_ = left;
   viewportWidth_ = width;
   viewportTop_ = top;
@@ -1639,9 +1650,16 @@ int WTableView::renderedColumnsCount() const
 
 WWidget *WTableView::itemWidget(const WModelIndex& index) const
 {
-  if (isRowRendered(index.row()) && isColumnRendered(index.column())) {
+  if (index.column() < rowHeaderCount() ||
+      (isRowRendered(index.row()) && isColumnRendered(index.column())))
+  {
     int renderedRow = index.row() - firstRow();
-    int renderedCol = index.column() - firstColumn();
+    int renderedCol;
+
+    if (index.column() < rowHeaderCount())
+      renderedCol = index.column();
+    else
+      renderedCol = rowHeaderCount() + index.column() - firstColumn();
 
     if (ajaxMode()) {
       ColumnWidget *column = columnContainer(renderedCol);
@@ -1780,14 +1798,33 @@ void WTableView::scrollTo(const WModelIndex& index, ScrollHint hint)
       if (isRendered()) {
 	WStringStream s;
 
-	s << "jQuery.data(" << jsRef() << ", 'obj').scrollTo(-1, "
-	  << rowY << "," << (int)hint << ");";
+	s << "setTimeout(function() { jQuery.data("
+	  << jsRef() << ", 'obj').scrollTo(-1, "
+	  << rowY << "," << (int)hint << "); }, 0);";
 
 	doJavaScript(s.str());
       }
     } else
       setCurrentPage(index.row() / pageSize());
   }
+}
+
+void WTableView::scrollTo(int x, int y) {
+  if (ajaxMode()) {
+    if (isRendered()) {
+      WStringStream s;
+
+      s << "jQuery.data(" << jsRef() << ", 'obj').scrollToPx(" << x << ", "
+        << y << ");";
+
+      doJavaScript(s.str());
+    }
+  }
+}
+
+void WTableView::setOverflow(WContainerWidget::Overflow overflow){
+  if (contentsContainer_)
+    contentsContainer_->setOverflow(overflow);
 }
 
 void WTableView::setRowHeaderCount(int count)

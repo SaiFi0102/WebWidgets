@@ -143,13 +143,26 @@ WT_USTRING WLocale::integerToString(const std::string& v) const
   if (groupSeparator_.empty())
     return WT_USTRING::fromUTF8(v);
   else
-    return WT_USTRING::fromUTF8(addGrouping(v, 0));
+    return WT_USTRING::fromUTF8(addGrouping(v, v.length()));
 }
 
 WT_USTRING WLocale::toString(double value) const
 {
   std::string v = boost::lexical_cast<std::string>(value);
+  return doubleToString(v);
+}
 
+WT_USTRING WLocale::toFixedString(double value, int precision) const
+{
+  std::stringstream ss;
+  ss.precision(precision);
+  ss << std::fixed << ((precision > 0) ? std::showpoint : std::noshowpoint) << value;
+
+  return doubleToString(ss.str());
+}
+
+WT_USTRING WLocale::doubleToString(std::string v) const
+{
   if (isDefaultNumberLocale())
     return WT_USTRING::fromUTF8(v);
 

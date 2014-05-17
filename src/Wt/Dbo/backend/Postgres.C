@@ -18,7 +18,7 @@
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/posix_time/time_parsers.hpp> 
 
-#ifdef WIN32
+#ifdef WT_WIN32
 #define snprintf _snprintf
 #define strcasecmp _stricmp
 #endif
@@ -49,8 +49,10 @@ class PostgresStatement : public SqlStatement
 public:
   PostgresStatement(Postgres& conn, const std::string& sql)
     : conn_(conn),
-      sql_(convertToNumberedPlaceholders(sql))
+      sql_(sql)
   {
+    convertToNumberedPlaceholders();
+
     lastId_ = -1;
     row_ = affectedRows_ = 0;
     result_ = 0;
@@ -140,6 +142,12 @@ public:
     else {
       v = boost::posix_time::to_iso_extended_string(value);
       v[v.find('T')] = ' ';
+      /*
+       * Add explicit timezone offset. Postgres will ignore this for a TIMESTAMP
+       * column, but will treat the timestamp as UTC in a TIMESTAMP WITH TIME
+       * ZONE column -- possibly in a legacy table.
+       */
+      v.append("+00");
     }
 
     setValue(column, v);
@@ -319,19 +327,15 @@ public:
 
     const char *v = PQgetvalue(result_, row_, column);
 
-    try {
-      *value = boost::lexical_cast<int>(v);
-    } catch (boost::bad_lexical_cast) {
-      /*
-       * This is for bools, which we map to int values
-       */
-      if (strcasecmp(v, "f") == 0)
+    /*
+     * booleans are mapped to int values
+     */
+    if (*v == 'f')
 	*value = 0;
-      else if (strcasecmp(v, "t") == 0)
+    else if (*v == 't')
 	*value = 1;
-      else
-	throw;
-    }
+    else
+      *value = boost::lexical_cast<int>(v);
 
     DEBUG(std::cerr << this 
 	  << " result int " << column << " " << *value << std::endl);
@@ -390,8 +394,21 @@ public:
     if (type == SqlDate)
       *value = boost::posix_time::ptime(boost::gregorian::from_string(v),
 					boost::posix_time::hours(0));
-    else
-      *value = boost::posix_time::time_from_string(v);
+    else {
+      /*
+       * Handle timezone offset. Postgres will append a timezone offset [+-]dd
+       * if a column is defined as TIMESTAMP WITH TIME ZONE -- possibly
+       * in a legacy table. If offset is present, subtract it for UTC output.
+       */
+      if (v.size() >= 3 && std::strchr("+-", v[v.size() - 3])) {
+	int hours = boost::lexical_cast<int>(v.substr(v.size() - 3));
+	boost::posix_time::time_duration offset
+	  = boost::posix_time::hours(hours);
+        *value = boost::posix_time::time_from_string(v.substr(0, v.size() - 3))
+	  - offset;
+      } else
+        *value = boost::posix_time::time_from_string(v);
+    }
 
     DEBUG(std::cerr << this 
 	  << " result time_duration " << column << " " << *value << std::endl);
@@ -453,6 +470,7 @@ private:
   enum { NoFirstRow, FirstRow, NextRow, Done } state_;
   std::vector<Param> params_;
 
+  int paramCount_;
   char **paramValues_;
   int *paramTypes_, *paramLengths_, *paramFormats_;
  
@@ -474,6 +492,9 @@ private:
   }
 
   void setValue(int column, const std::string& value) {
+    if (column >= paramCount_)
+      throw PostgresException("Binding too much parameters");
+
     for (int i = (int)params_.size(); i <= column; ++i)
       params_.push_back(Param());
 
@@ -481,45 +502,46 @@ private:
     params_[column].isnull = false;
   }
 
-  std::string convertToNumberedPlaceholders(const std::string& sql)
+  void convertToNumberedPlaceholders()
   {
     std::stringstream result;
 
     enum { Statement, SQuote, DQuote } state = Statement;
     int placeholder = 1;
 
-    for (unsigned i = 0; i < sql.length(); ++i) {
+    for (unsigned i = 0; i < sql_.length(); ++i) {
       switch (state) {
       case Statement:
-	if (sql[i] == '\'')
+	if (sql_[i] == '\'')
 	  state = SQuote;
-	else if (sql[i] == '"')
+	else if (sql_[i] == '"')
 	  state = DQuote;
-	else if (sql[i] == '?') {
+	else if (sql_[i] == '?') {
 	  result << '$' << placeholder++;
 	  continue;
 	}
 	break;
       case SQuote:
-	if (sql[i] == '\'') {
-	  if (i + 1 == sql.length())
+	if (sql_[i] == '\'') {
+	  if (i + 1 == sql_.length())
 	    state = Statement;
-	  else if (sql[i + 1] == '\'') {
-	    result << sql[i];
+	  else if (sql_[i + 1] == '\'') {
+	    result << sql_[i];
 	    ++i; // skip to next
 	  } else
 	    state = Statement;
 	}
 	break;
       case DQuote:
-	if (sql[i] == '"')
+	if (sql_[i] == '"')
 	  state = Statement;
 	break;
       }
-      result << sql[i];
+      result << sql_[i];
     }
 
-    return result.str();
+    paramCount_ = placeholder - 1;
+    sql_ = result.str();
   }
 };
 
@@ -616,9 +638,9 @@ Postgres::autoincrementDropSequenceSql(const std::string &table,
   return std::vector<std::string>();
 }
 
-std::string Postgres::autoincrementInsertSuffix() const
+std::string Postgres::autoincrementInsertSuffix(const std::string& id) const
 {
-  return " returning ";
+  return " returning \"" + id + "\"";
 }
   
 const char *Postgres::dateTimeType(SqlDateTimeType type) const
@@ -643,6 +665,16 @@ const char *Postgres::blobType() const
 }
 
 bool Postgres::supportAlterTable() const
+{
+  return true;
+}
+
+bool Postgres::supportDeferrableFKConstraint() const
+{
+  return true;
+}
+
+bool Postgres::requireSubqueryAlias() const
 {
   return true;
 }

@@ -93,7 +93,6 @@ private:
   Wt::WText            *statusMsg_;
 
   Wt::WContainerWidget *messages_;
-  Wt::WContainerWidget *messageEditArea_;
   Wt::WTextArea        *messageEdit_;
   Wt::WPushButton      *sendButton_;
   Wt::WContainerWidget *userList_;
@@ -101,6 +100,7 @@ private:
   Wt::WSound* messageReceived_;
 
   void login();
+  void changeName(const Wt::WString& name);
   void send();
   void updateUser();
 

@@ -170,6 +170,7 @@ SUBDIRS(
   javascript
   mandelbrot
   mission
+  onethread
   painting
   planner
   qrlogin
@@ -185,6 +186,7 @@ SUBDIRS(
 
 IF(HAS_CXX11)
   SUBDIRS(
+    chart3D
     widgetgallery
   )
 ELSE(HAS_CXX11)

@@ -84,11 +84,18 @@ private:
 	std::string id = userInfo.get("id");
 	WT_USTRING userName = userInfo.get("name");
 	std::string email = userInfo.get("email").orIfNull("");
-	bool emailVerified = userInfo.get("verified_email").orIfNull(false);
+#ifndef WT_TARGET_JAVA
+	bool emailVerified = userInfo.get("verified_email")
+	  .toBool().orIfNull(false);
+#else
+	bool emailVerified = userInfo.get("verified_email")
+	  .orIfNull(false);
+#endif
 	authenticated().emit(Identity(service().name(), id, userName,
 				      email, emailVerified));
       }
     } else {
+      LOG_ERROR(ERROR_MSG("badresponse"));
       setError(ERROR_MSG("badresponse"));
 
       if (!err) {

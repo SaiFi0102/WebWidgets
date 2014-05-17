@@ -33,22 +33,59 @@ LOGGER("WebRequest");
 
 Http::ParameterValues WebRequest::emptyValues_;
 
+struct WebRequest::AsyncEmulation {
+  bool done;
+
+  AsyncEmulation()
+    : done(false)
+  { }
+};
+
 WebRequest::WebRequest()
   : entryPoint_(0),
-    doingAsyncCallbacks_(false),
+    async_(0),
     webSocketRequest_(false)
 {
+#ifndef BENCH
   start_ = boost::posix_time::microsec_clock::local_time();
+#endif
 }
 
 WebRequest::~WebRequest()
 {
-  boost::posix_time::ptime
-    end = boost::posix_time::microsec_clock::local_time();
+  delete async_;
+  log();
+}
 
-  boost::posix_time::time_duration d = end - start_;
+void WebRequest::log()
+{
+#ifndef BENCH
+  if (!start_.is_not_a_date_time()) {
+    boost::posix_time::ptime
+      end = boost::posix_time::microsec_clock::local_time();
 
-  LOG_INFO("took " << (double)d.total_microseconds() / 1000  << "ms");
+    boost::posix_time::time_duration d = end - start_;
+
+    LOG_INFO("took " << (double)d.total_microseconds() / 1000  << "ms");
+
+    start_ = boost::posix_time::ptime();
+  }
+#endif
+}
+
+void WebRequest::reset()
+{
+#ifndef BENCH
+  start_ = boost::posix_time::microsec_clock::local_time();
+#endif
+
+  entryPoint_ = 0;
+  delete async_;
+  async_ = 0;
+  webSocketRequest_ = false;
+
+  parameters_.clear();
+  files_.clear();
 }
 
 void WebRequest::readWebSocketMessage(const ReadCallback& callback)
@@ -61,30 +98,30 @@ bool WebRequest::webSocketMessagePending() const
   throw WException("should not get here");
 }
 
-std::string WebRequest::userAgent() const
+const char *WebRequest::userAgent() const
 {
   return headerValue("User-Agent");
 }
 
-std::string WebRequest::referer() const
+const char *WebRequest::referer() const
 {
   return headerValue("Referer");
 }
 
-std::string WebRequest::contentType() const
+const char *WebRequest::contentType() const
 {
   return envValue("CONTENT_TYPE");
 }
 
 ::int64_t WebRequest::contentLength() const
 {
-  std::string lenstr = envValue("CONTENT_LENGTH");
+  const char *lenstr = envValue("CONTENT_LENGTH");
 
-  if (lenstr.empty())
+  if (!lenstr || strlen(lenstr) == 0)
     return 0;
   else {
     try {
-      ::int64_t len = boost::lexical_cast< ::int64_t >(lenstr);
+      ::int64_t len = boost::lexical_cast< ::int64_t >(std::string(lenstr));
       if (len < 0) {
 	LOG_ERROR("Bad content-length: " << lenstr);
 	throw WException("Bad content-length");
@@ -193,19 +230,21 @@ namespace {
 
       rule<ScannerT> option, value, valuelist;
 
-      rule<ScannerT> const&
-      start() const { return valuelist; }
+      rule<ScannerT> const& start() const { return valuelist; }
     };
   };
 };
 
-std::string WebRequest::parsePreferredAcceptValue(const std::string& str) const
+std::string WebRequest::parsePreferredAcceptValue(const char *str) const
 {
+  if (!str)
+    return std::string();
+
   std::vector<ValueListParser::Value> values;
 
   ValueListParser valueListParser(values);
 
-  parse_info<> info = parse(str.c_str(), valueListParser, space_p);
+  parse_info<> info = parse(str, valueListParser, space_p);
 
   if (info.full) {
     unsigned best = 0;
@@ -217,15 +256,15 @@ std::string WebRequest::parsePreferredAcceptValue(const std::string& str) const
     if (best < values.size())
       return values[best].value;
     else
-      return "";
+      return std::string();
   } else {
     LOG_ERROR("Could not parse 'Accept-Language: " << str
 	      << "', stopped at: '" << info.stop << '\'');
-    return "";
+    return std::string();
   }
 }
 #else
-std::string WebRequest::parsePreferredAcceptValue(const std::string& str) const
+std::string WebRequest::parsePreferredAcceptValue(const char *str) const
 {
   return std::string();
 }
@@ -248,36 +287,36 @@ const WebRequest::WriteCallback& WebRequest::getAsyncCallback()
 
 void WebRequest::emulateAsync(ResponseState state)
 {
-  /*
-   * This prevents stack build-up while emulating asynchronous callbacks
-   * for a synchronous connector.
-   */
+  if (async_) {
+    if (state == ResponseDone)
+      async_->done = true;
+
+    return;
+  }
 
   if (state == ResponseFlush) {
-    if (doingAsyncCallbacks_) {
-      // Do nothing. emulateAsync() was already called on this stack frame.
-      // Unwind the stack and let the toplevel emulateAsync() call the cb.
-    } else {
-      doingAsyncCallbacks_ = true;
+    async_ = new AsyncEmulation();
 
-      while (asyncCallback_) {
-	WriteCallback fn = asyncCallback_;
-	asyncCallback_.clear();
-	fn();
-      };
+    /*
+     * Invoke callback immediately and keep doing so until we get a
+     * flush(ResponseDone). If we do not have a callback then the application
+     * is waiting for some event to finish te request (e.g. a resource
+     * continuation) and thus we exit now and wait for more flush()ing.
+     */
+    while (!async_->done) {
+      if (!asyncCallback_) {
+	delete async_;
+	async_ = 0;
+	return;
+      }
 
-      doingAsyncCallbacks_ = false;
-
-      delete this;
-    }
-  } else {
-    if (!doingAsyncCallbacks_)
-      delete this;
-    else {
-      // we should in fact signal that we can delete after stopping the
-      // asynccallbacks (e.g. by setting doingAsyncCallbacks_ = false
+      WriteCallback fn = asyncCallback_;
+      asyncCallback_.clear();
+      fn(WriteCompleted);
     }
   }
+    
+  delete this;
 }
 
 void WebRequest::setResponseType(ResponseType responseType)

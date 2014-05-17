@@ -69,9 +69,7 @@ void WWidget::removeChild(WObject *child)
 }
 
 void WWidget::refresh()
-{
-  setJsSize();
-}
+{ }
 
 void WWidget::resize(const WLength& width, const WLength& height)
 {
@@ -517,6 +515,11 @@ bool WWidget::isExposed(WWidget *w)
     if (p == this)
       return true;
 
+  return false;
+}
+
+bool WWidget::setFirstFocus()
+{
   return false;
 }
 

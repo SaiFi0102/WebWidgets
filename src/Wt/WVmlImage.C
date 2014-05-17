@@ -124,11 +124,16 @@ void WVmlImage::drawArc(const WRectF& rect, double startAngle, double spanAngle)
   painter()->restore();
 }
 
-void WVmlImage::drawImage(const WRectF& rect, const std::string& imgUri,
+void WVmlImage::drawImage(const WRectF& rect, const std::string& imageUri,
 			  int imgWidth, int imgHeight, const WRectF& sourceRect)
 {
   finishPaths();
   processClipping();
+
+  WApplication *app = WApplication::instance();
+  std::string imgUri;
+  if (app)
+    imgUri = app->resolveRelativeUrl(imageUri);
 
   WTransform t = painter()->combinedTransform();
   WPointF tl = t.map(rect.topLeft());
@@ -720,7 +725,7 @@ void WVmlImage::processClipping()
      * We can only deal with rectangles.
      */
     if (painter()->hasClipping()) {
-      WRectF rect;
+      WRectF rect(0, 0, 0, 0);
       if (painter()->clipPath().asRect(rect)) {
 	WTransform t = painter()->clipPathTransform();
 

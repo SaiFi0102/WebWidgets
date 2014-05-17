@@ -14,6 +14,8 @@
 #include "Wt/WLogger"
 #include "Wt/WTemplate"
 
+#include "EscapeOStream.h"
+#include "WebUtils.h"
 #include "DomElement.h"
 #include "RefEncoder.h"
 #include "WebSession.h"
@@ -51,6 +53,19 @@ bool WTemplate::_block(const std::vector<WString>& args,
   return true;
 }
 
+bool WTemplate::_while(const std::vector<WString>& args,
+			      std::ostream& result)
+{
+  if (args.size() < 2)
+    return false;
+
+  WString tblock = WString::tr(args[1].toUTF8());
+  while (conditionValue(args[0].toUTF8()))
+    this->renderTemplateText(result, tblock);
+
+  return true;
+}
+
 bool WTemplate::_id(const std::vector<WString>& args,
 		    std::ostream& result)
 {
@@ -78,6 +93,12 @@ bool WTemplate::Functions::block(WTemplate *t, const std::vector<WString>& args,
                               std::ostream& result)
 {
   return t->_block(args, result);
+}
+
+bool WTemplate::Functions::while_f(WTemplate *t, const std::vector<WString>& args,
+			      std::ostream& result)
+{
+  return t->_while(args, result);
 }
 
 bool WTemplate::Functions::id(WTemplate *t, const std::vector<WString>& args,
@@ -110,6 +131,17 @@ bool WTemplate::BlockFunction::evaluate(WTemplate *t,
   }
 }
 
+bool WTemplate::WhileFunction::evaluate(WTemplate *t,
+				    const std::vector<WString>& args,
+				    std::ostream& result) const
+{
+  try {
+    return t->_while(args, result);
+  } catch (std::io_exception ioe) {
+    return false;
+  }
+}
+
 bool WTemplate::IdFunction::evaluate(WTemplate *t, 
 				     const std::vector<WString>& args,
 				     std::ostream& result) const
@@ -130,6 +162,8 @@ WTemplate::WTemplate(WContainerWidget *parent)
     encodeInternalPaths_(false),
     changed_(false)
 {
+  plainTextNewLineEscStream_ = new EscapeOStream();
+  plainTextNewLineEscStream_->pushEscape(EscapeOStream::PlainTextNewLines);
   setInline(false);
 }
 
@@ -140,18 +174,30 @@ WTemplate::WTemplate(const WString& text, WContainerWidget *parent)
     encodeInternalPaths_(false),
     changed_(false)
 {
+  plainTextNewLineEscStream_ = new EscapeOStream();
+  plainTextNewLineEscStream_->pushEscape(EscapeOStream::PlainTextNewLines);
   setInline(false);
   setTemplateText(text);
+}
+
+WTemplate::~WTemplate()
+{
+  delete plainTextNewLineEscStream_;
 }
 
 void WTemplate::clear()
 {
   setIgnoreChildRemoves(true);
-  for (WidgetMap::iterator i = widgets_.begin(); i != widgets_.end(); ++i)
+  /*
+   * We need to copy them first so that removeChild() will not be confused
+   * by it.
+   */
+  WidgetMap toDelete = widgets_;
+  widgets_ = WidgetMap();
+  for (WidgetMap::iterator i = toDelete.begin(); i != toDelete.end(); ++i)
     delete i->second;
   setIgnoreChildRemoves(false);
 
-  widgets_.clear();
   strings_.clear();
   conditions_.clear();
 
@@ -196,12 +242,13 @@ void WTemplate::bindWidget(const std::string& varName, WWidget *widget)
     if (i->second == widget)
       return;
     else {
-      delete i->second;
+      WWidget *toDelete = i->second;
 #ifndef WT_TARGET_JAVA
       widgets_.erase(i);
 #else
       widgets_.erase(varName);
 #endif
+      delete toDelete;
     }
   }
 
@@ -226,16 +273,7 @@ WWidget *WTemplate::takeWidget(const std::string& varName)
 
   if (i != widgets_.end()) {
     WWidget *result = i->second;
-
-#ifndef WT_TARGET_JAVA
-    widgets_.erase(i);
-#else
-    widgets_.erase(varName);
-#endif
-
-    changed_ = true;
-    repaint(RepaintSizeAffected);
-
+    result->setParentWidget(0);
     return result;
   } else
     return 0;
@@ -410,7 +448,16 @@ void WTemplate::updateDom(DomElement& element, bool all)
     for (std::set<WWidget *>::const_iterator i = previouslyRendered.begin();
 	 i != previouslyRendered.end(); ++i) {
       WWidget *w = *i;
-      w->webWidget()->setRendered(false);
+      // it could be that the widget was removed/deleted in the mean time
+      // as a side-effect of rendering some of the widgets; thus we check
+      // that the widget is still a child
+      for (WidgetMap::const_iterator j = widgets_.begin();
+	   j != widgets_.end(); ++j) {
+	if (j->second == w) {
+	  w->webWidget()->setRendered(false);
+	  break;
+	}
+      }
     }
 
     WApplication::instance()->session()->renderer()
@@ -425,8 +472,9 @@ void WTemplate::renderTemplate(std::ostream& result)
   renderTemplateText(result, text_);
 }
 
-void WTemplate::renderTemplateText(std::ostream& result, const WString& templateText)
+bool WTemplate::renderTemplateText(std::ostream& result, const WString& templateText)
 {
+  errorText_ = "";
   std::string text;
 
   WApplication *app = WApplication::instance();
@@ -466,16 +514,19 @@ void WTemplate::renderTemplateText(std::ostream& result, const WString& template
 	std::size_t startName = pos + 2;
 	std::size_t endName = text.find_first_of(" \r\n\t}", startName);
 
-	args.clear();
-	std::size_t endVar = parseArgs(text, endName, args);
+        args.clear();
+        std::size_t endVar = parseArgs(text, endName, args);
 
-	if (endVar == std::string::npos) {
-	  LOG_ERROR("variable syntax error near \"" << text.substr(pos)
-		    << "\"");
-	  return;
-	}
+        if (endVar == std::string::npos) {
+          std::stringstream errorStream;
+          errorStream << "variable syntax error near \"" << text.substr(pos)
+                      << "\"";
+          errorText_ = errorStream.str();
+          LOG_ERROR(errorText_);
+          return false;
+        }
 
-	std::string name = text.substr(startName, endName - startName);
+        std::string name = text.substr(startName, endName - startName);
 	std::size_t nl = name.length();
 
 	if (nl > 2 && name[0] == '<' && name[nl - 1] == '>') {
@@ -487,8 +538,11 @@ void WTemplate::renderTemplateText(std::ostream& result, const WString& template
 	  } else {
 	    std::string cond = name.substr(2, nl - 3);
 	    if (conditions.empty() || conditions.back() != cond) {
-	      LOG_ERROR("mismatching condition block end: " << cond);
-	      return;
+              std::stringstream errorStream;
+              errorStream << "mismatching condition block end: " << cond;
+              errorText_ = errorStream.str();
+              LOG_ERROR(errorText_);
+              return false;
 	    }
 	    conditions.pop_back();
 
@@ -531,6 +585,7 @@ void WTemplate::renderTemplateText(std::ostream& result, const WString& template
   }
 
   result << text.substr(lastPos);
+  return true;
 }
 
 std::size_t WTemplate::parseArgs(const std::string& text,
@@ -624,15 +679,39 @@ void WTemplate::format(std::ostream& result, const std::string& s,
 void WTemplate::format(std::ostream& result, const WString& s,
 		       TextFormat textFormat)
 {
-  WString v = s;
-
   if (textFormat == XHTMLText) {
-    if (!removeScript(v))
-      v = escapeText(v, true);
-  } else if (textFormat == PlainText)
-    v = escapeText(v, true);
+    WString v = s;
+    if (removeScript(v)) {
+      result << v.toUTF8();
+      return;
+    } else {
+      EscapeOStream sout(result);
+      sout.append(v.toUTF8(), *plainTextNewLineEscStream_);
+      return;
+    }
+  } else if (textFormat == PlainText) {
+    EscapeOStream sout(result);
+    sout.append(s.toUTF8(), *plainTextNewLineEscStream_);
+    return;
+  }
 
-  result << v.toUTF8();
+  result << s.toUTF8();
+}
+
+void WTemplate::removeChild(WWidget *child)
+{
+  for (WidgetMap::iterator i = widgets_.begin(); i != widgets_.end(); ++i) {
+    if (i->second == child) {
+      Utils::eraseAndNext(widgets_, i);
+
+      changed_ = true;
+      repaint(RepaintSizeAffected);
+
+      break;
+    }
+  }
+
+  WInteractWidget::removeChild(child);
 }
 
 void WTemplate::propagateRenderOk(bool deep)

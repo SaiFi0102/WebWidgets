@@ -6,10 +6,38 @@
 #include <Wt/WStandardItem>
 #include <Wt/WTableView>
 
+namespace {
+    /*
+     * A standard item which converts text edits to numbers
+     */
+    class NumericItem : public Wt::WStandardItem {
+    public:
+	virtual NumericItem *clone() const {
+	    return new NumericItem();
+	}
+
+	virtual void setData(const boost::any &data, int role = Wt::UserRole) {
+	    boost::any dt;
+
+	    if (role == Wt::EditRole) {
+		double d = Wt::asNumber(data);
+
+		if (d != d)
+		    dt = data;
+		else
+		    dt = boost::any(d);
+	    }
+
+	    Wt::WStandardItem::setData(dt, role);
+	}
+    };
+}
+
 SAMPLE_BEGIN(PieChart)
 Wt::WContainerWidget *container = new Wt::WContainerWidget();
 
 Wt::WStandardItemModel *model = new Wt::WStandardItemModel(container);
+model->setItemPrototype(new NumericItem());
 
 // Configure the header.
 model->insertColumns(model->columnCount(), 2);
@@ -53,14 +81,12 @@ table->setModel(model);
 table->setColumnWidth(1, 100);
 table->setRowHeight(28);
 table->setHeaderHeight(28);
+table->setWidth(150 + 100 + 14 + 2);
 
-if (Wt::WApplication::instance()->environment().ajax()) {
-    table->resize(150 + 100 + 14, 7 * 28);
+if (Wt::WApplication::instance()->environment().ajax())
     table->setEditTriggers(Wt::WAbstractItemView::SingleClicked);
-} else {
-    table->resize(150 + 100 + 14, Wt::WLength::Auto);
+else
     table->setEditTriggers(Wt::WAbstractItemView::NoEditTrigger);
-}
 
 /*
  * Create the pie chart.

@@ -75,6 +75,8 @@ Wt::WWidget *Layout::templates()
 #include "examples/TextXHTML.cpp"
 #include "examples/TextXSS.cpp"
 #include "examples/TextEvents.cpp"
+#include "examples/TextToolTip.cpp"
+#include "examples/TextDeferredToolTip.cpp"
 
 Wt::WWidget *Layout::text()
 {
@@ -84,6 +86,8 @@ Wt::WWidget *Layout::text()
   result->bindWidget("TextXHTML", TextXHTML());
   result->bindWidget("TextXSS", TextXSS());
   result->bindWidget("TextEvents", TextEvents());
+  result->bindWidget("TextToolTip", TextToolTip());
+  result->bindWidget("TextDeferredToolTip", TextDeferredToolTip());
 
   return result;
 }
@@ -161,9 +165,6 @@ Wt::WWidget *Layout::images()
 }
 
 
-#include "examples/SizingBlock.cpp"
-#include "examples/SizingRelative.cpp"
-#include "examples/SizingGrid.cpp"
 #include "examples/CSS.cpp"
 
 Wt::WWidget *Layout::css()
@@ -171,9 +172,6 @@ Wt::WWidget *Layout::css()
   Wt::WTemplate *result = new TopicTemplate("layout-CSS");
 
   result->bindWidget("CSS", CSS());
-  result->bindWidget("SizingBlock", SizingBlock());
-  result->bindWidget("SizingRelative", SizingRelative());
-  result->bindWidget("SizingGrid", SizingGrid());
 
   // Show the style sheet as text
   result->bindString("CSS-example-style", reindent(tr("CSS-example-style")),

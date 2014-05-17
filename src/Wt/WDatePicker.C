@@ -86,6 +86,7 @@ void WDatePicker::create(WInteractWidget *displayWidget,
   popup_->setTransient(true);
 
   calendar_ = new WCalendar();
+  calendar_->setSingleClickSelect(true);
   calendar_->activated().connect(popup_, &WWidget::hide);
   calendar_->activated().connect(this, &WDatePicker::onPopupHidden);
   calendar_->selectionChanged().connect(this, &WDatePicker::setFromCalendar);
@@ -99,7 +100,6 @@ void WDatePicker::create(WInteractWidget *displayWidget,
 
   displayWidget->clicked().connect(popup_, &WWidget::show);
   displayWidget->clicked().connect(this, &WDatePicker::setFromLineEdit);
-  displayWidget->clicked().preventPropagation();
 
   if (!forEdit_->validator())
     forEdit_->setValidator(new WDateValidator(format_, this));

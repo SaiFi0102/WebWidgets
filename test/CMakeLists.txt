@@ -48,6 +48,7 @@ SET(DBO_TEST_SOURCES
   dbo/DboTest2.C
   dbo/DboTest3.C
   dbo/Benchmark.C
+  dbo/JsonTest.C
   private/DboImplTest.C
 )
 
@@ -64,6 +65,13 @@ IF(HAVE_MYSQL)
   SET_TARGET_PROPERTIES(test.mysql PROPERTIES COMPILE_FLAGS "-DMYSQL")
   MESSAGE("** Testing Wt::Dbo using Mysql backend")
 ENDIF(HAVE_MYSQL)
+
+IF(HAVE_ORACLE)
+  ADD_EXECUTABLE(       test.oracle ${DBO_TEST_SOURCES})
+  TARGET_LINK_LIBRARIES(test.oracle wt wttest wtdbo wtdbooracle)
+  SET_TARGET_PROPERTIES(test.oracle PROPERTIES COMPILE_FLAGS "-DORACLE")
+  MESSAGE("** Testing Wt::Dbo using Oracle backend")
+ENDIF(HAVE_ORACLE)
 
 IF(HAVE_FIREBIRD)
   ADD_EXECUTABLE(       test.firebird ${DBO_TEST_SOURCES})

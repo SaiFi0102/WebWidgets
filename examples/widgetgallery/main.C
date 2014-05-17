@@ -8,6 +8,7 @@
 #include <Wt/WEnvironment>
 #include <Wt/WHBoxLayout>
 #include <Wt/WBootstrapTheme>
+
 #include <Wt/WCssTheme>
 
 #include "WidgetGallery.h"
@@ -23,11 +24,32 @@ Wt::WApplication *createApplication(const Wt::WEnvironment& env)
 	      << "!!!!!!!!!!" << std::endl;
   }
 
-  const std::string *theme = env.getParameter("theme");
-  if (theme)
-    app->setTheme(new Wt::WCssTheme(*theme));
-  else 
-    app->setTheme(new Wt::WBootstrapTheme(app));
+  // app->setLayoutDirection(Wt::RightToLeft);
+
+  // Choice of theme: defaults to bootstrap3 but can be overridden using
+  // a theme parameter (for testing)
+  const std::string *themePtr = env.getParameter("theme");
+  std::string theme;
+  if (!themePtr)
+    theme = "bootstrap3";
+  else
+    theme = *themePtr;
+
+  if (theme == "bootstrap3") {
+    Wt::WBootstrapTheme *bootstrapTheme = new Wt::WBootstrapTheme(app);
+    bootstrapTheme->setVersion(Wt::WBootstrapTheme::Version3);
+    bootstrapTheme->setResponsive(true);
+    app->setTheme(bootstrapTheme);
+
+    // load the default bootstrap3 (sub-)theme
+    app->useStyleSheet("resources/themes/bootstrap/3/bootstrap-theme.min.css");
+  } else if (theme == "bootstrap2") {
+    Wt::WBootstrapTheme *bootstrapTheme = new Wt::WBootstrapTheme(app);
+    bootstrapTheme->setResponsive(true);
+    app->setTheme(bootstrapTheme);
+  } else
+    app->setTheme(new Wt::WCssTheme(theme));
+
 
   // load text bundles (for the tr() function)
   app->messageResourceBundle().use(app->appRoot() + "report");
@@ -44,6 +66,7 @@ Wt::WApplication *createApplication(const Wt::WEnvironment& env)
   app->useStyleSheet("style/dragdrop.css");
   app->useStyleSheet("style/combostyle.css");
   app->useStyleSheet("style/pygments.css");
+  app->useStyleSheet("style/layout.css");
 
   return app;
 }

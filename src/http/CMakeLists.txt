@@ -1,6 +1,19 @@
 IF(CONNECTOR_HTTP)
   MESSAGE("** Enabling built-in httpd.")
 
+  # Wt uses strstrcase for case insensitive ASCII string
+  # comparisons on Linux for performance reasons. This function is however
+  # not supported on many platforms (windows, solaris)
+  INCLUDE(CheckFunctionExists)
+  CHECK_FUNCTION_EXISTS(strcasestr HAVE_STRCASESTR)
+  IF (HAVE_STRCASESTR)
+    ADD_DEFINITIONS(-DHAVE_STRCASESTR)
+  ENDIF (HAVE_STRCASESTR)
+  CHECK_FUNCTION_EXISTS(strcasecmp HAVE_STRCASECMP)
+  IF (HAVE_STRCASECMP)
+    ADD_DEFINITIONS(-DHAVE_STRCASECMP)
+  ENDIF (HAVE_STRCASECMP)
+
   SET(libhttpsources
     Android.C
     Configuration.C
@@ -24,6 +37,13 @@ IF(CONNECTOR_HTTP)
  OPTION(HTTP_WITH_ZLIB "Support for zlib (http compression)" ${ZLIB_FOUND})
 
  IF(WIN32)
+   IF(SHARED_LIBS)
+     CONFIGURE_FILE(wthttp-version.rc.in
+                    ${CMAKE_CURRENT_BINARY_DIR}/wthttp-version.rc)
+     SET(libhttpsources ${libhttpsources}
+         ${CMAKE_CURRENT_BINARY_DIR}/wthttp-version.rc)
+   ENDIF(SHARED_LIBS)
+
 # boost asio has a serious bug causing subtle data corruption
 # https://svn.boost.org/trac/boost/ticket/8935
 # https://svn.boost.org/trac/boost/ticket/8933
@@ -68,6 +88,7 @@ IF(CONNECTOR_HTTP)
     ${MY_SSL_LIBS}
     ${BOOST_WTHTTP_LIBRARIES}
     ${WT_SOCKET_LIBRARY}
+    ${WIN32_STRSTRI_LIB}
   )
 
   IF(BOOST_WT_MT_FOUND)

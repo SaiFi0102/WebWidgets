@@ -232,7 +232,6 @@ namespace Wt {
     class WAbstractChart;
     class WAxis;
     class WCartesianChart;
-    class WChart2DRenderer;
     class WChartPalette;
     class WDataSeries;
     class WPieChart;
@@ -971,7 +970,12 @@ enum HeaderFlag {
    *
    * When set, Wt::CheckStateRole data is of type Wt::CheckState
    */
-  HeaderIsTristate = 0x10
+  HeaderIsTristate = 0x10,
+
+  /*! \brief Flag that indicates that the item text (DisplayRole, ToolTipRole)
+   * is HTML
+   */
+  HeaderIsXHTMLText = 0x40
 };
 
 W_DECLARE_OPERATORS_FOR_FLAGS(HeaderFlag)
@@ -991,9 +995,10 @@ enum MetaHeaderType {
  * \sa WEvent::eventType()
  */
 enum EventType {
-  OtherEvent, //!< An event which is not user- or timer-initiated
-  UserEvent,  //!< A user-initiated event
-  TimerEvent  //!< A timer-initiated event
+  OtherEvent,   //!< An event which is not user- or timer-initiated
+  UserEvent,    //!< A user-initiated event
+  TimerEvent,   //!< A timer-initiated event
+  ResourceEvent //!< An event which is a resource request
 };
 
 /*! \brief An enumeration describing a layout direction.
@@ -1001,6 +1006,17 @@ enum EventType {
 enum LayoutDirection {
   LeftToRight, //!< Left-to-Right (Western and other languages)
   RightToLeft  //!< Right-to-Left (Many Middle Eastern and Arabic languages)
+};
+
+enum WebWriteEvent {
+  WriteCompleted, // Write was successful
+  WriteError      // Write failed
+};
+
+enum WebReadEvent {
+  ReadError,   // Read failed
+  ReadMessage, // Read a WebSocket message
+  ReadPing     // Read Ping message
 };
 
 }

@@ -115,22 +115,27 @@ public:
    */
   Signal<double>& valueChanged() { return valueChanged_; }
 
+  virtual void refresh();
+
 protected:
   virtual void updateDom(DomElement& element, bool all);
+  virtual void render(WFlags<RenderFlag> flags);
   virtual void signalConnectionsChanged();
 
   virtual std::string jsMinMaxStep() const;
   virtual bool parseNumberValue(const std::string& text);
-  virtual WString textFromValue() const;
+  virtual WT_USTRING textFromValue() const;
   virtual WValidator *createValidator();
   virtual WValidator::Result validateRange() const;
 
 private:
+  bool setup_;
   double value_, min_, max_, step_;
   int precision_;
 
   Signal<double> valueChanged_;
 
+  void setup();
   void onChange();
 };
 

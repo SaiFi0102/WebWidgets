@@ -35,7 +35,6 @@ namespace boost {
 namespace Wt {
 
 #ifndef WT_TARGET_JAVA
-#define WT_INCLUDED_VERSION Wt##WT_VERSION
 /*
  * Symbols used to check that included version matches library version
  * against which you link.
@@ -72,6 +71,26 @@ class SoundManager;
  */
 typedef boost::function<WApplication* (const WEnvironment&)> ApplicationCreator;
 #endif // !WT_TARGET_JAVA
+
+#ifdef WT_TARGET_JAVA
+/*! \brief An HTML Meta Header
+ */
+#endif // WT_TARGET_JAVA
+class MetaHeader {
+public:
+  /*! \brief Constructor
+   *
+   * Creates a meta header. The lang and user agents are optional, and should
+   * be an empty string if not used.
+   */
+  MetaHeader(MetaHeaderType type, const std::string& name,
+	     const WString& content, const std::string& lang,
+	     const std::string& userAgent);
+  
+  MetaHeaderType type;
+  std::string name, lang, userAgent;
+  WString content;
+};
 
 /*! \class WApplication Wt/WApplication Wt/WApplication
  *  \brief Represents an application instance for a single session.
@@ -528,7 +547,7 @@ public:
    * files that are used to lookup localized strings.
    *
    * The default localizedStrings() is a WMessageResourceBundle
-   * object, and this method returns localizedStrings() upcasted to
+   * object, and this method returns localizedStrings() downcasted to
    * this type.
    *
    * \sa WString::tr(const char *key)
@@ -559,7 +578,7 @@ public:
 
   /*! \brief Returns the current locale.
    *
-   * \sa setLocale(const std::string&)
+   * \sa setLocale(const WLocale&)
    */
   const WLocale& locale() const { return locale_; }
 
@@ -1331,7 +1350,10 @@ public:
    * returns immediately. The JavaScript will be run after the normal
    * event handling, unless \p afterLoaded is set to \c false.
    *
-   * \sa addAutoJavaScript(), declareJavaScriptFunction()
+   * In most situations, it's more robust to use
+   * WWidget::doJavaScript() however.
+   *
+   * \sa WWidget::doJavaScript(), declareJavaScriptFunction()
    */
   void doJavaScript(const std::string& javascript, bool afterLoaded = true);
 
@@ -1439,6 +1461,18 @@ public:
    * scalability.
    */
   void processEvents();
+
+  /*! \brief Blocks the thread, waiting for an UI event.
+   *
+   * This function is used by functions like WDialog::exec() or
+   * WPopupMenu::exec(), to block the current thread waiting for a new
+   * event.
+   *
+   * This requires that at least one additional thread is available to
+   * process incoming requests, and is not scalable when working with
+   * a fixed size thread pools.
+   */
+  virtual void waitForEvent();
 
 #ifndef WT_TARGET_JAVA
   /*! \brief Reads a configuration property.
@@ -1628,33 +1662,36 @@ public:
 
   /*! \brief Adds an HTML meta header.
    *
-   * A meta header can only be added in the following situations:
-   *
-   * - when a plain HTML session is used (including when the user agent is a
-   *   bot), you can add meta headers at any time.
-   *
-   * - or, when \ref progressive_bootstrap "progressive bootstrap" is
-   *   used, you can set meta headers for any type of session, from
-   *   within the application constructor (which corresponds to the
-   *   initial request).
-   *
-   * - but never for a Wt::WidgetSet mode application since then the
-   *   application is hosted within a foreign HTML page.
-   *
-   * When a header was previously set for the same \p name, its
-   * contents is replaced.
-   *
-   * These situations coincide with WEnvironment::ajax()
-   * returning \c false (see environment()).
+   * \sa addMetaHeader(MetaHeaderType, const std::string&, const WString&, const std::string&)
    */
   void addMetaHeader(const std::string& name, const WString& content,
 		     const std::string& lang = "");
 
   /*! \brief Adds an HTML meta header.
    *
-   * This overloaded method allows to define both "name" meta headers,
-   * relating to document properties as well as "http-equiv" meta
-   * headers, which define HTTP headers.
+   * This method sets either a "name" meta headers, which configures a
+   * document property, or a "http-equiv" meta headers, which defines
+   * a HTTP headers (but these latter headers are being deprecated).
+   *
+   * A meta header can however only be added in the following situations:
+   *
+   * - when a plain HTML session is used (including when the user agent is a
+   *   bot), you can add meta headers at any time.
+   * - or, when \ref progressive_bootstrap "progressive bootstrap" is
+   *   used, you can set meta headers for any type of session, from
+   *   within the application constructor (which corresponds to the
+   *   initial request).
+   * - but never for a Wt::WidgetSet mode application since then the
+   *   application is hosted within a foreign HTML page.
+   *
+   * These situations coincide with WEnvironment::ajax() returning \c
+   * false (see environment()). The reason that it other cases the
+   * HTML page has already been rendered, and will not be rerendered
+   * since all updates are done dynamically.
+   *
+   * As an alternative, you can use the &lt;meta-headers&gt;
+   * configuration property in the configuration file, which will be
+   * applied in all circumstances.
    *
    * \sa removeMetaHeader()
    */
@@ -2087,15 +2124,6 @@ private:
     std::string uri, symbol, beforeLoadJS;
     bool operator< (const ScriptLibrary& other) const;
     bool operator== (const ScriptLibrary& other) const;
-  };
-
-  struct MetaHeader {
-    MetaHeader(MetaHeaderType type, const std::string& name,
-	       const WString& content, const std::string& lang);
-
-    MetaHeaderType type;
-    std::string name, lang;
-    WString content;
   };
 
   struct MetaLink {

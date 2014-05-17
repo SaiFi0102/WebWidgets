@@ -18,21 +18,6 @@ TreesTables::TreesTables():
   TopicWidget()
 {
   addText(tr("mvc-intro"), this);
-
-#if 0
-  stringList_ = new WStringListModel(this);
-  std::vector<WString> strings;
-  strings.push_back("Alfa");
-  strings.push_back("Bravo");
-  strings.push_back("Charly");
-  strings.push_back("Delta");
-  strings.push_back("Echo");
-  strings.push_back("Foxtrot");
-  strings.push_back("Golf");
-  strings.push_back("Hotel");
-  strings.push_back("Indiana Jones");
-  stringList_->setStringList(strings);
-#endif
 }
 
 void TreesTables::populateSubMenu(Wt::WMenu *menu)
@@ -107,13 +92,15 @@ Wt::WWidget *TreesTables::tableViews()
   return result;  
 }
 
+#ifndef GIT_REPOSITORY
 #ifndef WT_TARGET_JAVA
 #define GIT_REPOSITORY "../../.git"
 #else
 #define GIT_REPOSITORY "/home/koen/git/jwt"
 #endif
+#endif
 
-#ifndef _WIN32
+#ifndef WT_WIN32
 #include "examples/GitModel.cpp"
 #include "examples/TreeView.cpp"
 #endif
@@ -121,7 +108,7 @@ Wt::WWidget *TreesTables::tableViews()
 Wt::WWidget *TreesTables::treeViews()
 {
   Wt::WTemplate *result = new TopicTemplate("treestables-TreeViews");
-#ifndef _WIN32
+#ifndef WT_WIN32
   result->bindWidget("TreeView", TreeView());
 #else
   result->bindString("TreeView", "Example not available on windows");
@@ -134,7 +121,7 @@ Wt::WWidget *TreesTables::itemModels()
   Wt::WTemplate *result = new TopicTemplate("treestables-ItemModels");
 
   result->bindWidget("LargeTableView", LargeTableView());
-#ifndef _WIN32
+#ifndef WT_WIN32
   result->bindWidget("TreeView", TreeView());
 #else
   result->bindString("TreeView", "Example not available on windows");

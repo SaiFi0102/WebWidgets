@@ -49,7 +49,7 @@ namespace {
 std::vector<WWidget *> WWebWidget::emptyWidgetList_;
 
 #ifndef WT_TARGET_JAVA
-const std::bitset<28> WWebWidget::AllChangeFlags = std::bitset<28>()
+const std::bitset<29> WWebWidget::AllChangeFlags = std::bitset<29>()
   .set(BIT_HIDDEN_CHANGED)
   .set(BIT_GEOMETRY_CHANGED)
   .set(BIT_FLOAT_SIDE_CHANGED)
@@ -87,9 +87,10 @@ WWebWidget::LayoutImpl::LayoutImpl()
   }
 }
 
-WWebWidget::LookImpl::LookImpl()
+WWebWidget::LookImpl::LookImpl(WWebWidget *w)
   : decorationStyle_(0),
-    toolTip_(0)
+    toolTip_(0),
+    loadToolTip_(w, "Wt-loadToolTip")
 { }
 
 WWebWidget::LookImpl::~LookImpl()
@@ -246,7 +247,7 @@ WWebWidget::~WWebWidget()
 WCssDecorationStyle& WWebWidget::decorationStyle()
 {
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   if (!lookImpl_->decorationStyle_) {
     lookImpl_->decorationStyle_ = new WCssDecorationStyle();
@@ -267,7 +268,7 @@ void WWebWidget::setDecorationStyle(const WCssDecorationStyle& style)
   decorationStyle() = style;
 #else
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   lookImpl_->decorationStyle_ = &style;
 #endif // WT_TARGET_JAVA
@@ -724,7 +725,7 @@ WLength WWebWidget::margin(Side side) const
 void WWebWidget::addStyleClass(const WT_USTRING& styleClass, bool force)
 {
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   std::string currentClass = lookImpl_->styleClass_.toUTF8();
   Utils::SplitSet classes;
@@ -755,7 +756,7 @@ void WWebWidget::addStyleClass(const WT_USTRING& styleClass, bool force)
 void WWebWidget::removeStyleClass(const WT_USTRING& styleClass, bool force)
 {
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   if (hasStyleClass(styleClass)) {
     // perhaps it is quicker to join the classes back, but then we need to
@@ -808,7 +809,7 @@ void WWebWidget::setStyleClass(const WT_USTRING& styleClass)
     return;
 
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   lookImpl_->styleClass_ = styleClass;
 
@@ -961,13 +962,26 @@ void WWebWidget::addJavaScriptStatement(JavaScriptStatementType type,
     v.push_back(OtherImpl::JavaScriptStatement(type, data));
 }
 
+
+void WWebWidget::loadToolTip()
+{
+  if (!lookImpl_->toolTip_)
+    lookImpl_->toolTip_ = new WString();
+  *lookImpl_->toolTip_ = toolTip();
+
+  flags_.set(BIT_TOOLTIP_CHANGED);
+  repaint();
+}
+
 void WWebWidget::setToolTip(const WString& text, TextFormat textFormat)
 {
-  if (canOptimizeUpdates() && (toolTip() == text))
+  flags_.reset(BIT_TOOLTIP_DEFERRED);
+
+  if (canOptimizeUpdates() && text == storedToolTip())
     return;
 
   if (!lookImpl_)
-    lookImpl_ = new LookImpl();
+    lookImpl_ = new LookImpl(this);
 
   if (!lookImpl_->toolTip_)
     lookImpl_->toolTip_ = new WString();
@@ -980,11 +994,37 @@ void WWebWidget::setToolTip(const WString& text, TextFormat textFormat)
   repaint();
 }
 
-const WString& WWebWidget::toolTip() const
+WString WWebWidget::toolTip() const
 {
-  return lookImpl_ && lookImpl_->toolTip_ 
+  return storedToolTip();
+}
+
+WString WWebWidget::storedToolTip() const
+{
+  return lookImpl_ && lookImpl_->toolTip_
     ? *lookImpl_->toolTip_
     : WString::Empty;
+}
+
+void WWebWidget::setDeferredToolTip(bool enable, TextFormat textFormat)
+{
+  flags_.set(BIT_TOOLTIP_DEFERRED, enable);
+
+  if (!enable)
+    setToolTip("", textFormat);
+  else{
+    if (!lookImpl_)
+      lookImpl_ = new LookImpl(this);
+
+    if (!lookImpl_->toolTip_)
+      lookImpl_->toolTip_ = new WString();
+
+    lookImpl_->toolTipTextFormat_ = textFormat;
+
+    flags_.set(BIT_TOOLTIP_CHANGED);
+
+    repaint();
+  }
 }
 
 void WWebWidget::setHiddenKeepsGeometry(bool enabled)
@@ -1245,15 +1285,12 @@ void WWebWidget::updateDom(DomElement& element, bool all)
       if (layoutImpl_->zIndex_ > 0) {
 	element.setProperty(PropertyStyleZIndex,
 		    boost::lexical_cast<std::string>(layoutImpl_->zIndex_));
-	element.setProperty(PropertyClass,
-			    Utils::addWord(element.getProperty(PropertyClass),
-					   "Wt-popup"));
+	element.addPropertyWord(PropertyClass, "Wt-popup");
 	if (!all &&
 	    !flags_.test(BIT_STYLECLASS_CHANGED) &&
 	    lookImpl_ && !lookImpl_->styleClass_.empty())
-	  element.setProperty(PropertyClass,
-			      Utils::addWord(element.getProperty(PropertyClass),
-					     lookImpl_->styleClass_.toUTF8()));
+	  element.addPropertyWord(PropertyClass,
+				  lookImpl_->styleClass_.toUTF8());
 
 	if (!app) app = WApplication::instance();
 	if (all && app->environment().agent() == WEnvironment::IE6
@@ -1459,21 +1496,38 @@ void WWebWidget::updateDom(DomElement& element, bool all)
   }
 
   if (lookImpl_) {
-    if (lookImpl_->toolTip_
-	&& (flags_.test(BIT_TOOLTIP_CHANGED) || all)) {
-      if (!all || (!lookImpl_->toolTip_->empty())) {
-	if (!app) app = WApplication::instance();
+    if ((lookImpl_->toolTip_ || flags_.test(BIT_TOOLTIP_DEFERRED))
+        && (flags_.test(BIT_TOOLTIP_CHANGED) || all)) {
+      if (!all || (!lookImpl_->toolTip_->empty() ||
+                   flags_.test(BIT_TOOLTIP_DEFERRED))) {
+        if (!app) app = WApplication::instance();
+        if ( (lookImpl_->toolTipTextFormat_ != PlainText
+              || flags_.test(BIT_TOOLTIP_DEFERRED))
+            && app->environment().ajax()) {
+          LOAD_JAVASCRIPT(app, "js/ToolTip.js", "toolTip", wtjs10);
 
-	if (lookImpl_->toolTipTextFormat_ != PlainText
-	    && app->environment().ajax()) {
-	  LOAD_JAVASCRIPT(app, "js/ToolTip.js", "toolTip", wtjs10);
+          std::string deferred = flags_.test(BIT_TOOLTIP_DEFERRED) ?
+                "true" : "false";
+          element.callJavaScript(WT_CLASS ".toolTip(" +
+                                 app->javaScriptClass() + ","
+                                 + jsStringLiteral(id()) + ","
+                                 + lookImpl_->toolTip_->jsStringLiteral()
+                                 + ", " + deferred
+                                 + ", " +
+                                 jsStringLiteral(app->theme()->
+                                                 utilityCssClass(ToolTipInner))
+                                 + ", " +
+                                 jsStringLiteral(app->theme()->
+                                                 utilityCssClass(ToolTipOuter))
+                                 + ");");
 
-	  element.callJavaScript(WT_CLASS ".toolTip(" WT_CLASS ","
-				 + jsStringLiteral(id()) + ","
-				 + lookImpl_->toolTip_->jsStringLiteral()
-				 + ");");
-	} else
-	  element.setAttribute("title", lookImpl_->toolTip_->toUTF8());
+          if (flags_.test(BIT_TOOLTIP_DEFERRED) &&
+              !lookImpl_->loadToolTip_.isConnected())
+            lookImpl_->loadToolTip_.connect(this, &WWebWidget::loadToolTip);
+
+          element.removeAttribute("title");
+        } else
+          element.setAttribute("title", lookImpl_->toolTip_->toUTF8());
       }
 
       flags_.reset(BIT_TOOLTIP_CHANGED);
@@ -1484,9 +1538,7 @@ void WWebWidget::updateDom(DomElement& element, bool all)
 
     if (all || flags_.test(BIT_STYLECLASS_CHANGED))
       if (!all || !lookImpl_->styleClass_.empty())
-	element.setProperty(PropertyClass,
-			    Utils::addWord(element.getProperty(PropertyClass),
-					   lookImpl_->styleClass_.toUTF8()));
+	element.addPropertyWord(PropertyClass, lookImpl_->styleClass_.toUTF8());
 
     flags_.reset(BIT_STYLECLASS_CHANGED);
   }
@@ -1525,15 +1577,11 @@ void WWebWidget::updateDom(DomElement& element, bool all)
 
   if (all || flags_.test(BIT_SELECTABLE_CHANGED)) {
     if (flags_.test(BIT_SET_UNSELECTABLE)) {
-      element.setProperty(PropertyClass,
-			  Utils::addWord(element.getProperty(PropertyClass),
-					 "unselectable"));
+      element.addPropertyWord(PropertyClass, "unselectable");
       element.setAttribute("unselectable", "on");
       element.setAttribute("onselectstart", "return false;");
     } else if (flags_.test(BIT_SET_SELECTABLE)) {
-      element.setProperty(PropertyClass,
-			  Utils::addWord(element.getProperty(PropertyClass),
-					 "selectable"));
+      element.addPropertyWord(PropertyClass, "selectable");
       element.setAttribute("unselectable", "off");
       element.setAttribute("onselectstart",
 			   "event.cancelBubble=true; return true;");
@@ -1778,6 +1826,14 @@ bool WWebWidget::needsToBeRendered() const
     || !WApplication::instance()->session()->renderer().visibleOnly();
 }
 
+bool WWebWidget::setFirstFocus() {
+  for (unsigned i = 0; i < children().size(); i++)
+    if (children()[i]->setFirstFocus())
+      return true;
+
+  return false;
+}
+
 void WWebWidget::getSFormObjects(FormObjectsMap& result)
 {
   if (!flags_.test(BIT_STUBBED) && !flags_.test(BIT_HIDDEN)
@@ -1999,7 +2055,7 @@ DomElement *WWebWidget::createActualElement(WWidget *self, WApplication *app)
   std::string styleClass = result->getProperty(Wt::PropertyClass);
   if (!styleClass.empty()) {
     if (!lookImpl_)
-      lookImpl_ = new LookImpl();
+      lookImpl_ = new LookImpl(this);
 
     lookImpl_->styleClass_ = styleClass;
   }
@@ -2041,6 +2097,12 @@ void WWebWidget::enableAjax()
 
       s.senderRepaint();
     }
+  }
+
+  if(flags_.test(BIT_TOOLTIP_DEFERRED) || (lookImpl_ &&
+                                lookImpl_->toolTipTextFormat_ != PlainText)){
+    flags_.set(BIT_TOOLTIP_CHANGED);
+    repaint();
   }
 
   if (children_)

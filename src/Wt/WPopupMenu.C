@@ -8,6 +8,7 @@
 
 #include "Wt/WApplication"
 #include "Wt/WContainerWidget"
+#include "Wt/WEnvironment"
 #include "Wt/WException"
 #include "Wt/WPoint"
 #include "Wt/WPopupMenu"
@@ -74,6 +75,8 @@ void WPopupMenu::popupAtButton()
 
   if (!topLevel_ || topLevel_ == this) {
     button_->addStyleClass("active", true);
+    if (parentItem())
+      parentItem()->addStyleClass("open");
 
     popup(button_);
   }
@@ -108,8 +111,11 @@ void WPopupMenu::done(WMenuItem *result)
   if (isHidden())
     return;
 
-  if (location_ && location_ == button_)
+  if (location_ && location_ == button_) {
     button_->removeStyleClass("active", true);
+    if (parentItem())
+      parentItem()->removeStyleClass("open");
+  }
 
   location_ = 0;
   result_ = result;
@@ -240,10 +246,16 @@ WMenuItem *WPopupMenu::exec(const WPoint& p)
   if (recursiveEventLoop_)
     throw WException("WPopupMenu::exec(): already being executed.");
 
+  popup(p);
+  exec();
+
+  return result_;
+}
+
+void WPopupMenu::exec()
+{
   WApplication *app = WApplication::instance();
   recursiveEventLoop_ = true;
-
-  popup(p);
 
   if (app->environment().isTest()) {
     app->environment().popupExecuted().emit(this);
@@ -251,11 +263,9 @@ WMenuItem *WPopupMenu::exec(const WPoint& p)
       throw WException("Test case must close popup menu.");
   } else {
     do {
-      app->session()->doRecursiveEventLoop();
+      app->waitForEvent();
     } while (recursiveEventLoop_);
   }
-
-  return result_;
 }
 
 WMenuItem *WPopupMenu::exec(const WMouseEvent& e)
@@ -268,13 +278,8 @@ WMenuItem *WPopupMenu::exec(WWidget *location, Orientation orientation)
   if (recursiveEventLoop_)
     throw WException("WPopupMenu::exec(): already being executed.");
 
-  WebSession *session = WApplication::instance()->session();
-  recursiveEventLoop_ = true;
-
   popup(location, orientation);
-  do {
-    session->doRecursiveEventLoop();
-  } while (recursiveEventLoop_);
+  exec();
  
   return result_;
 }

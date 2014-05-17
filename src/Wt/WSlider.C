@@ -111,19 +111,21 @@ PaintedSlider::PaintedSlider(WSlider *slider)
     slider_->setOffsets(0, Left | Top);
   }
 
-  addChild(handle_ = slider_->createHandle());
   addChild(fill_ = new WContainerWidget());
+  addChild(handle_ = slider_->createHandle());
 
   fill_->setPositionScheme(Absolute);
   fill_->setStyleClass("fill");
 
-  handle_->setPopup(true);
   handle_->setPositionScheme(Absolute);
   handle_->setStyleClass("handle");
 
   handle_->mouseWentDown().connect(mouseDownJS_);
+  handle_->touchStarted().connect(mouseDownJS_);
   handle_->mouseMoved().connect(mouseMovedJS_);
+  handle_->touchMoved().connect(mouseMovedJS_);
   handle_->mouseWentUp().connect(mouseUpJS_);
+  handle_->touchEnded().connect(mouseUpJS_);
 
   slider->clicked().connect(this, &PaintedSlider::onSliderClick);
   sliderReleased_.connect(this, &PaintedSlider::onSliderReleased);
@@ -205,9 +207,10 @@ void PaintedSlider::updateState()
 	       <<                 "') - intd) > 1) {"
 	       <<     "objf.style." << size << " = ";
   if (o == Vertical)
-    mouseMovedJS << '(' << max << " - intd)";
+    mouseMovedJS << '(' << max << " - intd + " << (slider_->handleWidth() / 2)
+		 << ")";
   else
-    mouseMovedJS << "intd";
+    mouseMovedJS << "intd + " << (slider_->handleWidth() / 2);
   mouseMovedJS <<       " + 'px';" 
 	       <<     "objh.style." << dir << " = intd + 'px';"
 	       <<     "var vs = ";
@@ -265,8 +268,8 @@ void PaintedSlider::doUpdateDom(DomElement& element, bool all)
     element.addChild(east);
 
     element.addChild(createSDomElement(app));
-    element.addChild(((WWebWidget *)handle_)->createSDomElement(app));
     element.addChild(((WWebWidget *)fill_)->createSDomElement(app));
+    element.addChild(((WWebWidget *)handle_)->createSDomElement(app));
   }
 }
 
@@ -334,10 +337,10 @@ void PaintedSlider::updateSliderPosition()
 
   if (slider_->orientation() == Horizontal) {
     handle_->setOffsets(u, Left);
-    fill_->setWidth(u);
+    fill_->setWidth(u + slider_->handleWidth() / 2);
   } else {
     handle_->setOffsets(h() - slider_->handleWidth() - u, Top);
-    fill_->setHeight(u);
+    fill_->setHeight(u + slider_->handleWidth() / 2);
   }
 }
 

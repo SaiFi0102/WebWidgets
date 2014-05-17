@@ -18,11 +18,11 @@
 #include <Wt/WApplication>
 #include <Wt/WLogger>
 
-#ifndef WIN32
+#ifndef WT_WIN32
 #include <unistd.h>
 #endif
 
-#if !defined(WIN32) && !defined(__CYGWIN__) && !defined(ANDROID)
+#if !defined(WT_WIN32) && !defined(__CYGWIN__) && !defined(ANDROID)
 #define HAVE_CRYPT
 #endif
 
@@ -171,7 +171,7 @@ std::vector<User> Session::topUsers(int limit)
 {
   dbo::Transaction transaction(session_);
 
-  Users top = session_.find<User>().orderBy("score desc").limit(20);
+  Users top = session_.find<User>().orderBy("score desc").limit(limit);
 
   std::vector<User> result;
   for (Users::const_iterator i = top.begin(); i != top.end(); ++i) {

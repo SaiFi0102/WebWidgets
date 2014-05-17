@@ -88,6 +88,11 @@ public:
     ErrorMessageWithStack
   };
 
+  enum BootstrapMethod {
+    DetectAjax,
+    Progressive
+  };
+
   typedef std::map<std::string, std::string> PropertyMap;
   typedef std::vector<std::string> AgentList;
 
@@ -98,11 +103,11 @@ public:
 
   void rereadConfiguration();
 
-  // finds an approot from the environment
+  // finds a configured approot based on the environment
   static std::string locateAppRoot();
 
-  // finds a config file from the environment, in the approot, or the default
-  // location
+  // finds a config file based on the environment, in the approot,
+  // or the default location
   static std::string locateConfigFile(const std::string& appRoot);
 
   /*
@@ -118,6 +123,7 @@ public:
   void setNumThreads(int threads);
 #endif // WT_TARGET_JAVA
 
+  const std::vector<MetaHeader>& metaHeaders() const { return metaHeaders_; }
   SessionPolicy sessionPolicy() const;
   int numProcesses() const;
   int numThreads() const;
@@ -152,7 +158,7 @@ public:
   bool webSockets() const;
   bool inlineCss() const;
   bool persistentSessions() const;
-  bool progressiveBoot() const;
+  bool progressiveBoot(const std::string& internalPath) const;
   bool splitScript() const;
   float maxPlainSessionsRatio() const;
   bool ajaxPuzzle() const;
@@ -160,6 +166,7 @@ public:
   bool cookieChecks() const;
   bool useSlashExceptionForInternalPaths() const;
   bool needReadBodyBeforeResponse() const;
+  bool webglDetect() const;
 
   bool agentIsBot(const std::string& agent) const;
   bool agentSupportsAjax(const std::string& agent) const;
@@ -178,6 +185,12 @@ public:
   std::string sessionSocketPath(const std::string& sessionId);
 
 private:
+  struct BootstrapEntry {
+    bool prefix;
+    std::string path;
+    BootstrapMethod method;
+  };
+
 #ifdef WT_CONF_LOCK
   mutable boost::shared_mutex mutex_;
 #endif // WT_CONF_LOCK
@@ -219,12 +232,15 @@ private:
   AgentList       ajaxAgentList_, botList_;
   bool            ajaxAgentWhiteList_;
   bool            persistentSessions_;
-  bool            progressiveBoot_;
   bool            splitScript_;
   float           maxPlainSessionsRatio_;
   bool            ajaxPuzzle_;
   bool            sessionIdCookie_;
   bool            cookieChecks_;
+  bool            webglDetection_;
+
+  std::vector<BootstrapEntry> bootstrapConfig_;
+  std::vector<MetaHeader> metaHeaders_;
 
   bool connectorSlashException_;
   bool connectorNeedReadBody_;

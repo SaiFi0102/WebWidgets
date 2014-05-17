@@ -6,6 +6,7 @@
 #include "Wt/WApplication"
 #include "Wt/WContainerWidget"
 #include "Wt/WDialog"
+#include "Wt/WEnvironment"
 #include "Wt/WException"
 #include "Wt/WVBoxLayout"
 #include "Wt/WPushButton"
@@ -16,7 +17,6 @@
 
 #include "Resizable.h"
 #include "WebController.h"
-#include "WebSession.h"
 #include "WebUtils.h"
 
 #include <boost/algorithm/string.hpp>
@@ -190,6 +190,7 @@ void WDialog::create()
   resizable_ = false;
   recursiveEventLoop_ = false;
   escapeIsReject_ = false;
+  autoFocus_ = true;
   impl_ = dynamic_cast<WTemplate *>(implementation());
 
   const char *CSS_RULES_NAME = "Wt::WDialog";
@@ -242,7 +243,8 @@ void WDialog::create()
   LOAD_JAVASCRIPT(app, "js/WDialog.js", "WDialog", wtjs1);
 
   WContainerWidget *layoutContainer = new WContainerWidget();
-  layoutContainer->setStyleClass("dialog-layout");
+  wApp->theme()->apply(this, layoutContainer, DialogContent);
+  layoutContainer->addStyleClass("dialog-layout");
   WVBoxLayout *layout = new WVBoxLayout(layoutContainer);
   layout->setContentsMargins(0, 0, 0, 0);
   layout->setSpacing(0);
@@ -384,6 +386,9 @@ void WDialog::render(WFlags<RenderFlag> flags)
   }
 
   WPopupWidget::render(flags);
+
+  if (autoFocus_)
+    impl_->setFirstFocus();
 }
 
 void WDialog::rejectWhenEscapePressed(bool enable)
@@ -406,8 +411,8 @@ WString WDialog::caption() const
 void WDialog::setWindowTitle(const WString& windowTitle)
 {
   caption_->setText
-    (WString::fromUTF8("<h3>" + Utils::htmlEncode(windowTitle.toUTF8())
-		       + "</h3>"));
+    (WString::fromUTF8("<h4>" + Utils::htmlEncode(windowTitle.toUTF8())
+		       + "</h4>"));
 }
 
 WString WDialog::windowTitle() const
@@ -428,7 +433,8 @@ void WDialog::setClosable(bool closable)
 {
   if (closable) {
     if (!closeIcon_) {
-      closeIcon_ = new WText(titleBar_);
+      closeIcon_ = new WText();
+      titleBar_->insertWidget(0, closeIcon_);
       WApplication::instance()->theme()->apply(this, closeIcon_,
 					       DialogCloseIconRole);
       closeIcon_->clicked().connect(this, &WDialog::reject);
@@ -462,7 +468,7 @@ WDialog::DialogCode WDialog::exec(const WAnimation& animation)
       throw WException("Test case must close dialog");
   } else {
     do {
-      app->session()->doRecursiveEventLoop();
+      app->waitForEvent();
     } while (recursiveEventLoop_);
   }
 
@@ -504,7 +510,7 @@ void WDialog::setModal(bool modal)
 void WDialog::onDefaultPressed()
 {
   DialogCover *c = cover();
-  if (c && c->isTopDialogRendered(this)) {
+  if (footer_ && c && c->isTopDialogRendered(this)) {
     for (int i = 0; i < footer()->count(); ++i) {
       WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
       if (b && b->isDefault()) {
@@ -530,15 +536,17 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
     if (!hidden) {
       WApplication *app = WApplication::instance();
 
-      for (int i = 0; i < footer()->count(); ++i) {
-	WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
-	if (b && b->isDefault()) {
-	  enterConnection1_ = app->globalEnterPressed()
-	    .connect(this, &WDialog::onDefaultPressed);
+      if (footer_) {
+	for (int i = 0; i < footer()->count(); ++i) {
+	  WPushButton *b = dynamic_cast<WPushButton *>(footer()->widget(i));
+	  if (b && b->isDefault()) {
+	    enterConnection1_ = app->globalEnterPressed()
+	      .connect(this, &WDialog::onDefaultPressed);
 
-	  enterConnection2_ = impl_->enterPressed()
-	    .connect(this, &WDialog::onDefaultPressed);
-	  break;
+	    enterConnection2_ = impl_->enterPressed()
+	      .connect(this, &WDialog::onDefaultPressed);
+	    break;
+	  }
 	}
       }
 

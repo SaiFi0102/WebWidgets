@@ -44,16 +44,18 @@ const WtLibVersion WT_INCLUDED_VERSION = WtLibVersion();
 
 const char *WApplication::RESOURCES_URL = "resourcesURL";
 
+MetaHeader::MetaHeader(MetaHeaderType aType,
+		       const std::string& aName,
+		       const WString& aContent,
+		       const std::string& aLang,
+		       const std::string& aUserAgent)
+  : type(aType), name(aName), lang(aLang), userAgent(aUserAgent),
+    content(aContent)
+{ }
+
 WApplication::ScriptLibrary::ScriptLibrary(const std::string& anUri,
 					   const std::string& aSymbol)
   : uri(anUri), symbol(aSymbol)
-{ }
-
-WApplication::MetaHeader::MetaHeader(MetaHeaderType aType,
-				     const std::string& aName,
-				     const WString& aContent,
-				     const std::string& aLang)
-  : type(aType), name(aName), lang(aLang), content(aContent)
 { }
 
 WApplication::MetaLink::MetaLink(const std::string &aHref,
@@ -140,7 +142,11 @@ WApplication::WApplication(const WEnvironment& env
   setLocalizedStrings(0);
 #endif // !WT_TARGET_JAVA
 
-  if (environment().agentIsIE()) {
+  if (!environment().javaScript() && environment().agentIsIE()) {
+    /*
+     * WARNING: Similar code in WebRenderer.C must be kept in sync for 
+     *          plain boot.
+     */
     if (environment().agent() < WEnvironment::IE9) {
       const Configuration& conf = environment().server()->configuration(); 
       bool selectIE7 = conf.uaCompatible().find("IE8=IE7")
@@ -148,8 +154,13 @@ WApplication::WApplication(const WEnvironment& env
 
       if (selectIE7)
 	addMetaHeader(MetaHttpHeader, "X-UA-Compatible", "IE=7");
-    } else
-      addMetaHeader(MetaHttpHeader, "X-UA-Compatible", "IE=9");
+    } else if (environment().agent() == WEnvironment::IE9) {
+	addMetaHeader(MetaHttpHeader, "X-UA-Compatible", "IE=9");
+    } else if (environment().agent() == WEnvironment::IE10) {
+	addMetaHeader(MetaHttpHeader, "X-UA-Compatible", "IE=10");
+    } else {
+	addMetaHeader(MetaHttpHeader, "X-UA-Compatible", "IE=11");
+    }
   }
 
   domRoot_ = new WContainerWidget();
@@ -238,8 +249,6 @@ WApplication::WApplication(const WEnvironment& env
 		      "-khtml-user-select: normal;"
 		      "-webkit-user-select: text;"
 		      "user-select: text;");
-  styleSheet_.addRule(".Wt-sbspacer", "float: right; width: 16px; height: 1px;"
-		      "border: 0px; display: none;");
   styleSheet_.addRule(".Wt-domRoot", "position: relative;");
   styleSheet_.addRule("body.Wt-layout", std::string() +
 		      "height: 100%; width: 100%;"
@@ -1096,7 +1105,8 @@ void WApplication::addMetaHeader(MetaHeaderType type,
   }
 
   if (!content.empty())
-    metaHeaders_.push_back(MetaHeader(type, name, content, lang));
+    metaHeaders_.push_back(MetaHeader(type, name, content, lang,
+				      std::string()));
 }
 
 void WApplication::removeMetaHeader(MetaHeaderType type,
@@ -1450,6 +1460,11 @@ void WApplication::processEvents()
   doJavaScript("setTimeout(\"" + javaScriptClass_
 	       + "._p_.update(null,'none',null,true);\",0);");
 
+  waitForEvent();
+}
+
+void WApplication::waitForEvent()
+{
   if (!environment().isTest())
     session_->doRecursiveEventLoop();
 }

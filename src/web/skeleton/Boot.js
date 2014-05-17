@@ -47,6 +47,11 @@ function loadScript(url, callback) {
 _$_$if_PROGRESS_$_();
 var delayedClicks = [];
 function delayClick(e) {
+  /* IE8 does not actually do detachEvent() in progressed() ? */
+  var form = document.getElementById('Wt-form');
+  if (form == null)
+    return true;
+
   var ec = {
     bubbles: e.bubbles,
     cancelable: e.cancelable,
@@ -212,6 +217,26 @@ if ((ua.indexOf("gecko") == -1) || (ua.indexOf("webkit") != -1))
 var otherInfo = "";
 if (screen.deviceXDPI != screen.logicalXDPI)
   otherInfo = "&scale=" + screen.deviceXDPI / screen.logicalXDPI;
+
+_$_$if_WEBGL_DETECT_$_();
+// webgl-check
+var webGLInfo = "";
+if (window.WebGLRenderingContext) {
+    var canvas = document.createElement("canvas");
+    var ctx = null;
+    try {
+        ctx = canvas.getContext('webgl', {antialias: true});
+    } catch (e) {}
+    if (ctx == null) {
+        try {
+            ctx = canvas.getContext('experimental-webgl');
+        } catch (e) {}
+    }
+    if (ctx != null) {
+	otherInfo += "&webGL=true";
+    }
+}
+_$_$endif_$_();
 
 // determine url
 var selfUrl = _$_SELF_URL_$_ + '&sid=' + _$_SCRIPT_ID_$_;

@@ -20,6 +20,11 @@
 #include <openssl/ssl.h>
 #endif
 
+#ifdef WT_WIN32
+#define strcasecmp _stricmp
+#define HAVE_STRCASECMP
+#endif
+
 namespace Wt {
   LOGGER("wthttp");
 }
@@ -27,35 +32,152 @@ namespace Wt {
 namespace http {
 namespace server {
 
+#ifdef __QNXNTO__
+#define HAVE_STRCASECMP
+#define strcasecmp stricmp
+#endif
+
+std::string buffer_string::str() const
+{
+  std::string result;
+  result.reserve(length());
+
+  for (const buffer_string *s = this; s; s = s->next)
+    if (s->data)
+      result.append(s->data, s->len);
+
+  return result;
+}
+
+unsigned buffer_string::length() const
+{
+  unsigned result = 0;
+
+  for (const buffer_string *s = this; s; s = s->next)
+    result += s->len;
+  
+  return result;
+}
+
+bool buffer_string::contains(const char *s) const
+{
+  if (next)
+    return strstr(str().c_str(), s) != 0;
+  else if (data)
+    return strstr(data, s) != 0;
+  else
+    return false;
+}
+
+bool buffer_string::icontains(const char *s) const
+{
+#ifdef HAVE_STRCASESTR
+  if (next)
+    return strcasestr(str().c_str(), s) != 0;
+  else if (data)
+    return strcasestr(data, s) != 0;
+  else
+    return false;
+#else
+  if (next)
+    return boost::icontains(str().c_str(), s);
+  else if (data)
+    return boost::icontains(data, s);
+  else
+    return false;
+#endif
+}
+
+bool buffer_string::iequals(const char *s) const
+{
+#ifdef HAVE_STRCASECMP
+  if (next)
+    return strcasecmp(s, str().c_str()) == 0;
+  else if (data)
+    return strcasecmp(s, data) == 0;
+  else
+    return false;
+#else
+  if (next)
+    return boost::iequals(s, str().c_str());
+  else if (data)
+    return boost::iequals(s, data);
+  else
+    return false;
+#endif
+}
+
+bool buffer_string::operator==(const buffer_string& other) const
+{
+  if (next || other.next)
+    return str() == other.str();
+  else
+    if (data && other.data)
+      return strcmp(data, other.data) == 0;
+    else
+      return data == other.data;
+}
+
+bool buffer_string::operator==(const std::string& other) const
+{
+  if (next)
+    return str() == other;
+  else if (data)
+    return data == other;
+  else
+    return false;
+}
+
+bool buffer_string::operator==(const char *other) const
+{
+  if (next)
+    return str() == other;
+  else if (data)
+    return strcmp(data, other) == 0;
+  else
+    return false;
+}
+
+bool buffer_string::operator!=(const char *other) const
+{
+  return !(*this == other);
+}
+
 void Request::reset()
 {
   method.clear();
   uri.clear();
-  urlScheme.clear();
-  headerMap.clear();
-  headerOrder.clear();
+  urlScheme[0] = 0;
+  headers.clear();
   request_path.clear();
   request_query.clear();
 
   contentLength = -1;
+  webSocketVersion = -1;
 
 #ifdef HTTP_WITH_SSL
   ssl = 0;
 #endif
-  webSocketVersion = -1;
 }
 
-void Request::transmitHeaders(std::ostream& out) const
+void Request::process()
 {
-  static const char *CRLF = "\r\n";
+  // Concatenate header values of same header with ',' separator
+  for (HeaderList::iterator i = headers.begin(); i != headers.end(); ++i) {
+    if (!i->name.empty()) {
+      HeaderList::iterator j = i;
+      for (++j; j != headers.end(); ++j) {
+	if (j->name == i->name) {
+	  buffer_string *s = &i->value;
+	  while (s->next)
+	    s = s->next;
+	  s->data[s->len++] = ','; // replace '\0' with a ','
+	  s->next = &j->value;
 
-  out << method << " " << uri << " HTTP/"
-      << http_version_major << "."
-      << http_version_minor << CRLF;
-
-  for (std::size_t i = 0; i < headerOrder.size(); ++i) {
-    HeaderMap::const_iterator it = headerOrder[i];
-    out << it->first << ": " << it->second << CRLF;
+	  j->name.clear();
+	}
+      }
+    }
   }
 }
 
@@ -63,18 +185,19 @@ void Request::enableWebSocket()
 {
   webSocketVersion = -1;
 
-  HeaderMap::const_iterator i = headerMap.find("Connection");
-  if (i != headerMap.end() && boost::icontains(i->second, "Upgrade")) {
-    HeaderMap::const_iterator j = headerMap.find("Upgrade");
-    if (j != headerMap.end() && boost::iequals(j->second, "WebSocket")) {
+  const Header *i = getHeader("Connection");
+  if (i && i->value.icontains("Upgrade")) {
+    const Header *j = getHeader("Upgrade");
+    if (j && j->value.iequals("WebSocket")) {
       webSocketVersion = 0;
 
-      HeaderMap::const_iterator k = headerMap.find("Sec-WebSocket-Version");
-      if (k != headerMap.end()) {
+      const Header *k = getHeader("Sec-WebSocket-Version");
+      if (k) {
 	try {
-	  webSocketVersion = boost::lexical_cast<int>(k->second);
+	  webSocketVersion = boost::lexical_cast<int>(k->value.str());
 	} catch (std::exception& e) {
-	  LOG_ERROR("could not parse Sec-WebSocket-Version: " << k->second);
+	  LOG_ERROR("could not parse Sec-WebSocket-Version: "
+		    << k->value.str());
 	}
       }
     }
@@ -83,26 +206,20 @@ void Request::enableWebSocket()
 
 bool Request::closeConnection() const 
 {
-  if ((http_version_major == 1)
-      && (http_version_minor == 0)) {
-    HeaderMap::const_iterator i = headerMap.find("Connection");
+  if ((http_version_major == 1) && (http_version_minor == 0)) {
+    const Header *i = getHeader("Connection");
 
-    if (i != headerMap.end()) {
-      if (boost::iequals(i->second, "Keep-Alive"))
-	return false;
-    }
+    if (i && i->value.iequals("Keep-Alive"))
+      return false;
 
     return true;
   }
 
-  if ((http_version_major == 1)
-      && (http_version_minor == 1)) {
-    HeaderMap::const_iterator i = headerMap.find("Connection");
+  if ((http_version_major == 1) && (http_version_minor == 1)) {
+    const Header *i = getHeader("Connection");
     
-    if (i != headerMap.end()) {
-      if (boost::icontains(i->second, "close"))
-	return true;
-    }
+    if (i && i->value.icontains("close"))
+      return true;
 
     return false;
   }
@@ -112,10 +229,10 @@ bool Request::closeConnection() const
 
 bool Request::acceptGzipEncoding() const
 {
-  HeaderMap::const_iterator i = headerMap.find("Accept-Encoding");
+  const Header *i = getHeader("Accept-Encoding");
 
-  if (i != headerMap.end())
-    return i->second.find("gzip") != std::string::npos;
+  if (i)
+    return i->value.contains("gzip");
   else
     return false;
 }
@@ -162,14 +279,26 @@ Wt::WSslInfo *Request::sslInfo() const
   return 0;
 }
 
-std::string Request::getHeader(const std::string& name) const
+const Request::Header *Request::getHeader(const std::string& name) const
 {
-  HeaderMap::const_iterator i = headerMap.find(name);
+  for (HeaderList::const_iterator i = headers.begin(); i != headers.end();
+       ++i) {
+    if (i->name.iequals(name.c_str()))
+      return &(*i);
+  }
 
-  if (i != headerMap.end())
-    return i->second;
-  else
-    return std::string();
+  return 0;
+}
+
+const Request::Header *Request::getHeader(const char *name) const
+{
+  for (HeaderList::const_iterator i = headers.begin(); i != headers.end();
+       ++i) {
+    if (i->name.iequals(name))
+      return &(*i);
+  }
+
+  return 0;
 }
 
 } // namespace server

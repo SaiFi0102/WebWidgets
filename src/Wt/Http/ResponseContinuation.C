@@ -5,11 +5,15 @@
  */
 
 #include "Wt/Http/ResponseContinuation"
+#include "Wt/WLogger"
 #include "Wt/WResource"
 
 #include "WebRequest.h"
 
 namespace Wt {
+
+LOGGER("Http::ResponseContinuation");
+
   namespace Http {
 
 void ResponseContinuation::setData(const boost::any& data)
@@ -17,8 +21,15 @@ void ResponseContinuation::setData(const boost::any& data)
   data_ = data;
 }
 
-void ResponseContinuation::doContinue()
+void ResponseContinuation::doContinue(WebWriteEvent event)
 {
+  if (event == WriteError) {
+    // FIXME provide API to process event == WriteError
+    LOG_ERROR("WriteError");
+    stop();
+    return;
+  }
+
   /*
    * Although we are waiting for more data, we're not yet ready to continue
    * We'll remember to continue as soon as we become ready.
@@ -52,7 +63,10 @@ ResponseContinuation::ResponseContinuation(WResource *resource,
 
 void ResponseContinuation::stop()
 {
-  response_->flush(WebResponse::ResponseDone);
+  if (response_) {
+    response_->flush(WebResponse::ResponseDone);
+    response_ = 0;
+  }
 }
 
 void ResponseContinuation::waitForMoreData()
@@ -62,12 +76,19 @@ void ResponseContinuation::waitForMoreData()
   readyToContinue_ = false;
 }
 
-void ResponseContinuation::flagReadyToContinue()
+void ResponseContinuation::flagReadyToContinue(WebWriteEvent event)
 {
+  if (event == WriteError) {
+    // FIXME provide API to process event == WriteError
+    LOG_ERROR("WriteError");
+    stop();
+    return;
+  }
+
   readyToContinue_ = true;
 
   if (needsContinue_)
-    doContinue();
+    doContinue(event);
 }
 
 ResponseContinuation::~ResponseContinuation()

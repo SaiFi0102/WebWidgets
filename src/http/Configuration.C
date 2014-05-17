@@ -13,10 +13,10 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
-#ifndef WIN32
+#ifndef WT_WIN32
 #include <unistd.h>
 #endif
-#ifdef WIN32
+#ifdef WT_WIN32
 #include <process.h> // for getpid()
 #include <winsock2.h> // for gethostname()
 #endif
@@ -272,6 +272,11 @@ void Configuration::readOptions(const po::variables_map& vm)
   if (vm.count("docroot")) {
     docRoot_ = vm["docroot"].as<std::string>();
 
+    if (docRoot_ == "") {
+      throw Wt::WServer::Exception(
+        "Document root was not set, or was set to the empty path. "
+        "Use --docroot to set the HTML root directory.");
+    }
     Wt::Utils::SplitVector parts;
     boost::split(parts, docRoot_, boost::is_any_of(";"));
 
@@ -410,7 +415,7 @@ void Configuration::checkPath(std::string& result,
 				     + "\") must be a regular file.");
       }
     }
-#ifndef WIN32
+#ifndef WT_WIN32
     if (options & Private) {
       if (t.st_mode & (S_IRWXG | S_IRWXO)) {
 	throw Wt::WServer::Exception(varDescription + " (\"" + result

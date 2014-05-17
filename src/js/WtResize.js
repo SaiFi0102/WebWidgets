@@ -58,6 +58,17 @@ WT_DECLARE_WT_MEMBER
 	var ch = h - marginV(c);
 
 	if (ch > 0) {
+	  /*
+	    to prevent that the first child widget's top margin bleeds
+	    to shift this child down, we set overflow. See also #2809
+	    and the original work-around 548948b63
+	  */
+	  if (c.offsetTop > 0) {
+	    var of = WT.css(c, 'overflow');
+	    if (of === 'visible' || of === '')
+	      c.style.overflow = 'auto';
+	  }
+
 	  if (c.wtResize)
 	    c.wtResize(c, w, ch, layout);
 	  else {
@@ -126,9 +137,6 @@ WT_DECLARE_WT_MEMBER
 (13, JavaScriptFunction, "LastGetPS",
  function(self, child, dir, size) {
   var WT = this, i, il;
-
- if (child.wtGetPS)
-   return size;
 
   for (i = 0, il = self.childNodes.length; i < il; ++i) {
     var c = self.childNodes[i];

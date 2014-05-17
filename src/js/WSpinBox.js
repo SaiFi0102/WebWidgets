@@ -9,7 +9,7 @@
 WT_DECLARE_WT_MEMBER
 (1, JavaScriptConstructor, "WSpinBox",
  function(APP, edit, precision, prefix, suffix, minValue, maxValue,
-	  stepValue) {
+	  stepValue, decimalPoint, groupSeparator) {
    /** @const */ var TYPE_INTEGER = 0;
    /** @const */ var TYPE_FLOAT = 1;
 
@@ -28,18 +28,40 @@ WT_DECLARE_WT_MEMBER
 
    var dragStartXY = null, dragStartValue, changed = false;
    var validator = null;
+   var isDoubleSpinBox = false;
 
    function isReadOnly() {
      return !!edit.getAttribute("readonly");
    }
 
+   function addGrouping(input) {
+     var result = "";
+
+     for (var i = 0; i < input.length(); i++) {
+       result += input.charAt(i);
+     }
+   }
+
    function getValue() {
-     var v = edit.value;
+     var lineEdit = $edit.data("lobj");
+     var v = "";
+     if (lineEdit !== undefined) {
+       v = lineEdit.getValue();
+       if (v === "") {
+	 v = prefix + "0" + suffix;
+       }
+     } else {
+       v = edit.value;
+     }
      if (v.substr(0, prefix.length) == prefix) {
        v = v.substr(prefix.length);
        if (v.length > suffix.length
 	   && v.substr(v.length - suffix.length, suffix.length) == suffix) {
 	 v = v.substr(0, v.length - suffix.length);
+	 if (groupSeparator) {
+	   v = v.split(groupSeparator).join("");
+	 }
+	 v = v.replace(decimalPoint, ".");
 	 return Number(v);
        }
      }
@@ -48,12 +70,33 @@ WT_DECLARE_WT_MEMBER
    }
 
    function setValue(v) {
+     var lineEdit = $edit.data("lobj");
      if (v > maxValue)
        v = maxValue;
      else if (v < minValue)
        v = minValue;
+    
+     var newValue = v.toFixed(precision);
+     newValue = newValue.replace(".", decimalPoint);
+     var dotPos = newValue.indexOf(decimalPoint);
+     var result = "";
+     if (dotPos !== -1) {
+       for (var i = 0; i < dotPos; i++) {
+	 result += newValue.charAt(i);
+	 if (i < dotPos - 1 && ((dotPos - i - 1) % 3 === 0)) {
+	   result += groupSeparator;
+	 }
+       }
+       result += newValue.substr(dotPos);
+     } else {
+       result = newValue;
+     }
 
-     edit.value = prefix + v.toFixed(precision) + suffix;
+     if (lineEdit !== undefined) {
+       lineEdit.setValue(prefix + result + suffix);
+     } else {
+       edit.value = prefix + result + suffix;
+     }
 
      changed = true;
    }
@@ -74,13 +117,24 @@ WT_DECLARE_WT_MEMBER
      }
    }
 
-   this.update = function(aMin, aMax, aStep, aPrecision) {
-     minValue = aMin;
-     maxValue = aMax;
-     stepValue = aStep;
-     precision = aPrecision;
+   this.setIsDoubleSpinBox = function(isDouble) {
+     isDoubleSpinBox = isDouble;
 
-     var Validator = precision == 0 ? WT.WIntValidator : WT.WDoubleValidator;
+     this.configure(precision, prefix, suffix, minValue, maxValue, stepValue);
+   };
+
+   this.configure = function(newPrecision, newPrefix, newSuffix,
+			     newMinValue, newMaxValue, newStepValue) {
+     precision = newPrecision;
+     prefix = newPrefix;
+     suffix = newSuffix;
+     minValue = newMinValue;
+     maxValue = newMaxValue;
+     stepValue = newStepValue;
+
+     var Validator = (isDoubleSpinBox || 
+		      typeof WT.WIntValidator === 'undefined') ? 
+       WT.WDoubleValidator : WT.WIntValidator;
 
      validator = new Validator(true, minValue, maxValue,
 			       NaNError, NaNError,
@@ -191,6 +245,11 @@ WT_DECLARE_WT_MEMBER
      WT.stopRepeat();
    };
 
+   this.setLocale = function(point, separator) {
+     decimalPoint = point;
+     groupSeparator = separator;
+   };
+
    /*
     * Customized validation function, called from WFormWidget
     */
@@ -203,5 +262,5 @@ WT_DECLARE_WT_MEMBER
      return validator.validate(v);
    };
 
-   this.update(minValue, maxValue, stepValue, precision);
+   this.setIsDoubleSpinBox(isDoubleSpinBox);
  });

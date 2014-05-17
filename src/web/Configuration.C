@@ -23,7 +23,7 @@
 
 #include "rapidxml/rapidxml.hpp"
 
-#ifdef WIN32
+#ifdef WT_WIN32
 #include <io.h>
 #include <process.h>
 #endif
@@ -226,12 +226,13 @@ void Configuration::reset()
   botList_.clear();
   ajaxAgentWhiteList_ = false;
   persistentSessions_ = false;
-  progressiveBoot_ = false;
   splitScript_ = false;
   maxPlainSessionsRatio_ = 1;
   ajaxPuzzle_ = false;
   sessionIdCookie_ = false;
   cookieChecks_ = true;
+  webglDetection_ = true;
+  bootstrapConfig_.clear();
 
   if (!appRoot_.empty())
     properties_["appRoot"] = appRoot_;
@@ -263,7 +264,6 @@ int Configuration::maxNumSessions() const
 
 ::int64_t Configuration::maxRequestSize() const
 {
-  READ_LOCK;
   return maxRequestSize_;
 }
 
@@ -371,7 +371,6 @@ bool Configuration::serializedEvents() const
 
 bool Configuration::webSockets() const
 {
-  READ_LOCK;
   return webSockets_;
 }
 
@@ -387,10 +386,23 @@ bool Configuration::persistentSessions() const
   return persistentSessions_;
 }
 
-bool Configuration::progressiveBoot() const
+bool Configuration::progressiveBoot(const std::string& internalPath) const
 {
   READ_LOCK;
-  return progressiveBoot_;
+  bool result = false;
+
+  for (unsigned i = 0; i < bootstrapConfig_.size(); ++i) {
+    const BootstrapEntry& e = bootstrapConfig_[i];
+    if (e.prefix) {
+      if (internalPath == e.path ||
+	  boost::starts_with(internalPath, e.path + '/'))
+	result = e.method == Progressive;
+    } else
+      if (internalPath == e.path)
+	result = e.method == Progressive;
+  }
+
+  return result;
 }
 
 bool Configuration::splitScript() const
@@ -439,6 +451,12 @@ bool Configuration::needReadBodyBeforeResponse() const
   return connectorNeedReadBody_;
 }
 
+bool Configuration::webglDetect() const
+{
+  READ_LOCK;
+  return webglDetection_;
+}
+
 bool Configuration::agentIsBot(const std::string& agent) const
 {
   READ_LOCK;
@@ -468,7 +486,7 @@ std::string Configuration::appRoot() const
   }
 
   if (!approot.empty() && approot[approot.length() - 1] != '/'
-#ifdef WIN32
+#ifdef WT_WIN32
       && approot[approot.length() - 1] != '\\'
 #endif
      ) {
@@ -680,11 +698,47 @@ void Configuration::readApplicationSettings(xml_node<> *app)
 
   uaCompatible_ = singleChildElementValue(app, "UA-Compatible", "");
 
-  setBoolean(app, "progressive-bootstrap", progressiveBoot_);
-  if (progressiveBoot_)
+  bool progressive = false;
+  setBoolean(app, "progressive-bootstrap", progressive);
+
+  xml_node<> *bootstrap = singleChildElement(app, "bootstrap-method");
+  if (bootstrap) {
+    progressive = std::string(bootstrap->value()) == "progressive";
+
+    std::vector<xml_node<> *> entries = childElements(bootstrap, "for");
+    for (unsigned i = 0; i < entries.size(); ++i) {
+      xml_node<> *entry = entries[i];
+
+      std::string path;
+      if (!attributeValue(entry, "path", path) || path.empty())
+	throw WServer::Exception("<for> requires attribute 'path'");
+
+      bootstrapConfig_.push_back(BootstrapEntry());
+      BootstrapEntry& e = bootstrapConfig_.back();
+      
+      e.prefix = path[path.length() - 1] == '*';
+      e.method = std::string(entry->value()) == "progressive"
+	? Progressive : DetectAjax;
+      if (e.prefix) {
+	e.path = path.substr(0, path.length() - 1);
+	if (!e.path.empty() && e.path[e.path.length() - 1] == '/')
+	  e.path.erase(e.path.length() - 1);
+      } else
+	e.path = path;
+    }
+  }
+
+  if (progressive) {
+    bootstrapConfig_.insert(bootstrapConfig_.begin(), BootstrapEntry());
+    bootstrapConfig_.front().prefix = true;
+    bootstrapConfig_.front().method = Progressive;
+  }
+
+  if (progressive)
     setBoolean(app, "split-script", splitScript_);
   setBoolean(app, "session-id-cookie", sessionIdCookie_);
   setBoolean(app, "cookie-checks", cookieChecks_);
+  setBoolean(app, "webgl-detection", webglDetection_);
 
   std::string plainAjaxSessionsRatioLimit
     = singleChildElementValue(app, "plain-ajax-sessions-ratio-limit", "");
@@ -757,6 +811,41 @@ void Configuration::readApplicationSettings(xml_node<> *app)
 		 << ") because was already set to " << appRoot_);
       else
         properties_[name] = value;
+    }
+  }
+
+  std::vector<xml_node<> *> metaHeaders = childElements(app, "meta-headers");
+  for (unsigned i = 0; i < metaHeaders.size(); ++i) {
+    xml_node<> *metaHeader = metaHeaders[i];
+
+    std::string userAgent;
+    attributeValue(metaHeader, "user-agent", userAgent);
+
+    std::vector<xml_node<> *> metas = childElements(metaHeader, "meta");
+    for (unsigned j = 0; j < metas.size(); ++j) {
+      xml_node<> *meta = metas[j];
+      
+      std::string name, property, httpEquiv, content;
+      attributeValue(meta, "name", name);
+      attributeValue(meta, "http-equiv", httpEquiv);
+      attributeValue(meta, "property", property);
+      attributeValue(meta, "content", content);
+
+      MetaHeaderType type;
+      if (!name.empty())
+	type = MetaName;
+      else if (!httpEquiv.empty()) {
+	type = MetaHttpHeader;
+	name = httpEquiv;
+      } else if (!property.empty()) {
+	type = MetaProperty;
+	name = property;
+      } else {
+	throw WServer::Exception
+	  ("<meta> requires attribute 'name', 'property' or 'http-equiv'");
+      }
+
+      metaHeaders_.push_back(MetaHeader(type, name, content, "", userAgent));
     }
   }
 }

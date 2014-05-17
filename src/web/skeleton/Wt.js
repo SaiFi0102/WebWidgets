@@ -419,8 +419,10 @@ this.setHtml = function (el, html, add) {
   if (WT.isIE || (_$_INNER_HTML_$_ && !add)) {
     if (add)
       el.innerHTML += html;
-    else
+    else {
+      WT.saveReparented(el);
       el.innerHTML = html;
+    }
   } else {
     var d, b;
     d = new DOMParser();
@@ -429,8 +431,10 @@ this.setHtml = function (el, html, add) {
     if (d.nodeType != 1) // element
       d = d.nextSibling;
 
-    if (!add)
+    if (!add) {
+      WT.saveReparented(el);
       el.innerHTML = '';
+    }
 
     for (var i = 0, il = d.childNodes.length; i < il;)
       el.appendChild(myImportNode(d.childNodes[i++], true));
@@ -642,12 +646,6 @@ this.cancelEvent = function(e, cancelType) {
       e.stopPropagation();
     else
       e.cancelBubble=true;
-
-    try {
-      if (document.activeElement && document.activeElement.blur)
-	if (WT.hasTag(document.activeElement, "TEXTAREA"))
-	  document.activeElement.blur();
-    } catch(e) { }
   }
 };
 
@@ -742,7 +740,13 @@ this.widgetCoordinates = function(obj, e) {
 this.pageCoordinates = function(e) {
   if (!e) e = window.event;
   var posX = 0, posY = 0;
-  if (typeof e.pageX === 'number') {
+  
+  if (e.touches && e.touches[0]) {
+    return WT.pageCoordinates(e.touches[0]);
+  } else if (!WT.isIE && e.changedTouches && e.changedTouches[0]) {
+    posX = e.changedTouches[0].pageX;
+    posY = e.changedTouches[0].pageY;
+  } else if (typeof e.pageX === 'number') {
     posX = e.pageX; posY = e.pageY;
   } else if (typeof e.clientX === 'number') {
     posX = e.clientX + document.body.scrollLeft
@@ -1012,7 +1016,7 @@ this.vendorPrefix = function(attr) {
 };
 
 this.boxSizing = function(w) {
-  return (w.style[WT.styleAttribute('box-sizing')]) === 'border-box';
+  return (WT.css(w, WT.styleAttribute('box-sizing'))) === 'border-box';
 };
 
 // Return if an element (or one of its ancestors) is hidden
@@ -1434,14 +1438,15 @@ this.fitToWindow = function(e, x, y, rightx, bottomy) {
     if (op == document.body)
       scrollY = (op.clientHeight - windowSize.y);
     bottomy = bottomy - offsetParent.y + scrollY;
-    y = op.clientHeight - (bottomy + WT.px(e, 'marginBottom'));
+    y = op.clientHeight - 
+	  (bottomy + WT.px(e, 'marginBottom') + WT.px(e, 'borderBottomWidth'));
     vside = 1;
   } else {
     var scrollY = op.scrollTop;
     if (op == document.body)
       scrollY = 0;
     y = y - offsetParent.y + scrollY;
-    y = y - WT.px(e, 'marginTop');
+    y = y - WT.px(e, 'marginTop') + WT.px(e, 'borderTopWidth');
     vside = 0;
   }
 
@@ -1511,7 +1516,12 @@ this.positionAtWidget = function(id, atId, orientation, delta) {
 	break;
       }
 
+      // e.g. a layout widget has clientHeight=0 since it's relative
+      // with only absolutely positioned children. We are a bit more liberal
+      // here to catch other simular situations, and 100px seems like space
+      // needed anyway?
       if (WT.css(p, 'display') != 'inline' &&
+	  p.clientHeight > 100 &&
 	  (p.scrollHeight > p.clientHeight ||
 	   p.scrollWidth > p.clientWidth)) {
 	break;
@@ -1620,8 +1630,14 @@ if (html5History) {
 	  newState = stateMap[w.location.pathname + w.location.search];
 
 	if (newState == null) {
-	  saveState(currentState);
-	  return;
+	  var endw = w.location.pathname.lastIndexOf(currentState);
+	  if (endw != -1 &&
+	      endw == w.location.pathname.length - currentState.length) {
+	    saveState(currentState);
+	    return;
+	  } else {
+	    newState = w.location.pathname.substr(baseUrl.length);
+	  }
 	}
 
 	if (newState != currentState) {
@@ -1970,7 +1986,7 @@ _$_$endif_$_();
 
 if (window._$_APP_CLASS_$_ && window._$_APP_CLASS_$_._p_) {
   try {
-    window._$_APP_CLASS_$_._p_.quit();
+    window._$_APP_CLASS_$_._p_.quit(true);
   } catch (e) {
   }
 }
@@ -2044,8 +2060,9 @@ function dragStart(obj, e) {
     /*
      * Ignore drags that start on a scrollbar (#1231)
      */
-    if (t.offsetWidth > t.clientWidth
-	|| t.offsetHeight > t.clientHeight) {
+    if (WT.css(t, 'display') !== 'inline' &&
+	(t.offsetWidth > t.clientWidth ||
+	 t.offsetHeight > t.clientHeight)) {
       var wc = WT.widgetPageCoordinates(t);
       var pc = WT.pageCoordinates(e);
       var x = pc.x - wc.x;
@@ -2080,7 +2097,7 @@ function dragStart(obj, e) {
 
   ds.object.parentNode.removeChild(ds.object);
   ds.object.style.position = 'absolute';
-  ds.object.className = '';
+  ds.object.className = ds.objectPrevStyle.className + '';
   ds.object.style.zIndex = '1000';
   document.body.appendChild(ds.object);
 
@@ -2167,9 +2184,9 @@ function dragDrag(e) {
       if (ds.dropTarget.handleDragDrop)
 	ds.dropTarget.handleDragDrop('drag', ds.object, e, '', mimeType);
       else
-	ds.object.className = 'Wt-valid-drop';
+	ds.object.className = ds.objectPrevStyle.className + ' Wt-valid-drop';
     } else
-      ds.object.className = '';
+      ds.object.className = ds.objectPrevStyle.className + '';
 
     return false;
   }
@@ -2444,8 +2461,10 @@ var sessionUrl,
   serverPush = false,
   updateTimeout = null;
 
-function quit() {
+function quit(silent) {
   quited = true;
+  if (silent)
+    norestart = true;
   if (keepAliveTimer) {
     clearInterval(keepAliveTimer);
     keepAliveTimer = null;
@@ -2496,6 +2515,7 @@ function load(fullapp) {
     document.addEventListener("blur", trackActiveElementLost, true);
   }
 
+  // this could be cancelled leading to havoc?
   $(document).mousedown(WT.mouseDown).mouseup(WT.mouseUp);
 
   WT.history._initialize();
@@ -2688,8 +2708,18 @@ _$_$endif_$_();
 var updateTimeoutStart;
 
 function scheduleUpdate() {
-  if (quited)
-    return;
+  if (quited) {
+    if (norestart)
+      return;
+    if (confirm("The application was quited, do you want to restart?")) {
+      document.location = document.location;
+      norestart = true;
+      return;
+    } else {
+      norestart = true;
+      return;
+    }
+  }
 
 _$_$if_WEB_SOCKETS_$_();
   if (websocket.state != WebSocketsUnavailable) {
@@ -2704,9 +2734,12 @@ _$_$if_WEB_SOCKETS_$_();
 	  websocket.state = WebSocketsUnavailable;
 	else {
 	  function reconnect() {
-	    ++websocket.reconnectTries;
-	    var ms = Math.min(120000, Math.exp(websocket.reconnectTries) * 500);
-	    setTimeout(function() { scheduleUpdate(); }, ms);
+	    if (!quited) {
+	      ++websocket.reconnectTries;
+	      var ms = Math.min(120000, Math.exp(websocket.reconnectTries)
+				* 500);
+	      setTimeout(function() { scheduleUpdate(); }, ms);
+	    }
 	  }
 
 	  var protocolEnd = sessionUrl.indexOf("://"), wsurl;
@@ -2830,7 +2863,7 @@ function setPage(id)
 
 function sendUpdate() {
   if (self != window._$_APP_CLASS_$_) {
-    quit();
+    quit(true);
     return;
   }
 
@@ -2842,18 +2875,8 @@ function sendUpdate() {
 
   if (WT.isIEMobile) feedback = false;
 
-  if (quited) {
-    if (norestart)
-      return;
-    if (confirm("The application was quited, do you want to restart?")) {
-      document.location = document.location;
-      norestart = true;
-      return;
-    } else {
-      norestart = true;
-      return;
-    }
-  }
+  if (quited)
+    return;
 
   var data, tm, poll;
 
@@ -3036,7 +3059,7 @@ function loadScript(uri, symbol, tries)
 	loadScript(uri, symbol, t - 1);
       } else {
 	alert('Fatal error: failed loading ' + uri);
-	quit();
+	quit(true);
       }      
     }
   }

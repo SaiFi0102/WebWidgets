@@ -30,6 +30,8 @@ class WT_API WebRequest
 public:
   WebRequest();
 
+  void log();
+
   enum ResponseState {
     ResponseDone,
     ResponseFlush
@@ -41,15 +43,8 @@ public:
     Update
   };
 
-  enum ReadEvent {
-    MessageEvent, // WebSocket message
-    PingEvent     // Ping message
-  };
-
-  typedef boost::function<void(void)> WriteCallback;
-  typedef boost::function<void(ReadEvent)> ReadCallback;
-
-  void startAsync() { }
+  typedef boost::function<void(WebWriteEvent)> WriteCallback;
+  typedef boost::function<void(WebReadEvent)> ReadCallback;
 
   /*
    * Signal that the response should be flushed.
@@ -128,21 +123,19 @@ public:
   /*
    * Returns request information, which are not http headers.
    */
-  virtual std::string envValue(const std::string& name) const = 0;
+  virtual const char *envValue(const char *name) const = 0;
 
-  virtual std::string serverName() const = 0;
-  virtual std::string serverPort() const = 0;
-  virtual std::string scriptName() const = 0;
-  virtual std::string requestMethod() const = 0;
-  virtual std::string queryString() const = 0;
-  virtual std::string pathInfo() const = 0;
-  virtual std::string remoteAddr() const = 0;
+  virtual const std::string& serverName() const = 0;
+  virtual const std::string& serverPort() const = 0;
+  virtual const std::string& scriptName() const = 0;
+  virtual const char *requestMethod() const = 0;
+  virtual const std::string& queryString() const = 0;
+  virtual const std::string& pathInfo() const = 0;
+  virtual const std::string& remoteAddr() const = 0;
 
-  virtual std::string urlScheme() const = 0;
+  virtual const char *urlScheme() const = 0;
 
-  virtual bool isWebSocketMessage() const {
-    return false;
-  }
+  virtual bool isWebSocketMessage() const { return false; }
 
   bool isWebSocketRequest() const { return webSocketRequest_; }
   void setWebSocketRequest(bool ws) { webSocketRequest_ = ws; }
@@ -150,20 +143,16 @@ public:
   /*
    * Accesses to cgi environment variables and headers -- rfc2616 name 
    */
-  virtual std::string headerValue(const std::string& name) const = 0;
+  virtual const char *headerValue(const char *name) const = 0;
 
   /*
    * Accesses to specific header fields (calls headerValue()).
    */
-  std::string userAgent() const;
-  std::string referer() const;
+  const char *userAgent() const;
+  const char *referer() const;
 
-  /*
-   * Accesses to specific information, which are not http headers
-   * (calls envValue())
-   */
-  std::string contentType() const;
-  ::int64_t contentLength() const;
+  virtual const char *contentType() const;
+  virtual ::int64_t contentLength() const;
 
 #ifdef WT_TARGET_JAVA
   /*
@@ -194,19 +183,21 @@ public:
 
 protected:
   const EntryPoint *entryPoint_;
-  bool doingAsyncCallbacks_;
-
-  void emulateAsync(ResponseState state);
 
   virtual ~WebRequest();
+  void reset();
 
 #ifndef WT_CNOR
+  struct AsyncEmulation;
+  AsyncEmulation *async_;
+
+  void emulateAsync(ResponseState state);
   void setAsyncCallback(const WriteCallback& cb);
   const WriteCallback& getAsyncCallback();
 #endif // WT_CNOR
 
 private:
-  std::string parsePreferredAcceptValue(const std::string& value) const;
+  std::string parsePreferredAcceptValue(const char *value) const;
 
   ::int64_t postDataExceeded_;
   Http::ParameterMap parameters_;

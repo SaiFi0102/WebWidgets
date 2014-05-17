@@ -4,18 +4,33 @@
  * See the LICENSE file for terms of use.
  */
 
+#include "Wt/WApplication"
 #include "Wt/WInPlaceEdit"
 #include "Wt/WCssDecorationStyle"
 #include "Wt/WContainerWidget"
 #include "Wt/WPushButton"
 #include "Wt/WText"
+#include "Wt/WTheme"
 #include "Wt/WLineEdit"
 
 namespace Wt {
 
+WInPlaceEdit::WInPlaceEdit(WContainerWidget *parent)
+  : WCompositeWidget(parent),
+    valueChanged_(this)
+{
+  create();
+}
+
 WInPlaceEdit::WInPlaceEdit(const WString& text, WContainerWidget *parent)
   : WCompositeWidget(parent),
     valueChanged_(this)
+{
+  create();
+  setText(text);
+}
+
+void WInPlaceEdit::create()
 {
   setImplementation(impl_ = new WContainerWidget());
   setInline(true);
@@ -26,7 +41,6 @@ WInPlaceEdit::WInPlaceEdit(const WString& text, WContainerWidget *parent)
   editing_ = new WContainerWidget(impl_);
   editing_->setInline(true);
   editing_->hide();
-  editing_->addStyleClass("input-append"); // FIXME
 
   edit_ = new WLineEdit(editing_);
   edit_->setTextSize(20);
@@ -49,9 +63,11 @@ WInPlaceEdit::WInPlaceEdit(const WString& text, WContainerWidget *parent)
   edit_->escapePressed().connect(this, &WInPlaceEdit::cancel);
   edit_->escapePressed().preventPropagation();
 
-  setButtonsEnabled();
+  buttons_ = new WContainerWidget(editing_);
+  buttons_->setInline(true);
+  buttons_->addStyleClass("input-group-btn"); // FIXME !!!!
 
-  setText(text);
+  setButtonsEnabled();
 }
 
 const WString& WInPlaceEdit::text() const
@@ -61,27 +77,31 @@ const WString& WInPlaceEdit::text() const
 
 void WInPlaceEdit::setText(const WString& text)
 {
-  if (!text.empty()) {
+  empty_ = text.empty();
+
+  if (!empty_)
     text_->setText(text);
-    empty_ = false;
-  } else {
-    text_->setText(emptyText_);
-    empty_ = true;
-  }
+  else
+    text_->setText(placeholderText());
 
   edit_->setText(text);
 }
 
-void WInPlaceEdit::setEmptyText(const WString& emptyText)
+void WInPlaceEdit::setEmptyText(const WString& text)
 {
-  emptyText_ = emptyText;
-  if (empty_)
-    text_->setText(emptyText_);
+  setPlaceholderText(text);
 }
 
-const WString& WInPlaceEdit::emptyText()
+void WInPlaceEdit::setPlaceholderText(const WString& text)
 {
-  return emptyText_;
+  edit_->setPlaceholderText(text);
+  if (empty_)
+    text_->setText(text);
+}
+
+const WString& WInPlaceEdit::placeholderText() const
+{
+  return edit_->placeholderText();
 }
 
 void WInPlaceEdit::save()
@@ -110,14 +130,12 @@ void WInPlaceEdit::cancel()
 
 void WInPlaceEdit::setButtonsEnabled(bool enabled)
 {
-  if (c1_.connected())
-    c1_.disconnect();
-  if (c2_.connected())
-    c2_.disconnect();
+  if (enabled && !save_) {
+    if (c2_.connected())
+      c2_.disconnect();
 
-  if (enabled) {
-    save_ = new WPushButton(tr("Wt.WInPlaceEdit.Save"), editing_);
-    cancel_ = new WPushButton(tr("Wt.WInPlaceEdit.Cancel"), editing_);
+    save_ = new WPushButton(tr("Wt.WInPlaceEdit.Save"), buttons_);
+    cancel_ = new WPushButton(tr("Wt.WInPlaceEdit.Cancel"), buttons_);
 
     save_->clicked().connect(edit_, &WFormWidget::disable);
     save_->clicked().connect(save_, &WFormWidget::disable);
@@ -127,14 +145,20 @@ void WInPlaceEdit::setButtonsEnabled(bool enabled)
     cancel_->clicked().connect(editing_, &WWidget::hide);
     cancel_->clicked().connect(text_, &WWidget::show);
     cancel_->clicked().connect(this, &WInPlaceEdit::cancel);
-  } else {
+  } else if (!enabled && save_) {
     delete save_;
     save_ = 0;
     delete cancel_;
     cancel_ = 0;
-    c1_ = edit_->blurred().connect(edit_, &WFormWidget::disable);
     c2_ = edit_->blurred().connect(this, &WInPlaceEdit::save);
   }
 }
 
+void WInPlaceEdit::render(WFlags<RenderFlag> flags)
+{
+  if (save_ && flags & RenderFull)
+    wApp->theme()->apply(this, editing_, InPlaceEditingRole);
+
+  WCompositeWidget::render(flags);
+}
 }

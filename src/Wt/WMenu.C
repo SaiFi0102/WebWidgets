@@ -150,7 +150,7 @@ void WMenu::setInternalPathEnabled(const std::string& basePath)
 
 void WMenu::handleInternalPathChange(const std::string& path)
 {
-  if (!parentItem_)
+  if (!parentItem_ || !parentItem_->internalPathEnabled())
     internalPathChanged(path);
 }
 
@@ -250,17 +250,19 @@ void WMenu::insertItem(int index, WMenuItem *item)
 
   if (contentsStack_) {
     WWidget *contents = item->contents();
-    if (contents)
+    if (contents) {
       contentsStack_->addWidget(contents);
 
-    if (contentsStack_->count() == 1) {
-      setCurrent(0);
+      if (contentsStack_->count() == 1) {
+	setCurrent(0);
 
-      if (contents)
-        contentsStack_->setCurrentWidget(contents);
+	if (contents)
+	  contentsStack_->setCurrentWidget(contents);
 
-      renderSelected(item, true);
-      item->loadContents();
+	renderSelected(item, true);
+	item->loadContents();
+      } else
+	renderSelected(item, false);
     } else
       renderSelected(item, false);
   } else

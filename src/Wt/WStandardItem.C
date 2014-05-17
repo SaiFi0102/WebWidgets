@@ -156,7 +156,7 @@ WStandardItem::~WStandardItem()
 void WStandardItem::setData(const boost::any& d, int role)
 {
   if (role == EditRole)
-      role = DisplayRole;
+    role = DisplayRole;
 
   data_[role] = d;
 
@@ -365,8 +365,12 @@ bool WStandardItem::isTristate() const
 
 void WStandardItem::setEditable(bool editable)
 {
-  if (!isEditable()) {
+  if (!isEditable() && editable) {
     flags_ |= ItemIsEditable;
+    signalModelDataChange();
+  }
+  else if (isEditable() && !editable) {
+    flags_.clear(ItemIsEditable);
     signalModelDataChange();
   }
 }

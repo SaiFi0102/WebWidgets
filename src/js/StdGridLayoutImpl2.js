@@ -11,7 +11,6 @@ WT_DECLARE_WT_MEMBER
  function(APP, id, parentId, fitWidth, fitHeight, progressive,
 	  maxWidth, maxHeight, hMargins, vMargins, conf) {
    var WT = APP.WT;
-   this.ancestor = null;
    this.descendants = [];
 
    /** @const */ var debug = false;
@@ -49,9 +48,9 @@ WT_DECLARE_WT_MEMBER
    var itemDirty = true;   /* one or more items (with .dirty=true) need to
 			      be remeasured */
    var layoutDirty = true; /* the parent size may have changed */
-   var topLevel = false, parent = null, parentItemWidget = null,
-     propagateSizeToParent = false, parentInitialized = false,
-     parentMargin = [], parentWithWtPS = false;
+
+   var topLevel, parent, parentItemWidget, propagateSizeToParent,
+     parentInitialized = false, parentMargin, parentWithWtPS;
 
    var rtl = $(document.body).hasClass('Wt-rtl');
 
@@ -118,12 +117,20 @@ WT_DECLARE_WT_MEMBER
      var l, p;
 
      /* Allow accurate width measurement for widget with offset */
-     if (dir == HORIZONTAL &&
-	 (scrollSize + WT.pxself(element, DC.left) >= widget.clientWidth)) {
-       l = element.style[DC.left];
-       setCss(element, DC.left, NA_px);
+     if (dir == HORIZONTAL) {
+       /*
+	* Somehow, Firefox more correctly does not ignore parent width...
+	*/
+       var offLeft = WT.pxself(element, DC.left);
+       if (scrollSize + offLeft > widget.clientWidth ||
+	   (scrollSize + offLeft == widget.clientWidth &&
+	    WT.isGecko &&
+	    widget.parentNode.parentNode.style.visibility === 'hidden')) {
+	 l = element.style[DC.left];
+	 setCss(element, DC.left, NA_px);
        
-       scrollSize = dir ? element.scrollHeight : element.scrollWidth;
+	 scrollSize = dir ? element.scrollHeight : element.scrollWidth;
+       }
      }
 
      var clientSize = dir ? element.clientHeight : element.clientWidth;
@@ -213,7 +220,13 @@ WT_DECLARE_WT_MEMBER
      if (asSet)
        return [scrollSize, scrollBar];
 
-     if (!WT.isOpera)
+     if (WT.isGecko && 
+	 dir == HORIZONTAL && 
+	 element.getBoundingClientRect().width != 
+	 Math.ceil(element.getBoundingClientRect().width))
+       scrollSize += 1;
+
+     if (!WT.boxSizing(element) && !WT.isOpera)
        scrollSize += border;
 
      scrollSize +=
@@ -445,7 +458,7 @@ WT_DECLARE_WT_MEMBER
 	     if (item.dirty) {
 	       var wMinimum;
 	       if (item.dirty > 1) {
-		 calcMinimumSize(item.w, dir);
+		 wMinimum = calcMinimumSize(item.w, dir);
 		 item.ms[dir] = wMinimum;
 	       } else
 		 wMinimum = item.ms[dir];
@@ -601,51 +614,60 @@ WT_DECLARE_WT_MEMBER
        if (debug)
 	 console.log("(before spanned) "
 		     + id + ': ' + dir + " ps " + preferredSize);
-       for (di = 0; di < dirCount; ++di) {
-	 for (oi = 0; oi < otherCount; ++oi) {
-	   var item = DC.getItem(di, oi);
 
-	   if (item && item.span && item.span[dir] > 1) {
-	     var ps = item.ps[dir], count = 0, stretch = 0, si;
+       function handleOverspanned(getItemSize, sizes) {
+	 for (di = 0; di < dirCount; ++di) {
+	   for (oi = 0; oi < otherCount; ++oi) {
+	     var item = DC.getItem(di, oi);
 
-	     for (si = 0; si < item.span[dir]; ++si) {
-	       var cps = preferredSize[di + si];
+	     if (item && item.span && item.span[dir] > 1) {
+	       var ps = getItemSize(item), count = 0, stretch = 0, si;
 
-	       if (cps != -1) {
-		 ps -= cps;
-		 ++count;
-		 if (DC.config[di + si][STRETCH] > 0)
-		   stretch += DC.config[di + si][STRETCH];
+	       for (si = 0; si < item.span[dir]; ++si) {
+		 var cps = sizes[di + si];
+
+		 if (cps != -1) {
+		   ps -= cps;
+		   ++count;
+		   if (DC.config[di + si][STRETCH] > 0)
+		     stretch += DC.config[di + si][STRETCH];
+		 }
 	       }
-	     }
 
-	     if (ps > 0) {
-	       if (count > 0) {
-		 if (stretch > 0)
-		   count = stretch;
+	       if (ps >= 0) {
+		 if (count > 0) {
+		   if (stretch > 0)
+		     count = stretch;
 
-		 for (si = 0; si < item.span[dir]; ++si) {
-		   var cps = preferredSize[di + si];
-		   if (cps != -1) {
-		     var portion;
-		     if (stretch > 0)
-		       portion = DC.config[di + si][STRETCH];
-		     else
-		       portion = 1;
+		   for (si = 0; si < item.span[dir]; ++si) {
+		     var cps = sizes[di + si];
+		     if (cps != -1) {
+		       var portion;
+		       if (stretch > 0)
+			 portion = DC.config[di + si][STRETCH];
+		       else
+			 portion = 1;
 
-		     if (portion > 0) {
-		       var fract = Math.round(ps / portion);
-		       ps -= fract; count -= portion;
-		       preferredSize[di + si] += fract;
+		       if (portion > 0) {
+			 var fract = Math.round(ps / portion);
+			 ps -= fract; count -= portion;
+			 sizes[di + si] += fract;
+		       }
 		     }
 		   }
-		 }
-	       } else
-		 preferredSize[di] = ps;
+		 } else
+		   sizes[di] = ps;
+	       }
 	     }
 	   }
 	 }
        }
+	 
+       handleOverspanned(function(item) { return item.ps[dir]; },
+			 preferredSize);
+
+       handleOverspanned(function(item) { return item.ms[dir]; },
+			 minimumSize);
      }
 
      var totalMargin = 0, first = true, rh = false;
@@ -685,7 +707,7 @@ WT_DECLARE_WT_MEMBER
      if (layoutDirty ||
 	 (prevMeasures[TOTAL_PREFERRED_SIZE] !=
 	  DC.measures[TOTAL_PREFERRED_SIZE]))
-       self.updateSizeInParent(dir);
+	 self.updateSizeInParent(dir);
 
      /* If our minimum layout requirements have changed, then we want
       * to communicate this up using the minimum widths
@@ -696,9 +718,7 @@ WT_DECLARE_WT_MEMBER
 	 && prevMeasures[TOTAL_MINIMUM_SIZE] != DC.measures[TOTAL_MINIMUM_SIZE]
 	 && container.parentNode.className != 'Wt-domRoot') {
        var w = DC.measures[TOTAL_MINIMUM_SIZE] + 'px';
-       if (setCss(container, 'min' + DC.Size, w))
-	 if (self.ancestor)
-	   self.ancestor.setContentsDirty(container);
+       setCss(container, 'min' + DC.Size, w);
      }
 
      if (container) {
@@ -717,6 +737,26 @@ WT_DECLARE_WT_MEMBER
       * mark the corresponding cell as dirty if the TOTAL_PREFERRED_SIZE
       * has changed (or force).
       */
+
+     if (parent && parentItemWidget.id) {
+       var piw = WT.$(parentItemWidget.id);
+       if (piw) {
+	 if (parentItemWidget != piw) {
+	   parent = jQuery.data(piw.parentNode, 'layout');
+	   if (!parent) {
+	     /* The parent item widget is no longer in the DOM. Need a test
+	      * case for that. */
+	     initializeParent();
+	   } else
+	     parentItemWidget = piw;
+	 }
+       } else {
+	 /* The parent item widget is no longer in the DOM. Need a test case
+	  * for that. */
+	 initializeParent();
+       }
+     }
+
      if (parent) {
        if (propagateSizeToParent) {
 	 var DC = DirConfig[dir],
@@ -866,16 +906,19 @@ WT_DECLARE_WT_MEMBER
 	     }
 
 	     if (debug)
-	       console.log('cSize : ' + cSize + ', ieCSize : ' + ieCSize
+	       console.log('cSize : ' + cSize
+			   + (cClientSize ? '(clientSize)' : '') + ', ieCSize : '
+			   + ieCSize
 			   + ', minSize : ' + minSize + ', padding: '
-			   + padding(container, dir));
+			   + padding(container, dir) + ', sizePadding: '
+			   + sizePadding(container, dir));
 
-	     function epsEqual(a, b) {
-	       return Math.abs(a - b) < 1;
+	     function epsNotLarger(a, b) {
+	       return a - b <= 1;
 	     }
 
-	     if ((WT.isIElt9 && epsEqual(cSize, ieCSize))
-		 || (epsEqual(cSize, minSize + padding(container, dir)))) {
+	     if ((WT.isIElt9 && epsNotLarger(cSize, ieCSize))
+		 || (epsNotLarger(cSize, minSize + padding(container, dir)))) {
 	       if (debug)
 		 console.log('switching to managed container size '
 			     + dir + ' ' + id);
@@ -1255,11 +1298,6 @@ WT_DECLARE_WT_MEMBER
 	     item.size[dir] = tsm;
 	     item.psize[dir] = ts;
 	   } else {
-	     //debugger;
-	     //console.log(alignment);
-	     //console.log(left);
-	     //console.log(ts);
-	     //console.log(ps);
 	     switch (alignment) {
 	     case ALIGN_LEFT: off = left; break;
 	     case ALIGN_CENTER: off = left + (ts - ps)/2; break;
@@ -1443,19 +1481,16 @@ WT_DECLARE_WT_MEMBER
      }
    };
 
-   this.measure = function(dir) {
-     var widget = WT.getElement(id);
+   function initializeParent() {
+       var widget = WT.getElement(id);
 
-     if (!widget)
-       return;
-
-     if (WT.isHidden(widget))
-       return;
-
-     if (!parentInitialized) {
-       parentInitialized = true;
        topLevel = parentId == null;
+       parent = null;
+       parentItemWidget = null;
        propagateSizeToParent = true;
+       parentInitialized = true;
+       parentMargin = [];
+       parentWithWtPS = false;
 
        if (!topLevel) {
 	 parent = jQuery.data(document.getElementById(parentId), 'layout');
@@ -1480,8 +1515,8 @@ WT_DECLARE_WT_MEMBER
 
 	   var l = jQuery.data(p.parentNode, 'layout');
 	   if (l) {
-	     parent = l;
 	     parentItemWidget = p;
+	     parent = l;
 	     break;
 	   }
 
@@ -1496,7 +1531,19 @@ WT_DECLARE_WT_MEMBER
 	 for (var i = 0; i < 2; ++i)
 	   DirConfig[i].sizeSet = WT.pxself(container, DirConfig[i].size) != 0;
        }
-     }
+   }
+
+   this.measure = function(dir) {
+     var widget = WT.getElement(id);
+
+     if (!widget)
+       return;
+
+     if (WT.isHidden(widget))
+       return;
+
+     if (!parentInitialized)
+       initializeParent();
 
      if (itemDirty || layoutDirty) {
        var container = topLevel ? widget.parentNode : null;
@@ -1539,14 +1586,6 @@ WT_DECLARE_WT_MEMBER
    this.WT = WT;
  });
 
-WT_DECLARE_WT_MEMBER
-(2, JavaScriptPrototype, "StdLayout2.prototype.initResize",
- function(WT, id, config) {
-   var self = this;
-
-   self.resizeInitialized = true;
- });
-
 WT_DECLARE_APP_MEMBER
 (1, JavaScriptObject, "layouts2",
   new (function() {
@@ -1555,7 +1594,8 @@ WT_DECLARE_APP_MEMBER
     var measureVertical = false;
 
     this.find = function(id) {
-      return jQuery.data(document.getElementById(id), 'layout');
+      var el = document.getElementById(id);
+      return el ? jQuery.data(el, 'layout') : null;
     };
 
     this.setDirty = function(id) {
@@ -1631,13 +1671,21 @@ WT_DECLARE_APP_MEMBER
       self.scheduleAdjust();
     };
 
-    var adjustScheduled = false;
+    var adjustScheduled = false, adjustLoop = 0;
 
     this.scheduleAdjust = function(forceMeasureVertical) {
       if (forceMeasureVertical)
 	measureVertical = true;
 
       if (adjustScheduled)
+	return;
+
+      if (adjusting)
+	++adjustLoop;
+      else
+	adjustLoop = 0;
+
+      if (adjustLoop >= 6)
 	return;
 
       adjustScheduled = true;
