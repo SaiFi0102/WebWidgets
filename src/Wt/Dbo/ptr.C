@@ -85,6 +85,13 @@ void MetaDboBase::checkNotOrphaned()
   }
 }
 
+void MetaDboBase::checkNotDisconnected()
+{
+  if (isDisconnected()) {
+    throw Exception("modifying disconnected dbo ptr");
+  }
+}
+
 ptr_base::~ptr_base()
 { }
 

@@ -51,7 +51,7 @@ MetaDbo<C>::~MetaDbo()
   if (refCount_)
     throw std::logic_error("Dbo: refCount > 0");
 
-  if ((!isOrphaned()) && session())
+  if ((!isOrphaned()) && (!isDisconnected()) && session())
     session()->prune(this);
 
   delete obj_;
@@ -61,6 +61,7 @@ template <class C>
 void MetaDbo<C>::flush()
 {
   checkNotOrphaned();
+  checkNotDisconnected();
 
   if (state_ & NeedsDelete) {
     state_ &= ~NeedsDelete;

@@ -384,6 +384,17 @@ void Session::Mapping<C>::rereadAll()
 }
 
 template <class C>
+void Session::Mapping<C>::disconnectAll()
+{
+  for (typename Registry::iterator i = registry_.begin();
+       i != registry_.end(); ++i) {
+	i->second->setSession(0);
+    i->second->setState(MetaDboBase::Disconnected);
+  }
+  registry_.clear();
+}
+
+template <class C>
 void Session::Mapping<C>::init(Session& session)
 {
   if (!initialized_) {

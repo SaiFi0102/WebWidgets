@@ -85,6 +85,11 @@ void Session::MappingInfo::rereadAll()
   throw Exception("Not to be done.");
 }
 
+void Session::MappingInfo::disconnectAll()
+{ 
+  throw Exception("Not to be done.");
+}
+
 std::string Session::MappingInfo::primaryKeys() const
 {
   if (surrogateIdFieldName)
@@ -1094,6 +1099,23 @@ void Session::rereadAll(const char *tableName)
        i != classRegistry_.end(); ++i)
     if (!tableName || std::string(tableName) == i->second->tableName)
       i->second->rereadAll();
+}
+
+void Session::disconnectAll()
+{
+  if (!dirtyObjects_.empty())
+    std::cerr << "Warning: Wt::Dbo::Session disconnecting with "
+	      << dirtyObjects_.size() << " dirty objects" << std::endl;
+
+  for (MetaDboBaseSet::iterator i = dirtyObjects_.begin();
+       i != dirtyObjects_.end(); ++i)
+    (*i)->decRef();
+
+  dirtyObjects_.clear();
+
+  for (ClassRegistry::iterator i = classRegistry_.begin();
+       i != classRegistry_.end(); ++i)
+    i->second->disconnectAll();
 }
 
 void Session::discardUnflushed()

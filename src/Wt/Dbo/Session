@@ -368,6 +368,13 @@ public:
    */
   void rereadAll(const char *tableName = 0);
 
+  /*! \brief Disconnects all objects from session management.
+   *
+   * This disconnects all objects from the session management.
+   * Disconnected objects are not synchronized with the database.
+   */
+  virtual void disconnectAll();
+
   /*! \brief Discards all unflushed changes.
    *
    * This method is useful when the flushMode() is set to Manual. It discards
@@ -472,6 +479,7 @@ private:
     virtual void dropTable(Session& session,
 			   std::set<std::string>& tablesDropped);
     virtual void rereadAll();
+	virtual void disconnectAll();
 
     std::string primaryKeys() const;
   };
@@ -487,6 +495,7 @@ private:
     virtual void dropTable(Session& session,
 			   std::set<std::string>& tablesDropped);
     virtual void rereadAll();
+	virtual void disconnectAll();
   };
   
   typedef const std::type_info * const_typeinfo_ptr;

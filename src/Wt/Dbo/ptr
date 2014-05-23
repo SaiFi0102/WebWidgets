@@ -68,6 +68,7 @@ public:
     New = 0x000,
     Persisted = 0x001,
     Orphaned = 0x002,
+	Disconnected = 0x004,
 
     // flags
     NeedsDelete = 0x010,
@@ -106,6 +107,7 @@ public:
   bool isPersisted() const
     { return 0 != (state_ & (Persisted | SavedInTransaction)); }
   bool isOrphaned() const { return 0 != (state_ & Orphaned); }
+  bool isDisconnected() const { return 0 != (state_ & Disconnected); }
   bool isDeleted() const
     { return 0 != (state_ & (NeedsDelete | DeletedInTransaction)); }
 
@@ -137,6 +139,7 @@ protected:
   int refCount_;
 
   void checkNotOrphaned();
+  void checkNotDisconnected();
 };
 
 /*! \class dbo_default_traits Wt/Dbo/Dbo Wt/Dbo/Dbo
