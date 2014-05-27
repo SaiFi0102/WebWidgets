@@ -1,6 +1,8 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/ModulesDatabase.h"
-#include <Wt/WApplication>
+#include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ConfigurationsDatabase.h"
+#include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -17,31 +19,6 @@ LanguagesDatabase::LanguagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WSer
 {
 	MapClasses();
 	DboSession.setConnection(SQLConnection);
-}
-
-void LanguagesDatabase::MapClasses()
-{
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void LanguagesDatabase::FetchAll()
@@ -64,6 +41,8 @@ void LanguagesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
+		DboSession.disconnectAll();
+
 		Wt::Dbo::Transaction transaction(DboSession);
 		LanguageCollections LanguageCollection = DboSession.find<Language>().where("\"Installed\" = 1");
 
@@ -105,22 +84,37 @@ void LanguagesDatabase::FetchAll()
 		LanguagePluralContainer.swap(languagepluralcontainer);
 		throw;
 	}
-	
+
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = boost::posix_time::time_duration(PTEnd - PTStart);
 }
 
-Language LanguagesDatabase::GetLanguageDboFromCode(const std::string &Code) const
+void LanguagesDatabase::MapClasses()
 {
-	READ_LOCK;
-	Wt::Dbo::ptr<Language> Ptr = GetLanguagePtrFromCode(Code);
-	if(!Ptr)
-	{
-		return Language();
-	}
-	return *Ptr;
+	DboSession.mapClass<Author>(Author::TableName());
+	DboSession.mapClass<Module>(Module::TableName());
+	DboSession.mapClass<Configuration>(Configuration::TableName());
+	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
+	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
+	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
+	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
+	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
+	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
+	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
+	DboSession.mapClass<Language>(Language::TableName());
+	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
+	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
+	DboSession.mapClass<Page>(Page::TableName());
+	DboSession.mapClass<Template>(Template::TableName());
+	DboSession.mapClass<Style>(Style::TableName());
+	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
+	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
+	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
+
 Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
 {
 	READ_LOCK;
@@ -132,16 +126,6 @@ Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromCode(const std::stri
 	return *itr;
 }
 
-Language LanguagesDatabase::GetLanguageDboFromLanguageAccept(const std::string &LanguageAccept) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<Language> Ptr = GetLanguagePtrFromLanguageAccept(LanguageAccept);
-	if(!Ptr)
-	{
-		return Language();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
 {
 	READ_LOCK;
@@ -153,16 +137,6 @@ Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const
 	return *itr;
 }
 
-LanguageSingle LanguagesDatabase::GetSingleDbo(const std::string &Code, const std::string &Key, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<LanguageSingle> Ptr = GetSinglePtr(Code, Key, ModuleId);
-	if(!Ptr)
-	{
-		return LanguageSingle();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<LanguageSingle> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
 	READ_LOCK;
@@ -174,16 +148,6 @@ Wt::Dbo::ptr<LanguageSingle> LanguagesDatabase::GetSinglePtr(const std::string &
 	return *itr;
 }
 
-LanguagePlural LanguagesDatabase::GetPluralDbo(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<LanguagePlural> Ptr = GetPluralPtr(Code, Key, ModuleId, Case);
-	if(!Ptr)
-	{
-		return LanguagePlural();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<LanguagePlural> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
 	READ_LOCK;
@@ -253,11 +217,11 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	AccessPath DefaultAccessPath = _Server.GetAccessPaths()->GetDbo(_Server.GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server.GetAccessPaths()->GetPtr(_Server.GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	std::string DefaultLanguage = "en";
-	if(DefaultAccessPath.LanguagePtr)
+	if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
 	{
-		DefaultLanguage = DefaultAccessPath.LanguagePtr.id();
+		DefaultLanguage = DefaultAccessPath->LanguagePtr.id();
 	}
 
 	std::string DecimalPointCharacter = ".";

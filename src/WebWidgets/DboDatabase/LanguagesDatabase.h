@@ -3,12 +3,12 @@
 
 #include <Wt/WLocale>
 #include "Dbo/Language.h"
-#include "DboDatabase/ConfigurationsDatabase.h"
-#include "Application/WServer.h"
 #include <boost/thread.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+
+class WServer;
 
 class LanguagesDatabase
 {
@@ -140,10 +140,10 @@ class LanguagesDatabase
 
 		void FetchAll();
 
-		Language GetLanguageDboFromCode(const std::string &Code) const;
-		Language GetLanguageDboFromLanguageAccept(const std::string &LanguageAccept) const;
-		LanguageSingle GetSingleDbo(const std::string &Code, const std::string &Key, long long ModuleId) const;
-		LanguagePlural GetPluralDbo(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
+		Wt::Dbo::ptr<Language> GetLanguagePtrFromCode(const std::string &Code) const;
+		Wt::Dbo::ptr<Language> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
+		Wt::Dbo::ptr<LanguageSingle> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
+		Wt::Dbo::ptr<LanguagePlural> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
 
 		bool LanguageCodeExists(const std::string &Code) const;
 		bool LanguageAcceptExists(const std::string &LanguageAccept) const;
@@ -160,11 +160,7 @@ class LanguagesDatabase
 		std::size_t CountLanguages() const;
 
 	protected:
-		virtual void MapClasses();
-		Wt::Dbo::ptr<Language> GetLanguagePtrFromCode(const std::string &Code) const;
-		Wt::Dbo::ptr<Language> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
-		Wt::Dbo::ptr<LanguageSingle> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
-		Wt::Dbo::ptr<LanguagePlural> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
+		void MapClasses();
 
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;

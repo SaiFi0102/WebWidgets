@@ -2,12 +2,13 @@
 #define STYLES_DATABASE_H
 
 #include "Dbo/Style.h"
-#include "Application/WServer.h"
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+
+class WServer;
 
 class StylesDatabase
 {
@@ -15,34 +16,22 @@ class StylesDatabase
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-			{
-				return StyleTemplatePtr.id().DerivingTemplatePtr.id().Name;
-			}
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
 		};
 		struct StyleTemplate_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-			{
-				return StyleTemplatePtr.id().DerivingTemplatePtr.id().ModulePtr.id();
-			}
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
 		};
 		struct StyleTemplate_key_StyleName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-			{
-				return StyleTemplatePtr.id().StylePtr.id().Name;
-			}
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
 		};
 		struct StyleTemplate_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-			{
-				return StyleTemplatePtr.id().StylePtr.id().AuthorPtr.id();
-			}
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
 		};
 
 		typedef boost::multi_index_container<
@@ -62,32 +51,29 @@ class StylesDatabase
 			>
 		> StyleTemplateContainers;
 
-		typedef std::vector< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleVector;
-		typedef std::vector< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleVector;
+		typedef std::list< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleList;
+		typedef std::list< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleList;
 
 		typedef boost::unordered_map< std::pair<std::string, long long>, Wt::Dbo::ptr<Style> > StyleMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, Wt::Dbo::ptr<Template> > TemplateMaps;
-		typedef boost::unordered_map< std::pair<std::string, long long>, StyleCssRuleVector > StyleCssRuleMaps;
-		typedef boost::unordered_map< std::pair<std::string, long long>, TemplateCssRuleVector > TemplateCssRuleMaps;
+		typedef boost::unordered_map< std::pair<std::string, long long>, StyleCssRuleList > StyleCssRuleMaps;
+		typedef boost::unordered_map< std::pair<std::string, long long>, TemplateCssRuleList > TemplateCssRuleMaps;
 
 	public:
 		StylesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		StylesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll(bool FetchCss = false);
+		void FetchAll();
 
-		Style GetStyleDbo(const std::string &Name, long long AuthorId) const;
-		Template GetTemplateDbo(const std::string &Name, long long ModuleId) const;
-		StyleTemplate GetStyleTemplateDbo(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		Wt::Dbo::ptr<Style> GetStylePtr(const std::string &Name, long long AuthorId) const;
+		Wt::Dbo::ptr<Template> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<StyleTemplate> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 
 		std::string GetTemplateStr(const std::string &Name, long long ModuleId) const;
 		std::string GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 		
-		static std::string GetStyleSheetFolder(const std::string &StyleName, long long StyleAuthorId);
-		static std::string GetStyleSheetFileName();
-		static std::string GetTemplateStyleSheetFileName(const std::string &TemplateName, long long ModuleId);
-
-		void CreateCssStyleSheets();
+		StyleCssRuleList GetStyleCssRules(const std::string &StyleName, long long AuthorId);
+		TemplateCssRuleList GetTemplateCssRules(const std::string &TemplateName, long long ModuleId);
 
 		long long GetLoadDurationinMS() const;
 		std::size_t CountStyles() const;
@@ -97,11 +83,7 @@ class StylesDatabase
 		std::size_t CountTemplateCssRules() const;
 
 	protected:
-		virtual void MapClasses();
-
-		Wt::Dbo::ptr<Style> GetStylePtr(const std::string &Name, long long AuthorId) const;
-		Wt::Dbo::ptr<Template> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<StyleTemplate> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		void MapClasses();
 
 		StyleMaps StyleMap;
 		TemplateMaps TemplateMap;

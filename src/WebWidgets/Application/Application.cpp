@@ -1,7 +1,15 @@
 #include "Application/Application.h"
-#include "Objects/LocalizedStrings.h"
 #include "Application/WServer.h"
+#include "Objects/LocalizedStrings.h"
+#include "Objects/DboCssRule.h"
 
+#include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/LanguagesDatabase.h"
+#include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/StylesDatabase.h"
+
+#include <Wt/WEnvironment>
 #include <Wt/WText>
 #include <Wt/WAnchor>
 #include <Wt/WPushButton>
@@ -95,9 +103,15 @@ Application::Application(const Wt::WEnvironment &env)
 	internalPathChanged().connect(boost::bind(&Application::SetLanguageFromInternalPath, this));
 	SetLanguageFromInternalPath();
 
-	//CSS Stylesheet
-	//this->styleSheet().ruleModified()
+	//Style CSS Stylesheet
+	std::string DefaultStyleName = Server->GetConfigurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
+	long long DefaultStyleAuthor = Server->GetConfigurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
+	ChangeStyle(Server->GetStyles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor));
 
+	//User stylesheet
+	useStyleSheet(_UserStyleSheet);
+
+	//TEST//
 	new Wt::WText("HI", root());
 	new Wt::WBreak(root());
 	auto ip = new Wt::WText(internalPath(), root());
@@ -308,4 +322,86 @@ bool Application::IsMobileVersion() const
 Wt::Signal<bool> &Application::MobileVersionChanged()
 {
 	return _MobileVersionChanged;
+}
+
+Wt::Dbo::ptr<Style> Application::CurrentStyle()
+{
+	return _CurrentStylePtr;
+}
+
+void Application::ChangeStyle(Wt::Dbo::ptr<Style> StylePtr)
+{
+	typedef std::list< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleList;
+	if(!StylePtr || StylePtr == _CurrentStylePtr)
+	{
+		return;
+	}
+
+	//Remove CSS rules
+	WServer *Server = WServer::instance();
+	styleSheet().clear();
+
+	//Add CSS rules for new style
+	StyleCssRuleList CssRules = Server->GetStyles()->GetStyleCssRules(StylePtr.id().Name, StylePtr.id().AuthorPtr.id());
+	for(StyleCssRuleList::const_iterator itr = CssRules.begin();
+		itr != CssRules.end();
+		++itr)
+	{
+		DboCssRule *Rule = new DboCssRule(*itr);
+		styleSheet().addRule(Rule);
+	}
+
+	_CurrentStylePtr = StylePtr;
+	_StyleChanged.emit();
+}
+
+Wt::Signal<void> &Application::StyleChanged()
+{
+	return _StyleChanged;
+}
+
+Wt::WCssStyleSheet & Application::UserStyleSheet()
+{
+	return _UserStyleSheet;
+}
+
+void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
+{
+	typedef std::list< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleList;
+
+	//Ignore if its an empty ptr
+	if(!TemplatePtr)
+	{
+		return;
+	}
+
+	//Ignore if the stylesheet is already loaded
+	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id()));
+	if(itr != _TemplateStyleSheets.end())
+	{
+		return;
+	}
+
+	//Create the stylesheet if its not loaded
+	WServer *Server = WServer::instance();
+	Wt::WCssStyleSheet TemplateStyleSheet;
+	
+	//Ignore if there are no CSS rules for this template
+	TemplateCssRuleList CssRules = Server->GetStyles()->GetTemplateCssRules(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id());
+	if(CssRules.empty())
+	{
+		return;
+	}
+
+	for(TemplateCssRuleList::const_iterator itr = CssRules.begin();
+		itr != CssRules.end();
+		++itr)
+	{
+		DboCssRule *Rule = new DboCssRule(*itr);
+		TemplateStyleSheet.addRule(Rule);
+	}
+
+	//Add to template style sheets map and application to be loaded
+	_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())] = TemplateStyleSheet;
+	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())]);
 }

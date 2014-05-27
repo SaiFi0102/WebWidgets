@@ -4,7 +4,6 @@
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
 #include "Dbo/Author.h"
-#include <Wt/WCssStyleSheet>
 
 struct StyleKeys
 {
@@ -28,7 +27,6 @@ class Style : public Wt::Dbo::Dbo<Style>
 
 		StyleCssRuleCollections		CssRuleCollection;
 		StyleTemplateCollections	TemplateCollection;
-		AuthorCollections			AuthorCollection;
 
 		Style();
 		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr = Wt::Dbo::ptr<Author>());

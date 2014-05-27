@@ -1,5 +1,5 @@
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include <Wt/WApplication>
+#include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -16,31 +16,6 @@ ConfigurationsDatabase::ConfigurationsDatabase(Wt::Dbo::SqlConnection &SQLConnec
 {
 	MapClasses();
 	DboSession.setConnection(SQLConnection);
-}
-
-void ConfigurationsDatabase::MapClasses()
-{
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
 void ConfigurationsDatabase::FetchAll()
@@ -78,6 +53,8 @@ void ConfigurationsDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
+		DboSession.disconnectAll();
+
 		BoolCollections BoolCollection;
 		DoubleCollections DoubleCollection;
 		EnumCollections EnumCollection;
@@ -173,16 +150,31 @@ void ConfigurationsDatabase::FetchAll()
 	LoadDuration = PTEnd - PTStart;
 }
 
-ConfigurationBool ConfigurationsDatabase::GetBoolDbo(const std::string &Name, long long ModuleId) const
+void ConfigurationsDatabase::MapClasses()
 {
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationBool> Ptr = GetBoolPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationBool();
-	}
-	return *Ptr;
+	DboSession.mapClass<Author>(Author::TableName());
+	DboSession.mapClass<Module>(Module::TableName());
+	DboSession.mapClass<Configuration>(Configuration::TableName());
+	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
+	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
+	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
+	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
+	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
+	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
+	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
+	DboSession.mapClass<Language>(Language::TableName());
+	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
+	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
+	DboSession.mapClass<Page>(Page::TableName());
+	DboSession.mapClass<Template>(Template::TableName());
+	DboSession.mapClass<Style>(Style::TableName());
+	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
+	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
+	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
+
 Wt::Dbo::ptr<ConfigurationBool> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -194,16 +186,6 @@ Wt::Dbo::ptr<ConfigurationBool> ConfigurationsDatabase::GetBoolPtr(const std::st
 	return itr->second;
 }
 
-ConfigurationDouble ConfigurationsDatabase::GetDoubleDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationDouble> Ptr = GetDoublePtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationDouble();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationDouble> ConfigurationsDatabase::GetDoublePtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -215,16 +197,6 @@ Wt::Dbo::ptr<ConfigurationDouble> ConfigurationsDatabase::GetDoublePtr(const std
 	return itr->second;
 }
 
-ConfigurationEnum ConfigurationsDatabase::GetEnumDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationEnum> Ptr =  GetEnumPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationEnum();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationEnum> ConfigurationsDatabase::GetEnumPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -236,16 +208,6 @@ Wt::Dbo::ptr<ConfigurationEnum> ConfigurationsDatabase::GetEnumPtr(const std::st
 	return itr->second;
 }
 
-ConfigurationFloat ConfigurationsDatabase::GetFloatDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationFloat> Ptr =  GetFloatPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationFloat();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationFloat> ConfigurationsDatabase::GetFloatPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -257,16 +219,6 @@ Wt::Dbo::ptr<ConfigurationFloat> ConfigurationsDatabase::GetFloatPtr(const std::
 	return itr->second;
 }
 
-ConfigurationInt ConfigurationsDatabase::GetIntDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationInt> Ptr =  GetIntPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationInt();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationInt> ConfigurationsDatabase::GetIntPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -278,16 +230,6 @@ Wt::Dbo::ptr<ConfigurationInt> ConfigurationsDatabase::GetIntPtr(const std::stri
 	return itr->second;
 }
 
-ConfigurationLongInt ConfigurationsDatabase::GetLongIntDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationLongInt> Ptr = GetLongIntPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationLongInt();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationLongInt> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -299,16 +241,6 @@ Wt::Dbo::ptr<ConfigurationLongInt> ConfigurationsDatabase::GetLongIntPtr(const s
 	return itr->second;
 }
 
-ConfigurationString ConfigurationsDatabase::GetStringDbo(const std::string &Name, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<ConfigurationString> Ptr =  GetStringPtr(Name, ModuleId);
-	if(!Ptr)
-	{
-		return ConfigurationString();
-	}
-	return *Ptr;
-}
 Wt::Dbo::ptr<ConfigurationString> ConfigurationsDatabase::GetStringPtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
@@ -323,7 +255,6 @@ Wt::Dbo::ptr<ConfigurationString> ConfigurationsDatabase::GetStringPtr(const std
 //Boolean getter
 bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId, bool Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationBool> BoolPtr = GetBoolPtr(Name, ModuleId);
 	if(!BoolPtr)
 	{
@@ -336,7 +267,6 @@ bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId
 //Double getter
 double ConfigurationsDatabase::GetDouble(const std::string &Name, long long ModuleId, double Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationDouble> DoublePtr = GetDoublePtr(Name, ModuleId);
 	if(!DoublePtr)
 	{
@@ -349,7 +279,6 @@ double ConfigurationsDatabase::GetDouble(const std::string &Name, long long Modu
 //Enum getter
 int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId, int Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationEnum> EnumPtr = GetEnumPtr(Name, ModuleId);
 	if(!EnumPtr)
 	{
@@ -362,7 +291,6 @@ int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId,
 //Float getter
 float ConfigurationsDatabase::GetFloat(const std::string &Name, long long ModuleId, float Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationFloat> FloatPtr = GetFloatPtr(Name, ModuleId);
 	if(!FloatPtr)
 	{
@@ -375,7 +303,6 @@ float ConfigurationsDatabase::GetFloat(const std::string &Name, long long Module
 //Integer getter
 int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, int Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationInt> IntPtr = GetIntPtr(Name, ModuleId);
 	if(!IntPtr)
 	{
@@ -388,7 +315,6 @@ int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, 
 //Long integer getter
 long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long ModuleId, long long Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationLongInt> LongIntPtr = GetLongIntPtr(Name, ModuleId);
 	if(!LongIntPtr)
 	{
@@ -401,7 +327,6 @@ long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long 
 //String getter
 std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long ModuleId, std::string Default) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<ConfigurationString> StringPtr = GetStringPtr(Name, ModuleId);
 	if(!StringPtr)
 	{

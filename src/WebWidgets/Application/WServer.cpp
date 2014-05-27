@@ -1,4 +1,12 @@
 #include "Application/WServer.h"
+#include "DboInstaller/DboInstaller.h"
+#include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/LanguagesDatabase.h"
+#include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/StylesDatabase.h"
+#include "DboDatabase/PagesDatabase.h"
+#include "DboDatabase/AccessPathsDatabase.h"
+
 #include <fstream>
 #include <rapidxml/rapidxml_print.hpp>
 
@@ -8,12 +16,13 @@
 #include <Wt/Auth/GoogleService>
 #include <Wt/Auth/FacebookService>
 
+#include <Wt/Dbo/FixedSqlConnectionPool>
 #include <Wt/Dbo/backend/MySQL>
 #include <Wt/Dbo/backend/Sqlite3>
 //#include <Wt/Dbo/backend/Postgres>
 //#include <Wt/Dbo/backend/Firebird>
 
-WServer::WServer(const std::string& wtApplicationPath, const std::string& wtConfigurationFile)
+WServer::WServer(const std::string &wtApplicationPath, const std::string &wtConfigurationFile)
 	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService)
 { }
 void WServer::Initialize()
@@ -32,7 +41,7 @@ void WServer::Initialize()
 		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
 		SQLConnection->setProperty("show-queries", "true");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
-	
+
 		log("success") << "Successfully connected to database";
 	}
 	catch(Wt::Dbo::Exception &e)
@@ -51,7 +60,6 @@ void WServer::Initialize()
 	 * *************************************************************************/
 	try
 	{
-		Installer = new DboInstaller(*SQLPool);
 		Modules = new ModulesDatabase(*SQLPool, *this);
 		Configurations = new ConfigurationsDatabase(*SQLPool, *this);
 		Languages = new LanguagesDatabase(*SQLPool, *this);
@@ -74,6 +82,7 @@ void WServer::Initialize()
 		//Drop
 		try
 		{
+			Installer = new DboInstaller(*SQLPool);
 			Installer->DropTables();
 		}
 		catch(Wt::Dbo::Exception &e)
@@ -190,7 +199,7 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading styles/templates from database";
-		Styles->FetchAll(true);
+		Styles->FetchAll();
 		log("success") << "Styles: " << Styles->CountStyles() << " Styles, " << Styles->CountTemplates() << " Templates, " << Styles->CountStyleTemplates() << " Styled Templates, " << Styles->CountStyleCssRules() << " Style CSS Rules and " << Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << Styles->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
@@ -306,7 +315,7 @@ const OAuthServiceMap &WServer::GetOAuthServices() const
 Wt::WLogEntry WServer::log(const std::string &type) const
 {
 	Wt::WApplication *app = Wt::WApplication::instance();
-	
+
 	if(app)
 	{
 		return app->log(type);
@@ -360,7 +369,7 @@ void WServer::CreateWtXmlConfiguration()
 	//<server> element
 	rapidxml::xml_node<> *NodeServer = XmlDoc.allocate_node(rapidxml::node_element, "server");
 	XmlDoc.append_node(NodeServer);
-	
+
 	//<application-settings> element
 	rapidxml::xml_node<> *NodeAppSett = XmlDoc.allocate_node(rapidxml::node_element, "application-settings");
 	NodeAppSett->append_attribute(XmlDoc.allocate_attribute("location", "*"));
@@ -376,7 +385,7 @@ void WServer::CreateWtXmlConfiguration()
 
 	//<shared-process> child element <num-processes>
 	NodeSharedProcess->append_node(XmlDoc.allocate_node(rapidxml::node_element, "num-processes", "1"));
-	
+
 	//<session-management> child element <tracking>
 	rapidxml::xml_node<> *NodeTracking = XmlDoc.allocate_node(rapidxml::node_element, "tracking");
 	switch(Configurations->GetEnum("SessionTracking", ModulesDatabase::Server, 1))
@@ -461,6 +470,9 @@ void WServer::CreateWtXmlConfiguration()
 	//<strict-event-serialization> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "strict-event-serialization", "false")); //TODO: Gotta understand this first
 
+	//<webgl-detection> element
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "webgl-detection", "false")); //TODO: Configuration to change detection
+
 	//<redirect-message> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "redirect-message", "Click here if the page does not refreshes."));
 
@@ -471,7 +483,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "progressive-bootstrap", "false"));
 
 	//<session-id-cookie> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "session-id-cookie", "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "session-id-cookie", "true"));
 
 	//<properties> element
 	rapidxml::xml_node<> *NodeProperties = XmlDoc.allocate_node(rapidxml::node_element, "properties");

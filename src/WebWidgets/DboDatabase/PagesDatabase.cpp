@@ -56,6 +56,8 @@ void PagesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
+		DboSession.disconnectAll();
+
 		Wt::Dbo::Transaction transaction(DboSession);
 		PageCollections PageCollection = DboSession.find<Page>();
 
@@ -79,27 +81,6 @@ void PagesDatabase::FetchAll()
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 }
-
-Page PagesDatabase::GetDbo(long long PageId, long long ModuleId) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<Page> Ptr = GetPtr(PageId, ModuleId);
-	if(!Ptr)
-	{
-		return Page();
-	}
-	return *Ptr;
-}
-/*Page PagesDatabase::GetDbo(const std::string &InternalPath) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<Page> Ptr = GetPtr(InternalPath);
-	if(!Ptr)
-	{
-		return Page();
-	}
-	return *Ptr;
-}*/
 
 Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
 {

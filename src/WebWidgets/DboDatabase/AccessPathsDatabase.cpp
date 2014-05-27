@@ -1,4 +1,7 @@
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/ModulesDatabase.h"
+#include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -56,8 +59,9 @@ void AccessPathsDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
+		DboSession.disconnectAll();
 		Wt::Dbo::Transaction transaction(DboSession);
-		AccessPathCollections AccessPathCollection = DboSession.find<AccessPath>().orderBy("CHAR_LENGTH(\"InternalPath\") ASC");
+		AccessPathCollections AccessPathCollection = DboSession.find<AccessPath>().orderBy("CHAR_LENGTH(\"InternalPath\") ASC"); //TODO no CHAR_LENGTH in SQLite
 	
 		//All AccessPaths
 		for(AccessPathCollections::const_iterator itr = AccessPathCollection.begin();
@@ -128,27 +132,6 @@ Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::LanguageAccessPathPtr(const std::s
 		return Wt::Dbo::ptr<AccessPath>();
 	}
 	return *itr;
-}
-
-AccessPath AccessPathsDatabase::GetDbo(Wt::Dbo::dbo_traits<AccessPath>::IdType Id) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<AccessPath> Ptr = GetPtr(Id);
-	if(!Ptr)
-	{
-		return AccessPath();
-	}
-	return *Ptr;
-}
-AccessPath AccessPathsDatabase::GetDbo(const std::string &HostName, const std::string &InternalPath) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<AccessPath> Ptr = GetPtr(HostName, InternalPath);
-	if(!Ptr)
-	{
-		return AccessPath();
-	}
-	return *Ptr;
 }
 
 bool AccessPathsDatabase::AccessPathExists(long long Id) const

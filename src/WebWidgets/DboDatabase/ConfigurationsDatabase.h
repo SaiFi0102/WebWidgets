@@ -2,11 +2,10 @@
 #define CONFIGURATIONS_DATABASE_H
 
 #include "Dbo/Configuration.h"
-#include "Application/WServer.h"
-#include <Wt/Dbo/Query>
-#include <boost/tuple/tuple.hpp>
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
+
+class WServer;
 
 class ConfigurationsDatabase
 {
@@ -25,13 +24,13 @@ class ConfigurationsDatabase
 
 		void FetchAll();
 
-		ConfigurationBool GetBoolDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationDouble GetDoubleDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationEnum GetEnumDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationFloat GetFloatDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationInt GetIntDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationLongInt GetLongIntDbo(const std::string &Name, long long ModuleId) const;
-		ConfigurationString GetStringDbo(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationEnum> GetEnumPtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationFloat> GetFloatPtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationInt> GetIntPtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationLongInt> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
+		Wt::Dbo::ptr<ConfigurationString> GetStringPtr(const std::string &Name, long long ModuleId) const;
 
 		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
 		double GetDouble(const std::string &Name, long long ModuleId, double Default = 0) const;
@@ -45,14 +44,7 @@ class ConfigurationsDatabase
 		std::size_t CountConfigurations() const;
 
 	protected:
-		virtual void MapClasses();
-		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationEnum> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationFloat> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationInt> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationLongInt> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationString> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		void MapClasses();
 
 		BoolMaps BoolMap;
 		DoubleMaps DoubleMap;

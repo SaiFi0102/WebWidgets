@@ -2,9 +2,10 @@
 #define MODULES_DATABASE_H
 
 #include "Dbo/Module.h"
-#include "Application/WServer.h"
 #include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
+
+class WServer;
 
 class ModulesDatabase
 {
@@ -26,15 +27,14 @@ class ModulesDatabase
 
 		void FetchAll();
 
-		Module GetDbo(long long Id) const;
+		Wt::Dbo::ptr<Module> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 
 	protected:
 		typedef boost::unordered_map< long long, Wt::Dbo::ptr<Module> > ModuleMaps;
 
-		virtual void MapClasses();
-		Wt::Dbo::ptr<Module> GetPtr(long long Id) const;
+		void MapClasses();
 
 		ModuleMaps ModuleMap;
 		boost::posix_time::time_duration LoadDuration;

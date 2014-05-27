@@ -72,12 +72,4 @@ class WServer : public Wt::WServer
 		friend int main(int argc, char** argv);
 };
 
-#include "Objects/DboInstaller.h"
-#include "DboDatabase/ConfigurationsDatabase.h"
-#include "DboDatabase/LanguagesDatabase.h"
-#include "DboDatabase/ModulesDatabase.h"
-#include "DboDatabase/StylesDatabase.h"
-#include "DboDatabase/PagesDatabase.h"
-#include "DboDatabase/AccessPathsDatabase.h"
-
 #endif

@@ -44,7 +44,7 @@ public:
 
   /*! \brief Returns the selector.
    */
-  const std::string& selector() const { return selector_; }
+  virtual const std::string& selector() const { return selector_; }
 
   /*! \brief Returns the style sheet to which this rule belongs.
    */

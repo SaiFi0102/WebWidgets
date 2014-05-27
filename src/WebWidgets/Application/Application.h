@@ -2,9 +2,9 @@
 #define APPLICATION_H
 
 #include <Wt/WApplication>
-#include <Wt/WEnvironment>
-#include <Wt/Dbo/SqlConnectionPool>
-#include <Wt/Dbo/Session>
+//#include <Wt/Dbo/Session>
+#include <boost/unordered_map.hpp>
+#include "Dbo/Style.h"
 
 class Application : public Wt::WApplication
 {
@@ -22,8 +22,17 @@ class Application : public Wt::WApplication
 		bool IsMobileVersion() const;
 		Wt::Signal<bool> &MobileVersionChanged();
 
+		Wt::Dbo::ptr<Style> CurrentStyle();
+		void ChangeStyle(Wt::Dbo::ptr<Style> StylePtr);
+		Wt::Signal<void> &StyleChanged();
+		Wt::WCssStyleSheet &UserStyleSheet();
+
 	protected:
+		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
+
 		void SetLanguageFromInternalPath();
+		
+		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
 
 		Wt::Signal<void> _LocaleChanged;
 		Wt::WLocale _ClientLocale;
@@ -34,6 +43,11 @@ class Application : public Wt::WApplication
 		bool _MobileVersionFromHostname;
 		bool _MobileVersionFromInternalPath;
 		Wt::Signal<bool> _MobileVersionChanged;
+
+		Wt::Dbo::ptr<Style> _CurrentStylePtr;
+		Wt::Signal<void> _StyleChanged;
+		Wt::WCssStyleSheet _UserStyleSheet;
+		TemplateStyleSheetMap _TemplateStyleSheets;
 };
 
 #endif

@@ -2,13 +2,14 @@
 #define ACCESSPATH_DATABASE_H
 
 #include "Dbo/AccessPath.h"
-#include "Application/WServer.h"
 #include <boost/thread.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
+class WServer;
 class Application;
+
 class AccessPathsDatabase
 {
 	private:
@@ -87,8 +88,11 @@ class AccessPathsDatabase
 
 		void FetchAll();
 
-		AccessPath GetDbo(long long Id) const;
-		AccessPath GetDbo(const std::string &HostName, const std::string &InternalPath) const;
+		Wt::Dbo::ptr<AccessPath> GetPtr(long long Id) const;
+		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
+		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(long long Id) const;
+		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;
 		bool AccessPathExists(const std::string &HostName, const std::string &InternalPath) const;
@@ -99,11 +103,7 @@ class AccessPathsDatabase
 		long long GetLoadDurationinMS() const;
 
 	protected:
-		virtual void MapClasses();
-		Wt::Dbo::ptr<AccessPath> GetPtr(long long Id) const;
-		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
-		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(long long Id) const;
-		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		void MapClasses();
 
 		AccessPathContainers AccessPathContainer;
 		boost::posix_time::time_duration LoadDuration;

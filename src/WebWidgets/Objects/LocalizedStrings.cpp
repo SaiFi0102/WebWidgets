@@ -1,7 +1,11 @@
-#include "Objects/LocalizedStrings.h"
-#include "DboDatabase/ModulesDatabase.h"
 #include <Wt/WApplication>
 #include <Wt/WMessageResources>
+
+#include "Objects/LocalizedStrings.h"
+#include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/LanguagesDatabase.h"
+#include "DboDatabase/AccessPathsDatabase.h"
 #include "Application/WServer.h"
 
 DboLocalizedStrings::DboLocalizedStrings(LanguagesDatabase *Languages)
@@ -22,20 +26,21 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, std::string &result
 bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId, std::string &result)
 {
 	Wt::WApplication *wapp = Wt::WApplication::instance();
-	std::string Locale = wapp ? wapp->locale() : "";
+	std::string Locale = wapp ? wapp->locale().name() : "";
 
 	//If no locale is given or string not found in the locale, try to look for the string in the default locale
 	if(Locale.empty() || !Languages->GetSingleString(Locale, key, ModuleId, result))
 	{
 		//Use default locale from configuration or function is called independent from Wt::WServer, use "en"
 		WServer *server = WServer::instance();
+		Locale = "en"; //Default
 		if(server)
 		{
-			Locale = server->GetConfigurations()->GetStr("DefaultLanguage", ModulesDatabase::Localization, "en");
-		}
-		else
-		{
-			Locale = "en";
+			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->GetAccessPaths()->GetPtr(server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+			if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+			{
+				Locale = DefaultAccessPath->LanguagePtr.id();
+			}
 		}
 
 		//Return false if default locale does not have the string either
@@ -52,7 +57,7 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, std::string &
 bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount)
 {
 	Wt::WApplication *wapp = Wt::WApplication::instance();
-	std::string Locale = wapp ? wapp->locale() : "";
+	std::string Locale = wapp ? wapp->locale().name() : "";
 	std::string PluralExpression;
 
 	//If no locale is given or plural expression for locale is not found or string not found in the locale, try to look for the string in the default locale
@@ -60,15 +65,16 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 		|| !Languages->GetPluralExpression(Locale, PluralExpression)
 		|| !Languages->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
 	{
-		//Use default locale from configuration or function is called independent from Wt::WServer, use "en"
+		//Use default locale from configuration or if function is called independent from Wt::WServer, use "en"
 		WServer *server = WServer::instance();
+		Locale = "en"; //Default
 		if(server)
 		{
-			Locale = server->GetConfigurations()->GetStr("DefaultLanguage", ModulesDatabase::Localization, "en");
-		}
-		else
-		{
-			Locale = "en";
+			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->GetAccessPaths()->GetPtr(server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+			if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+			{
+				Locale = DefaultAccessPath->LanguagePtr.id();
+			}
 		}
 
 		//Return false if default locale does not have the string either

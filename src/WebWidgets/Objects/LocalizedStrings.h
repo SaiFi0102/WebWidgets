@@ -2,7 +2,8 @@
 #define DBOLOCALIZEDSTRINGS_H
 
 #include <Wt/WLocalizedStrings>
-#include "DboDatabase/LanguagesDatabase.h"
+
+class LanguagesDatabase;
 
 class DboLocalizedStrings : public Wt::WLocalizedStrings
 {

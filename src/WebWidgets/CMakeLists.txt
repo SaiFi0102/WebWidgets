@@ -6,6 +6,7 @@ FILE(GLOB_RECURSE sources_cmake CMakeFiles/*.cmake)
 FILE(GLOB_RECURSE sources_objects Objects/*.cpp Objects/*.h)
 FILE(GLOB_RECURSE sources_dbo Dbo/*.cpp Dbo/*.h)
 FILE(GLOB_RECURSE sources_dbodatabase DboDatabase/*.cpp DboDatabase/*.h)
+FILE(GLOB_RECURSE sources_dboinstaller DboInstaller/*.cpp DboInstaller/*.h)
 FILE(GLOB_RECURSE sources_application Application/*.cpp Application/*.h)
 FILE(GLOB sources_localdir *.cpp *.h)
 #Group File
@@ -13,6 +14,7 @@ SOURCE_GROUP(CMake FILES CMakeLists.txt ${sources_cmake})
 SOURCE_GROUP(Objects FILES ${sources_objects})
 SOURCE_GROUP(Dbo FILES ${sources_dbo})
 SOURCE_GROUP(DboDatabase FILES ${sources_dbodatabase})
+SOURCE_GROUP(DboInstaller FILES ${sources_dboinstaller})
 SOURCE_GROUP(Application FILES ${sources_application})
 SOURCE_GROUP("" FILES ${sources_localdir})
 
@@ -22,6 +24,7 @@ SET(WebWidgets_SRCS
 	${sources_objects}
 	${sources_dbo}
 	${sources_dbodatabase}
+	${sources_dboinstaller}
 	${sources_application}
 	${sources_localdir}
 )

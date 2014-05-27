@@ -56,6 +56,8 @@ void ModulesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
+		DboSession.disconnectAll();
+
 		Wt::Dbo::Transaction transaction(DboSession);
 		ModuleCollections ModuleCollection = DboSession.find<Module>();
 	
@@ -89,17 +91,6 @@ Wt::Dbo::ptr<Module> ModulesDatabase::GetPtr(long long Id) const
 		return Wt::Dbo::ptr<Module>();
 	}
 	return itr->second;
-}
-
-Module ModulesDatabase::GetDbo(Wt::Dbo::dbo_traits<Module>::IdType Id) const
-{
-	READ_LOCK;
-	Wt::Dbo::ptr<Module> Ptr = GetPtr(Id);
-	if(!Ptr)
-	{
-		return Module();
-	}
-	return *Ptr;
 }
 
 std::size_t ModulesDatabase::CountModules() const

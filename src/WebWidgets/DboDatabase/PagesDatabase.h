@@ -2,11 +2,12 @@
 #define PAGES_DATABASE_H
 
 #include "Dbo/Page.h"
-#include "Application/WServer.h"
 #include <boost/thread.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+
+class WServer;
 
 class PagesDatabase
 {
@@ -52,16 +53,14 @@ class PagesDatabase
 
 		void FetchAll();
 
-		Page GetDbo(long long PageId, long long ModuleId) const;
-		//Page GetDbo(const std::string &InternalPath) const;
+		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
+		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
 
 	protected:
-		virtual void MapClasses();
-		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
-		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
+		void MapClasses();
 
 		PageContainers PageContainer;
 		boost::posix_time::time_duration LoadDuration;

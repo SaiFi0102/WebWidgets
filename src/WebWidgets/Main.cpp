@@ -21,8 +21,9 @@ int main(int argc, char **argv)
 		if(Server.Start())
 		{
 			//And wait till a shutdown signal is given
-			Wt::WServer::waitForShutdown();
+			int sig = WServer::waitForShutdown(argv[0]);
 			Server.stop();
+			Server.log("info") << "Shutdown (Signal = " << sig << ")";
 		}
 	}
 	catch(Wt::WServer::Exception &e)
