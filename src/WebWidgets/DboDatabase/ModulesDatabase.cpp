@@ -56,7 +56,7 @@ void ModulesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
-		DboSession.disconnectAll();
+		//DboSession.disconnectAll(); //no need since we do not reload modules
 
 		Wt::Dbo::Transaction transaction(DboSession);
 		ModuleCollections ModuleCollection = DboSession.find<Module>();
@@ -102,4 +102,12 @@ long long ModulesDatabase::GetLoadDurationinMS() const
 {
 	READ_LOCK;
 	return LoadDuration.total_milliseconds();
+}
+
+void ModulesDatabase::Load()
+{
+	if(ModuleMap.empty())
+	{
+		FetchAll();
+	}
 }

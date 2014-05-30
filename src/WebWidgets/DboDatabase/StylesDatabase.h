@@ -16,22 +16,34 @@ class StylesDatabase
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			{
+				return StyleTemplatePtr.id().DerivingTemplatePtr.id().Name;
+			}
 		};
 		struct StyleTemplate_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			{
+				return StyleTemplatePtr.id().DerivingTemplatePtr.id().ModulePtr.id();
+			}
 		};
 		struct StyleTemplate_key_StyleName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			{
+				return StyleTemplatePtr.id().StylePtr.id().Name;
+			}
 		};
 		struct StyleTemplate_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const;
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			{
+				return StyleTemplatePtr.id().StylePtr.id().AuthorPtr.id();
+			}
 		};
 
 		typedef boost::multi_index_container<
@@ -63,7 +75,8 @@ class StylesDatabase
 		StylesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		StylesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll();
+		void Load();
+		void Reload();
 
 		Wt::Dbo::ptr<Style> GetStylePtr(const std::string &Name, long long AuthorId) const;
 		Wt::Dbo::ptr<Template> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
@@ -84,6 +97,7 @@ class StylesDatabase
 
 	protected:
 		void MapClasses();
+		void FetchAll();
 
 		StyleMaps StyleMap;
 		TemplateMaps TemplateMap;
@@ -95,6 +109,9 @@ class StylesDatabase
 		boost::posix_time::time_duration LoadDuration;
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
+
+	private:
+		friend class ReadLock;
 };
 
 #endif

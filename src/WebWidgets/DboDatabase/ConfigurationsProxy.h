@@ -1,13 +1,13 @@
-#ifndef CONFIGURATIONS_DATABASE_H
-#define CONFIGURATIONS_DATABASE_H
+#ifndef CONFIGURATIONS_PROXY_H
+#define CONFIGURATIONS_PROXY_H
 
 #include "Dbo/Configuration.h"
-#include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 
-class WServer;
+class ConfigurationsDatabase;
+class Application;
 
-class ConfigurationsDatabase
+class ConfigurationsProxy
 {
 	protected:
 		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationBool> > BoolMaps;
@@ -19,11 +19,7 @@ class ConfigurationsDatabase
 		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationString> > StringMaps;
 
 	public:
-		ConfigurationsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		ConfigurationsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load();
-		void Reload();
+		ConfigurationsProxy(ConfigurationsDatabase *Database, Application *App);
 
 		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
 		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;
@@ -41,13 +37,9 @@ class ConfigurationsDatabase
 		long long GetLongInt(const std::string &Name, long long ModuleId, long long Default) const;
 		std::string GetStr(const std::string &Name, long long ModuleId, std::string Default = "") const;
 
-		long long GetLoadDurationinMS() const;
-		std::size_t CountConfigurations() const;
+		ConfigurationsDatabase *Database();
 
 	protected:
-		void MapClasses();
-		void FetchAll();
-
 		BoolMaps BoolMap;
 		DoubleMaps DoubleMap;
 		EnumMaps EnumMap;
@@ -56,15 +48,8 @@ class ConfigurationsDatabase
 		LongIntMaps LongIntMap;
 		StringMaps StringMap;
 
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
-		boost::posix_time::time_duration LoadDuration;
-		std::size_t Count;
-		mutable boost::shared_mutex mutex;
-
-	private:
-		friend class ReadLock;
-		friend class ConfigurationsProxy;
+		ConfigurationsDatabase *_Database;
+		Application *_App;
 };
 
 #endif

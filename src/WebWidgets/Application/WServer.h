@@ -10,7 +10,9 @@
 #include <Wt/Dbo/SqlConnectionPool>
 
 #include <rapidxml/rapidxml.hpp>
+#include <boost/thread.hpp>
 
+class Application;
 class DboInstaller;
 class ModulesDatabase;
 class ConfigurationsDatabase;
@@ -25,14 +27,14 @@ class WServer : public Wt::WServer
 {
 	public:
 		WServer(const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
-		virtual ~WServer();
+		~WServer();
 		
-		ModulesDatabase *GetModules() const;
-		ConfigurationsDatabase *GetConfigurations() const;
-		LanguagesDatabase *GetLanguages() const;
-		StylesDatabase *GetStyles() const;
-		PagesDatabase *GetPages() const;
-		AccessPathsDatabase *GetAccessPaths() const;
+		ModulesDatabase *Modules() const;
+		ConfigurationsDatabase *Configurations() const;
+		LanguagesDatabase *Languages() const;
+		StylesDatabase *Styles() const;
+		PagesDatabase *Pages() const;
+		AccessPathsDatabase *AccessPaths() const;
 
 		const Wt::Auth::AuthService &GetAuthService() const;
 		const Wt::Auth::PasswordService &GetPasswordService() const;
@@ -41,34 +43,44 @@ class WServer : public Wt::WServer
 		Wt::WLogEntry log(const std::string &type) const;
 		boost::posix_time::ptime StartPTime() const;
 		bool Start();
+		void NewApp(Application *App);
+		void AppDeleted(Application *App);
+
+		void RefreshLocaleStrings();
+		void RefreshStyleStrings();
+		void RefreshPageStrings();
 
 		static WServer *instance();
 
 	protected:
+		typedef std::set<Application *> ApplicationSet;
+
 		void ConfigureAuth();
+		void CreateWtXmlConfiguration();
+		void Initialize();
 
 		Wt::Dbo::SqlConnectionPool *SQLPool;
 
-		DboInstaller *Installer;
-		ModulesDatabase *Modules;
-		ConfigurationsDatabase *Configurations;
-		LanguagesDatabase *Languages;
-		StylesDatabase *Styles;
-		PagesDatabase *Pages;
-		AccessPathsDatabase *AccessPaths;
+		DboInstaller *_Installer;
+		ModulesDatabase *_Modules;
+		ConfigurationsDatabase *_Configurations;
+		LanguagesDatabase *_Languages;
+		StylesDatabase *_Styles;
+		PagesDatabase *_Pages;
+		AccessPathsDatabase *_AccessPaths;
+
+		ApplicationSet _Applications;
 
 		rapidxml::xml_document<> XmlDoc;
 		boost::posix_time::ptime PTBeforeLoad;
 		boost::posix_time::ptime PTStart;
 
-	private:
-		void CreateWtXmlConfiguration();
-		void Initialize();
-
 		Wt::Auth::AuthService AuthService;
 		Wt::Auth::PasswordService PasswordService;
 		OAuthServiceMap OAuthServices;
 
+	private:
+		boost::recursive_mutex mutex;
 		friend int main(int argc, char** argv);
 };
 

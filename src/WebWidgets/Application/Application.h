@@ -6,13 +6,18 @@
 #include <boost/unordered_map.hpp>
 #include "Dbo/Style.h"
 
+class ConfigurationsProxy;
+
 class Application : public Wt::WApplication
 {
 	public:
 		Application(const Wt::WEnvironment &env);
+		~Application();
 
 		static Application *instance();
 		static Application *CreateApplication(const Wt::WEnvironment &env);
+
+		ConfigurationsProxy *Configurations();
 
 		std::string InternalPathAfterReserved(const std::string &after = "") const;
 
@@ -27,11 +32,16 @@ class Application : public Wt::WApplication
 		Wt::Signal<void> &StyleChanged();
 		Wt::WCssStyleSheet &UserStyleSheet();
 
+		void RefreshLocaleStrings();
+		void RefreshStyleStrings();
+		void RefreshPageStrings();
+
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
 		void SetLanguageFromInternalPath();
 		
+		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
 		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
 
 		Wt::Signal<void> _LocaleChanged;
@@ -48,6 +58,10 @@ class Application : public Wt::WApplication
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
+
+		ConfigurationsProxy *_Configurations;
+
+		boost::posix_time::ptime StartTime;
 };
 
 #endif

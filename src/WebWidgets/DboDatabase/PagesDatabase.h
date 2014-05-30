@@ -51,7 +51,8 @@ class PagesDatabase
 		PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		PagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll();
+		void Load();
+		void Reload();
 
 		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
 		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
@@ -61,12 +62,16 @@ class PagesDatabase
 
 	protected:
 		void MapClasses();
+		void FetchAll();
 
 		PageContainers PageContainer;
 		boost::posix_time::time_duration LoadDuration;
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
 		mutable boost::shared_mutex mutex;
+
+	private:
+		friend class ReadLock;
 };
 
 #endif

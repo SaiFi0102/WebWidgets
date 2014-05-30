@@ -1,7 +1,7 @@
 #include "Objects/DboCssRule.h"
 
 DboCssRule::DboCssRule(Wt::Dbo::ptr<StyleCssRule> CssRulePtr, Wt::WObject *parent)
-	: StyleCssRulePtr(CssRulePtr), Wt::WCssRule("", parent), IsTemplate(false)
+	: StyleCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(false)
 {
 	if(!CssRulePtr || CssRulePtr.isTransient())
 	{
@@ -10,7 +10,7 @@ DboCssRule::DboCssRule(Wt::Dbo::ptr<StyleCssRule> CssRulePtr, Wt::WObject *paren
 }
 
 DboCssRule::DboCssRule(Wt::Dbo::ptr<TemplateCssRule> CssRulePtr, Wt::WObject *parent)
-	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule("", parent), IsTemplate(false)
+	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(true)
 { }
 
 const std::string &DboCssRule::selector() const
@@ -34,5 +34,13 @@ const std::string DboCssRule::declarations()
 	else
 	{
 		return StyleCssRulePtr->Declarations;
+	}
+}
+
+DboCssRule::~DboCssRule()
+{
+	if(sheet_)
+	{
+		sheet_->removeRule(this);
 	}
 }

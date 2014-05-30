@@ -25,7 +25,7 @@ class ModulesDatabase
 		ModulesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		ModulesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll();
+		void Load();
 
 		Wt::Dbo::ptr<Module> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
@@ -35,6 +35,7 @@ class ModulesDatabase
 		typedef boost::unordered_map< long long, Wt::Dbo::ptr<Module> > ModuleMaps;
 
 		void MapClasses();
+		void FetchAll();
 
 		ModuleMaps ModuleMap;
 		boost::posix_time::time_duration LoadDuration;

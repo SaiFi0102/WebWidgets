@@ -136,11 +136,15 @@ Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::LanguageAccessPathPtr(const std::s
 
 bool AccessPathsDatabase::AccessPathExists(long long Id) const
 {
-	return GetPtr(Id) != 0;
+	READ_LOCK;
+	AccessPathById::const_iterator itr = AccessPathContainer.get<ById>().find(Id);
+	return itr != AccessPathContainer.get<ById>().end();
 }
 bool AccessPathsDatabase::AccessPathExists(const std::string &HostName, const std::string &InternalPath) const
 {
-	return GetPtr(HostName, InternalPath) != 0;
+	READ_LOCK;
+	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
+	return itr != AccessPathContainer.get<ByURL>().end();
 }
 
 bool AccessPathsDatabase::LanguageAccessPathExists(long long Id) const
@@ -175,7 +179,7 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 		itr = AccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName.substr(4)));
 	}
 	if(itr == enditr
-		&& (!LanguageFromHostname || _Server.GetConfigurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
+		&& (!LanguageFromHostname || _Server.Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
 	{
 		itr = AccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, ""));
 	}
@@ -184,6 +188,16 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 		return "/";
 	}
 	return std::string("/") + (*itr)->InternalPath;
+}
+
+void AccessPathsDatabase::Load()
+{
+	FetchAll();
+}
+
+void AccessPathsDatabase::Reload()
+{
+	FetchAll();
 }
 
 /*Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::AccessPathFrom(const std::string &HostName, std::string InternalPath, bool LanguageFromHostname) const

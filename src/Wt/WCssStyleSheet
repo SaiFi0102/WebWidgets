@@ -44,7 +44,7 @@ public:
 
   /*! \brief Returns the selector.
    */
-  virtual const std::string& selector() const { return selector_; }
+  virtual const std::string& selector() const = 0;
 
   /*! \brief Returns the style sheet to which this rule belongs.
    */
@@ -65,12 +65,11 @@ public:
 protected:
   /*! \brief Creates a new CSS rule with given selector.
    */
-  WCssRule(const std::string& selector, WObject* parent = 0);
+  WCssRule(WObject* parent = 0);
 
-private:
-  std::string  selector_;
   WCssStyleSheet *sheet_;
 
+private:
   friend class WCssStyleSheet;
 };
 
@@ -133,7 +132,10 @@ public:
 
   bool updateDomElement(DomElement& cssRuleElement, bool all);
 
+  virtual const std::string& selector() const { return selector_; }
+
 private:
+  std::string selector_;
   WCssTemplateWidget *widget_;
 };
 
@@ -161,9 +163,14 @@ public:
 	       const WT_USTRING& declarations,
 	       WObject* parent = 0);
 
+  ~WCssTextRule();
+
   const std::string declarations();
 
+  virtual const std::string& selector() const { return selector_; }
+
 private:
+  std::string selector_;
   WT_USTRING declarations_;
 };
 

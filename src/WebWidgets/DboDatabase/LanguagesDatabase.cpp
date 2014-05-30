@@ -174,7 +174,6 @@ bool LanguagesDatabase::LanguageAcceptExists(const std::string &LanguageAccept) 
 
 bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string &Result) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<Language> LanguagePtr = GetLanguagePtrFromCode(Code);
 	if(!LanguagePtr)
 	{
@@ -186,7 +185,6 @@ bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string
 
 bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<LanguageSingle> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
 	if(!LanguageSinglePtr)
 	{
@@ -198,7 +196,6 @@ bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::stri
 
 bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const
 {
-	READ_LOCK;
 	Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
 	if(!LanguagePluralPtr)
 	{
@@ -217,7 +214,7 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server.GetAccessPaths()->GetPtr(_Server.GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server.AccessPaths()->GetPtr(_Server.Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	std::string DefaultLanguage = "en";
 	if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
 	{
@@ -227,17 +224,17 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 	std::string DecimalPointCharacter = ".";
 	std::string NumberThousandSeparator = ",";
 	std::string DateFormat = "MMMM dd, yyyy";
-	if(!_Server.GetLanguages()->GetSingleString(Code, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter))
+	if(!GetSingleString(Code, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter))
 	{
-		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter);
+		GetSingleString(DefaultLanguage, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter);
 	}
-	if(!_Server.GetLanguages()->GetSingleString(Code, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator))
+	if(!GetSingleString(Code, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator))
 	{
-		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator);
+		GetSingleString(DefaultLanguage, "NumberThousandSeparator", ModulesDatabase::Localization, NumberThousandSeparator);
 	}
-	if(!_Server.GetLanguages()->GetSingleString(Code, "DateFormat", ModulesDatabase::Localization, DateFormat))
+	if(!GetSingleString(Code, "DateFormat", ModulesDatabase::Localization, DateFormat))
 	{
-		_Server.GetLanguages()->GetSingleString(DefaultLanguage, "DateFormat", ModulesDatabase::Localization, DateFormat);
+		GetSingleString(DefaultLanguage, "DateFormat", ModulesDatabase::Localization, DateFormat);
 	}
 	Locale.setDecimalPoint(DecimalPointCharacter);
 	Locale.setGroupSeparator(NumberThousandSeparator);
@@ -246,7 +243,6 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 }
 Wt::WLocale LanguagesDatabase::GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
 {
-	READ_LOCK;
 	return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code);
 }
 
@@ -269,4 +265,15 @@ std::size_t LanguagesDatabase::CountLanguages() const
 {
 	READ_LOCK;
 	return LanguageContainer.get<0>().size();
+}
+
+void LanguagesDatabase::Load()
+{
+	FetchAll();
+}
+
+void LanguagesDatabase::Reload()
+{
+	FetchAll();
+	_Server.RefreshLocaleStrings();
 }

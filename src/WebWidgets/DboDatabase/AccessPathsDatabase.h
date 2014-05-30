@@ -8,7 +8,6 @@
 #include <boost/multi_index/ordered_index.hpp>
 
 class WServer;
-class Application;
 
 class AccessPathsDatabase
 {
@@ -86,7 +85,8 @@ class AccessPathsDatabase
 		AccessPathsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		AccessPathsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll();
+		void Load();
+		void Reload();
 
 		Wt::Dbo::ptr<AccessPath> GetPtr(long long Id) const;
 		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
@@ -104,13 +104,17 @@ class AccessPathsDatabase
 
 	protected:
 		void MapClasses();
+		void FetchAll();
 
 		AccessPathContainers AccessPathContainer;
 		boost::posix_time::time_duration LoadDuration;
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
 		mutable boost::shared_mutex mutex;
+
+	private:
 		friend class Application;
+		friend class ReadLock;
 };
 
 #endif

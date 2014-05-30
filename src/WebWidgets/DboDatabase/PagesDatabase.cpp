@@ -1,4 +1,5 @@
 #include "DboDatabase/PagesDatabase.h"
+#include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -112,4 +113,15 @@ long long PagesDatabase::GetLoadDurationinMS() const
 {
 	READ_LOCK;
 	return LoadDuration.total_milliseconds();
+}
+
+void PagesDatabase::Load()
+{
+	FetchAll();
+}
+
+void PagesDatabase::Reload()
+{
+	FetchAll();
+	_Server.RefreshPageStrings();
 }

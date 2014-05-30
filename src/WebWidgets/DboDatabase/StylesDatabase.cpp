@@ -171,8 +171,6 @@ Wt::Dbo::ptr<StyleTemplate> StylesDatabase::GetStyleTemplatePtr(const std::strin
 
 std::string StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
-
 	Wt::Dbo::ptr<Template> TemplatePtr = GetTemplatePtr(Name, ModuleId);
 	if(!TemplatePtr)
 	{
@@ -188,8 +186,6 @@ std::string StylesDatabase::GetTemplateStr(const std::string &Name, long long Mo
 
 std::string StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
 {
-	READ_LOCK;
-
 	Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
@@ -340,22 +336,13 @@ std::size_t StylesDatabase::CountTemplateCssRules() const
 	return TemplateCssRuleMap.size();
 }
 
-StylesDatabase::StyleTemplate_key_TemplateName::result_type StylesDatabase::StyleTemplate_key_TemplateName::operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+void StylesDatabase::Load()
 {
-	return StyleTemplatePtr.id().DerivingTemplatePtr.id().Name;
+	FetchAll();
 }
 
-StylesDatabase::StyleTemplate_key_ModuleId::result_type StylesDatabase::StyleTemplate_key_ModuleId::operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+void StylesDatabase::Reload()
 {
-	return StyleTemplatePtr.id().DerivingTemplatePtr.id().ModulePtr.id();
-}
-
-StylesDatabase::StyleTemplate_key_StyleName::result_type StylesDatabase::StyleTemplate_key_StyleName::operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-{
-	return StyleTemplatePtr.id().StylePtr.id().Name;
-}
-
-StylesDatabase::StyleTemplate_key_AuthorId::result_type StylesDatabase::StyleTemplate_key_AuthorId::operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
-{
-	return StyleTemplatePtr.id().StylePtr.id().AuthorPtr.id();
+	FetchAll();
+	_Server.RefreshStyleStrings();
 }

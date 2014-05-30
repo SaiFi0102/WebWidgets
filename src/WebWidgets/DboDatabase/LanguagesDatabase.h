@@ -138,7 +138,8 @@ class LanguagesDatabase
 		LanguagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		LanguagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void FetchAll();
+		void Load();
+		void Reload();
 
 		Wt::Dbo::ptr<Language> GetLanguagePtrFromCode(const std::string &Code) const;
 		Wt::Dbo::ptr<Language> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
@@ -161,6 +162,7 @@ class LanguagesDatabase
 
 	protected:
 		void MapClasses();
+		void FetchAll();
 
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
@@ -169,6 +171,9 @@ class LanguagesDatabase
 		LanguagePluralContainers LanguagePluralContainer;
 		boost::posix_time::time_duration LoadDuration;
 		mutable boost::shared_mutex mutex;
+
+	private:
+		friend class ReadLock;
 };
 
 #endif

@@ -1,12 +1,13 @@
-#include <Wt/WApplication>
 #include <Wt/WMessageResources>
 
 #include "Objects/LocalizedStrings.h"
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/ConfigurationsProxy.h"
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
 #include "Application/WServer.h"
+#include "Application/Application.h"
 
 DboLocalizedStrings::DboLocalizedStrings(LanguagesDatabase *Languages)
 	: Languages(Languages)
@@ -25,7 +26,7 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, std::string &result
 
 bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId, std::string &result)
 {
-	Wt::WApplication *wapp = Wt::WApplication::instance();
+	Application *wapp = Application::instance();
 	std::string Locale = wapp ? wapp->locale().name() : "";
 
 	//If no locale is given or string not found in the locale, try to look for the string in the default locale
@@ -36,7 +37,8 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId,
 		Locale = "en"; //Default
 		if(server)
 		{
-			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->GetAccessPaths()->GetPtr(server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+			long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
+			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->AccessPaths()->GetPtr(DefaultAccessPathId);
 			if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
 			{
 				Locale = DefaultAccessPath->LanguagePtr.id();
@@ -56,7 +58,7 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, std::string &
 
 bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount)
 {
-	Wt::WApplication *wapp = Wt::WApplication::instance();
+	Application *wapp = Application::instance();
 	std::string Locale = wapp ? wapp->locale().name() : "";
 	std::string PluralExpression;
 
@@ -70,7 +72,8 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 		Locale = "en"; //Default
 		if(server)
 		{
-			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->GetAccessPaths()->GetPtr(server->GetConfigurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+			long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
+			Wt::Dbo::ptr<AccessPath> DefaultAccessPath = server->AccessPaths()->GetPtr(DefaultAccessPathId);
 			if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
 			{
 				Locale = DefaultAccessPath->LanguagePtr.id();

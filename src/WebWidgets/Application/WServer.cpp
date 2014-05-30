@@ -1,4 +1,5 @@
 #include "Application/WServer.h"
+#include "Application/Application.h"
 #include "DboInstaller/DboInstaller.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
 #include "DboDatabase/LanguagesDatabase.h"
@@ -60,12 +61,12 @@ void WServer::Initialize()
 	 * *************************************************************************/
 	try
 	{
-		Modules = new ModulesDatabase(*SQLPool, *this);
-		Configurations = new ConfigurationsDatabase(*SQLPool, *this);
-		Languages = new LanguagesDatabase(*SQLPool, *this);
-		Styles = new StylesDatabase(*SQLPool, *this);
-		Pages = new PagesDatabase(*SQLPool, *this);
-		AccessPaths = new AccessPathsDatabase(*SQLPool, *this);
+		_Modules = new ModulesDatabase(*SQLPool, *this);
+		_Configurations = new ConfigurationsDatabase(*SQLPool, *this);
+		_Languages = new LanguagesDatabase(*SQLPool, *this);
+		_Styles = new StylesDatabase(*SQLPool, *this);
+		_Pages = new PagesDatabase(*SQLPool, *this);
+		_AccessPaths = new AccessPathsDatabase(*SQLPool, *this);
 	}
 	catch(std::exception &e)
 	{
@@ -82,8 +83,8 @@ void WServer::Initialize()
 		//Drop
 		try
 		{
-			Installer = new DboInstaller(*SQLPool);
-			Installer->DropTables();
+			_Installer = new DboInstaller(*SQLPool);
+			_Installer->DropTables();
 		}
 		catch(Wt::Dbo::Exception &e)
 		{
@@ -99,7 +100,7 @@ void WServer::Initialize()
 		//Create
 		try
 		{
-			Installer->CreateTables();
+			_Installer->CreateTables();
 		}
 		catch(Wt::Dbo::Exception &e)
 		{
@@ -115,7 +116,7 @@ void WServer::Initialize()
 		//Insert
 		try
 		{
-			Installer->InsertRows();
+			_Installer->InsertRows();
 		}
 		catch(Wt::Dbo::Exception &e)
 		{
@@ -136,8 +137,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading modules from database";
-		Modules->FetchAll();
-		log("success") << "Modules: " << Modules->CountModules() << " entries successfully loaded in " << Modules->GetLoadDurationinMS() << " Ms";
+		_Modules->Load();
+		log("success") << "Modules: " << _Modules->CountModules() << " entries successfully loaded in " << _Modules->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -157,8 +158,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading configurations from database";
-		Configurations->FetchAll();
-		log("success") << "Configurations: " << Configurations->CountConfigurations() << " entries successfully loaded in " << Configurations->GetLoadDurationinMS() << " Ms";
+		_Configurations->Load();
+		log("success") << "Configurations: " << _Configurations->CountConfigurations() << " entries successfully loaded in " << _Configurations->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -178,8 +179,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading languages from database";
-		Languages->FetchAll();
-		log("success") << "Languages: " << Languages->CountSingle() << " Single and " << Languages->CountPlural() << " Plural entries from " << Languages->CountLanguages() << " Languages successfully loaded in " << Languages->GetLoadDurationinMS() << " Ms";
+		_Languages->Load();
+		log("success") << "Languages: " << _Languages->CountSingle() << " Single and " << _Languages->CountPlural() << " Plural entries from " << _Languages->CountLanguages() << " Languages successfully loaded in " << _Languages->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -199,8 +200,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading styles/templates from database";
-		Styles->FetchAll();
-		log("success") << "Styles: " << Styles->CountStyles() << " Styles, " << Styles->CountTemplates() << " Templates, " << Styles->CountStyleTemplates() << " Styled Templates, " << Styles->CountStyleCssRules() << " Style CSS Rules and " << Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << Styles->GetLoadDurationinMS() << " Ms";
+		_Styles->Load();
+		log("success") << "Styles: " << _Styles->CountStyles() << " Styles, " << _Styles->CountTemplates() << " Templates, " << _Styles->CountStyleTemplates() << " Styled Templates, " << _Styles->CountStyleCssRules() << " Style CSS Rules and " << _Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << _Styles->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -220,8 +221,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading pages from database";
-		Pages->FetchAll();
-		log("success") << "Pages: " << Pages->CountPages() << " Page entires successfully loaded in " << Pages->GetLoadDurationinMS() << " Ms";
+		_Pages->Load();
+		log("success") << "Pages: " << _Pages->CountPages() << " Page entires successfully loaded in " << _Pages->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -241,8 +242,8 @@ void WServer::Initialize()
 	try
 	{
 		log("info") << "Loading access paths from database";
-		AccessPaths->FetchAll();
-		log("success") << "AccessPaths: " << AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << AccessPaths->GetLoadDurationinMS() << " Ms";
+		_AccessPaths->Load();
+		log("success") << "AccessPaths: " << _AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << _AccessPaths->GetLoadDurationinMS() << " Ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -274,29 +275,29 @@ void WServer::Initialize()
 	ConfigureAuth();
 }
 
-ModulesDatabase *WServer::GetModules() const
+ModulesDatabase *WServer::Modules() const
 {
-	return Modules;
+	return _Modules;
 }
-ConfigurationsDatabase *WServer::GetConfigurations() const
+ConfigurationsDatabase *WServer::Configurations() const
 {
-	return Configurations;
+	return _Configurations;
 }
-LanguagesDatabase *WServer::GetLanguages() const
+LanguagesDatabase *WServer::Languages() const
 {
-	return Languages;
+	return _Languages;
 }
-StylesDatabase *WServer::GetStyles() const
+StylesDatabase *WServer::Styles() const
 {
-	return Styles;
+	return _Styles;
 }
-PagesDatabase *WServer::GetPages() const
+PagesDatabase *WServer::Pages() const
 {
-	return Pages;
+	return _Pages;
 }
-AccessPathsDatabase *WServer::GetAccessPaths() const
+AccessPathsDatabase *WServer::AccessPaths() const
 {
-	return AccessPaths;
+	return _AccessPaths;
 }
 
 const Wt::Auth::AuthService &WServer::GetAuthService() const
@@ -345,8 +346,8 @@ bool WServer::Start()
 
 void WServer::ConfigureAuth()
 {
-	AuthService.setAuthTokensEnabled(Configurations->GetBool("EnableTokens", ModulesDatabase::Authentication, true), Configurations->GetStr("LoginCookie", ModulesDatabase::Authentication, "logintoken"));
-	AuthService.setEmailVerificationEnabled(Configurations->GetBool("EmailVerification", ModulesDatabase::Authentication, false));
+	AuthService.setAuthTokensEnabled(_Configurations->GetBool("EnableTokens", ModulesDatabase::Authentication, true), _Configurations->GetStr("LoginCookie", ModulesDatabase::Authentication, "logintoken"));
+	AuthService.setEmailVerificationEnabled(_Configurations->GetBool("EmailVerification", ModulesDatabase::Authentication, false));
 
 	Wt::Auth::PasswordVerifier *verifier = new Wt::Auth::PasswordVerifier();
 	verifier->addHashFunction(new Wt::Auth::BCryptHashFunction(7));
@@ -354,11 +355,11 @@ void WServer::ConfigureAuth()
 	PasswordService.setAttemptThrottlingEnabled(true);
 	PasswordService.setStrengthValidator(new Wt::Auth::PasswordStrengthValidator());
 
-	if(Wt::Auth::GoogleService::configured() && GetConfigurations()->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false))
+	if(Wt::Auth::GoogleService::configured() && Configurations()->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false))
 	{
 		OAuthServices.push_back(new Wt::Auth::GoogleService(AuthService));
 	}
-	if(Wt::Auth::FacebookService::configured() && GetConfigurations()->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false))
+	if(Wt::Auth::FacebookService::configured() && Configurations()->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false))
 	{
 		OAuthServices.push_back(new Wt::Auth::FacebookService(AuthService));
 	}
@@ -388,7 +389,7 @@ void WServer::CreateWtXmlConfiguration()
 
 	//<session-management> child element <tracking>
 	rapidxml::xml_node<> *NodeTracking = XmlDoc.allocate_node(rapidxml::node_element, "tracking");
-	switch(Configurations->GetEnum("SessionTracking", ModulesDatabase::Server, 1))
+	switch(_Configurations->GetEnum("SessionTracking", ModulesDatabase::Server, 1))
 	{
 		default:
 		case 1:
@@ -404,7 +405,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "reload-is-new-session", "false"));
 
 	//<session-management> child element <timeout>
-	int ConfSessionTimeout = Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);
+	int ConfSessionTimeout = _Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);
 	if(ConfSessionTimeout < 60) ConfSessionTimeout = 60;
 	std::string ConfSessionTimeoutStr = boost::lexical_cast<std::string>(ConfSessionTimeout);
 	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "timeout", ConfSessionTimeoutStr.c_str()));
@@ -433,39 +434,39 @@ void WServer::CreateWtXmlConfiguration()
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "debug", "false"));
 
 	//<log-file> element
-	std::string LogFileStr = Configurations->GetStr("LogDirectory", ModulesDatabase::Logging) + "/server.log";
+	std::string LogFileStr = _Configurations->GetStr("LogDirectory", ModulesDatabase::Logging) + "/server.log";
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-file", LogFileStr.c_str()));
 
 	//<log-config> element
 	std::string LogConfigStr = "*";
-	if(!Configurations->GetBool("LogDebugLevel", ModulesDatabase::Logging, false))
+	if(!_Configurations->GetBool("LogDebugLevel", ModulesDatabase::Logging, false))
 	{
 		LogConfigStr += " -debug";
 	}
-	if(!Configurations->GetBool("LogInfoLevel", ModulesDatabase::Logging, false))
+	if(!_Configurations->GetBool("LogInfoLevel", ModulesDatabase::Logging, false))
 	{
 		LogConfigStr += " -info";
 	}
-	if(!Configurations->GetBool("LogWarnLevel", ModulesDatabase::Logging, true))
+	if(!_Configurations->GetBool("LogWarnLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -warning";
 	}
-	if(!Configurations->GetBool("LogSecureLevel", ModulesDatabase::Logging, true))
+	if(!_Configurations->GetBool("LogSecureLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -secure";
 	}
-	if(!Configurations->GetBool("LogErrorLevel", ModulesDatabase::Logging, true))
+	if(!_Configurations->GetBool("LogErrorLevel", ModulesDatabase::Logging, true))
 	{
 		LogConfigStr += " -error";
 	}
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-config", LogConfigStr.c_str()));
 
 	//<max-request-size> element
-	std::string MaxReqSizeStr = boost::lexical_cast<std::string>(Configurations->GetInt("MaxRequestSize", ModulesDatabase::Server, 128));
+	std::string MaxReqSizeStr = boost::lexical_cast<std::string>(_Configurations->GetInt("MaxRequestSize", ModulesDatabase::Server, 128));
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "max-request-size", MaxReqSizeStr.c_str()));
 
 	//<ajax-puzzle> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "ajax-puzzle", Configurations->GetBool("DosPuzzle", ModulesDatabase::Server, false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "ajax-puzzle", _Configurations->GetBool("DosPuzzle", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<strict-event-serialization> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "strict-event-serialization", "false")); //TODO: Gotta understand this first
@@ -477,7 +478,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "redirect-message", "Click here if the page does not refreshes."));
 
 	//<behind-reverse-proxy> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "behind-reverse-proxy", Configurations->GetBool("ReverseProxy", ModulesDatabase::Server, false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "behind-reverse-proxy", _Configurations->GetBool("ReverseProxy", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<progressive-bootstrap> element
 	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "progressive-bootstrap", "false"));
@@ -489,7 +490,7 @@ void WServer::CreateWtXmlConfiguration()
 	rapidxml::xml_node<> *NodeProperties = XmlDoc.allocate_node(rapidxml::node_element, "properties");
 	NodeAppSett->append_node(NodeProperties);
 
-	std::string PropertyBaseUrl = Configurations->GetStr("BaseURL", ModulesDatabase::Server);
+	std::string PropertyBaseUrl = _Configurations->GetStr("BaseURL", ModulesDatabase::Server);
 	if(!PropertyBaseUrl.empty())
 	{
 		rapidxml::xml_node<> *NodePropertyBaseURL = XmlDoc.allocate_node(rapidxml::node_element, "property", PropertyBaseUrl.c_str());
@@ -497,16 +498,16 @@ void WServer::CreateWtXmlConfiguration()
 		NodeProperties->append_node(NodePropertyBaseURL);
 	}
 
-	std::string ResourceUrlStr =  Configurations->GetStr("ResourcesURL", ModulesDatabase::Styles, "resources/");
+	std::string ResourceUrlStr =  _Configurations->GetStr("ResourcesURL", ModulesDatabase::Styles, "resources/");
 	rapidxml::xml_node<> *NodePropertyResourceURL = XmlDoc.allocate_node(rapidxml::node_element, "property", ResourceUrlStr.c_str());
 	NodePropertyResourceURL->append_attribute(XmlDoc.allocate_attribute("name", "resourcesURL"));
 	NodeProperties->append_node(NodePropertyResourceURL);
 
 	//Google OAuth
-	std::string GoogleClientIdStr = Configurations->GetStr("GoogleClientId", ModulesDatabase::Authentication);
-	std::string GoogleClientSecretStr = Configurations->GetStr("GoogleClientSecret", ModulesDatabase::Authentication);
+	std::string GoogleClientIdStr = _Configurations->GetStr("GoogleClientId", ModulesDatabase::Authentication);
+	std::string GoogleClientSecretStr = _Configurations->GetStr("GoogleClientSecret", ModulesDatabase::Authentication);
 	std::string RedirectStr = PropertyBaseUrl + "oauth2callback";
-	if(Configurations->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false) && !GoogleClientIdStr.empty() && !GoogleClientSecretStr.empty())
+	if(_Configurations->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false) && !GoogleClientIdStr.empty() && !GoogleClientSecretStr.empty())
 	{
 		rapidxml::xml_node<> *NodeGoogleClientId = XmlDoc.allocate_node(rapidxml::node_element, "property", GoogleClientIdStr.c_str());
 		NodeGoogleClientId->append_attribute(XmlDoc.allocate_attribute("name", "google-oauth2-client-id"));
@@ -522,9 +523,9 @@ void WServer::CreateWtXmlConfiguration()
 	}
 
 	//Facebook OAuth
-	std::string FacebookAppIdStr = Configurations->GetStr("FacebookAppId", ModulesDatabase::Authentication);
-	std::string FacebookAppSecretStr = Configurations->GetStr("FacebookAppSecret", ModulesDatabase::Authentication);
-	if(Configurations->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false) && !FacebookAppIdStr.empty() && !FacebookAppSecretStr.empty())
+	std::string FacebookAppIdStr = _Configurations->GetStr("FacebookAppId", ModulesDatabase::Authentication);
+	std::string FacebookAppSecretStr = _Configurations->GetStr("FacebookAppSecret", ModulesDatabase::Authentication);
+	if(_Configurations->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false) && !FacebookAppIdStr.empty() && !FacebookAppSecretStr.empty())
 	{
 		rapidxml::xml_node<> *NodeFacebookAppId = XmlDoc.allocate_node(rapidxml::node_element, "property", FacebookAppIdStr.c_str());
 		NodeFacebookAppId->append_attribute(XmlDoc.allocate_attribute("name", "facebook-oauth2-app-id"));
@@ -558,12 +559,91 @@ WServer::~WServer()
 		delete OAuthServices[i];
 	}
 
-	delete Installer;
-	delete AccessPaths;
-	delete Pages;
-	delete Styles;
-	delete Languages;
-	delete Configurations;
-	delete Modules;
+	delete _Installer;
+	delete _AccessPaths;
+	delete _Pages;
+	delete _Styles;
+	delete _Languages;
+	delete _Configurations;
+	delete _Modules;
 	delete SQLPool; //Also deletes SQLConnection(s)
+}
+
+void WServer::NewApp(Application *App)
+{
+	if(!App)
+	{
+		return;
+	}
+
+	boost::recursive_mutex::scoped_lock lock(mutex);
+	_Applications.insert(App);
+}
+
+void WServer::AppDeleted(Application *App)
+{
+	if(!App)
+	{
+		return;
+	}
+
+	boost::recursive_mutex::scoped_lock lock(mutex);
+	_Applications.erase(App);
+}
+
+void WServer::RefreshLocaleStrings()
+{
+	boost::recursive_mutex::scoped_lock lock(mutex);
+	Wt::WApplication *App = Wt::WApplication::instance();
+	for(ApplicationSet::const_iterator itr = _Applications.begin();
+		itr != _Applications.end();
+		++itr)
+	{
+		if(*itr == App)
+		{
+			(*itr)->RefreshLocaleStrings();
+		}
+		else
+		{
+			post((*itr)->sessionId(), boost::bind(&Application::RefreshLocaleStrings, *itr));
+		}
+	}
+}
+
+void WServer::RefreshStyleStrings()
+{
+	boost::recursive_mutex::scoped_lock lock(mutex);
+	Wt::WApplication *App = Wt::WApplication::instance();
+	for(ApplicationSet::const_iterator itr = _Applications.begin();
+		itr != _Applications.end();
+		++itr)
+	{
+		if(*itr == App)
+		{
+			(*itr)->RefreshStyleStrings();
+		}
+		else
+		{
+			post((*itr)->sessionId(), boost::bind(&Application::RefreshStyleStrings, *itr));
+		}
+	}
+}
+
+void WServer::RefreshPageStrings()
+{
+	boost::recursive_mutex::scoped_lock lock(mutex);
+	Wt::WApplication *App = Wt::WApplication::instance();
+	for(ApplicationSet::const_iterator itr = _Applications.begin();
+		itr != _Applications.end();
+		++itr)
+	{
+		if(*itr == App)
+		{
+			(*itr)->RefreshPageStrings();
+		}
+		else
+		{
+			post((*itr)->sessionId(), boost::bind(&Application::RefreshPageStrings, *itr));
+		}
+	}
 }
