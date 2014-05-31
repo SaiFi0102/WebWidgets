@@ -64,7 +64,7 @@ class ConfigurationsDatabase
 
 	private:
 		friend class ReadLock;
-		friend class ConfigurationsProxy;
+		friend class ConfigurationsCache;
 };
 
 #endif

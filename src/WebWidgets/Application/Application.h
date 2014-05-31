@@ -6,7 +6,7 @@
 #include <boost/unordered_map.hpp>
 #include "Dbo/Style.h"
 
-class ConfigurationsProxy;
+class ConfigurationsCache;
 
 class Application : public Wt::WApplication
 {
@@ -17,21 +17,30 @@ class Application : public Wt::WApplication
 		static Application *instance();
 		static Application *CreateApplication(const Wt::WEnvironment &env);
 
-		ConfigurationsProxy *Configurations();
+		//Cached database(s)
+		ConfigurationsCache *Configurations() const;
 
+		//URL and Internal Paths
 		std::string InternalPathAfterReserved(const std::string &after = "") const;
+		std::string InternalPathReserved() const;
+		Wt::Signal<void> &internalPathAfterReservedChanged();
+		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);
 
+		//Localization
 		void setLocale(const Wt::WLocale &locale);
 		Wt::Signal<void> &LocaleChanged();
 
+		//Mobile UI
 		bool IsMobileVersion() const;
 		Wt::Signal<bool> &MobileVersionChanged();
 
-		Wt::Dbo::ptr<Style> CurrentStyle();
+		//Styling
+		Wt::Dbo::ptr<Style> CurrentStyle() const;
 		void ChangeStyle(Wt::Dbo::ptr<Style> StylePtr);
 		Wt::Signal<void> &StyleChanged();
 		Wt::WCssStyleSheet &UserStyleSheet();
 
+		//Database reload handlers
 		void RefreshLocaleStrings();
 		void RefreshStyleStrings();
 		void RefreshPageStrings();
@@ -39,19 +48,21 @@ class Application : public Wt::WApplication
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
-		void SetLanguageFromInternalPath();
+		void InterpretReservedInternalPath();
 		
 		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
 		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
 
-		Wt::Signal<void> _LocaleChanged;
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
-		bool _LanguageFromHostname;
-		bool _SkipLanguageInternalPath;
+		bool _LanguageFromHostname; //And independent of internal path
+		bool _SkipReservedPathInterpretation; //Used to skip InterpretReservedInternalPath on internalPathChanged()
+		std::string _ReservedInternalPath;
+		Wt::Signal<void> _LocaleChanged;
+		Wt::Signal<void> _InternalPathAfterReservedChanged;
 
-		bool _MobileVersionFromHostname;
-		bool _MobileVersionFromInternalPath;
+		bool _MobileVersionFromHostname; //And independent of internal path
+		bool _MobileVersionFromInternalPath; //Or in combination with the hostname
 		Wt::Signal<bool> _MobileVersionChanged;
 
 		Wt::Dbo::ptr<Style> _CurrentStylePtr;
@@ -59,7 +70,7 @@ class Application : public Wt::WApplication
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
-		ConfigurationsProxy *_Configurations;
+		ConfigurationsCache *_Configurations;
 
 		boost::posix_time::ptime StartTime;
 };

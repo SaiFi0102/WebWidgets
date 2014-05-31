@@ -3,7 +3,7 @@
 #include "Objects/LocalizedStrings.h"
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include "DboDatabase/ConfigurationsProxy.h"
+#include "DboDatabase/ConfigurationsCache.h"
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
 #include "Application/WServer.h"

@@ -7,7 +7,7 @@
 class ConfigurationsDatabase;
 class Application;
 
-class ConfigurationsProxy
+class ConfigurationsCache
 {
 	protected:
 		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationBool> > BoolMaps;
@@ -19,7 +19,7 @@ class ConfigurationsProxy
 		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationString> > StringMaps;
 
 	public:
-		ConfigurationsProxy(ConfigurationsDatabase *Database, Application *App);
+		ConfigurationsCache(ConfigurationsDatabase *Database, Application *App);
 
 		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
 		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;

@@ -138,7 +138,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading modules from database";
 		_Modules->Load();
-		log("success") << "Modules: " << _Modules->CountModules() << " entries successfully loaded in " << _Modules->GetLoadDurationinMS() << " Ms";
+		log("success") << "Modules: " << _Modules->CountModules() << " entries successfully loaded in " << _Modules->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -159,7 +159,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading configurations from database";
 		_Configurations->Load();
-		log("success") << "Configurations: " << _Configurations->CountConfigurations() << " entries successfully loaded in " << _Configurations->GetLoadDurationinMS() << " Ms";
+		log("success") << "Configurations: " << _Configurations->CountConfigurations() << " entries successfully loaded in " << _Configurations->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -180,7 +180,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading languages from database";
 		_Languages->Load();
-		log("success") << "Languages: " << _Languages->CountSingle() << " Single and " << _Languages->CountPlural() << " Plural entries from " << _Languages->CountLanguages() << " Languages successfully loaded in " << _Languages->GetLoadDurationinMS() << " Ms";
+		log("success") << "Languages: " << _Languages->CountSingle() << " Single and " << _Languages->CountPlural() << " Plural entries from " << _Languages->CountLanguages() << " Languages successfully loaded in " << _Languages->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -201,7 +201,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading styles/templates from database";
 		_Styles->Load();
-		log("success") << "Styles: " << _Styles->CountStyles() << " Styles, " << _Styles->CountTemplates() << " Templates, " << _Styles->CountStyleTemplates() << " Styled Templates, " << _Styles->CountStyleCssRules() << " Style CSS Rules and " << _Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << _Styles->GetLoadDurationinMS() << " Ms";
+		log("success") << "Styles: " << _Styles->CountStyles() << " Styles, " << _Styles->CountTemplates() << " Templates, " << _Styles->CountStyleTemplates() << " Styled Templates, " << _Styles->CountStyleCssRules() << " Style CSS Rules and " << _Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << _Styles->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -222,7 +222,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading pages from database";
 		_Pages->Load();
-		log("success") << "Pages: " << _Pages->CountPages() << " Page entires successfully loaded in " << _Pages->GetLoadDurationinMS() << " Ms";
+		log("success") << "Pages: " << _Pages->CountPages() << " Page entires successfully loaded in " << _Pages->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -243,7 +243,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Loading access paths from database";
 		_AccessPaths->Load();
-		log("success") << "AccessPaths: " << _AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << _AccessPaths->GetLoadDurationinMS() << " Ms";
+		log("success") << "AccessPaths: " << _AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << _AccessPaths->GetLoadDurationinMS() << " ms";
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
@@ -338,7 +338,7 @@ bool WServer::Start()
 
 		log("success") << "Server successfully started! Time taken to start: "
 			<< boost::posix_time::time_duration(PTStart - PTBeforeLoad).total_milliseconds()
-			<< " MS";
+			<< " ms";
 		return true;
 	}
 	return false;

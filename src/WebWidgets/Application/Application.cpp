@@ -7,7 +7,7 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include "DboDatabase/ConfigurationsProxy.h"
+#include "DboDatabase/ConfigurationsCache.h"
 #include "DboDatabase/StylesDatabase.h"
 #include "DboDatabase/ReadLock.h"
 
@@ -19,20 +19,17 @@
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
-	_LanguageFromHostname(false),
-	_LocaleChanged(this),
-	_SkipLanguageInternalPath(false),
-	_MobileVersionFromHostname(false),
-	_MobileVersionChanged(this),
-	_MobileVersionFromInternalPath(false)
+	_LocaleChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
+	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), //Localization related bools
+	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI related bools
 {
 	//Enable server push
 	enableUpdates();
 
 	WServer *Server = WServer::instance();
-	_Configurations = new ConfigurationsProxy(Server->Configurations(), this); //Local copy of configuration ptrs
+	_Configurations = new ConfigurationsCache(Server->Configurations(), this); //Local copy of configuration ptrs
 
-	//Use database back end localized strings instead of WMessageResourceBundle
+	//Use database backend localized strings instead of WMessageResourceBundle
 	setLocalizedStrings(new DboLocalizedStrings(Server->Languages()));
 
 	//Set Default and Client's environment locale
@@ -112,8 +109,8 @@ Application::Application(const Wt::WEnvironment &env)
 	_SessionDefaultLocale = locale();
 
 	//Connect SetLanguageFromInternalPath() and Set language from internal path
-	internalPathChanged().connect(boost::bind(&Application::SetLanguageFromInternalPath, this));
-	SetLanguageFromInternalPath();
+	internalPathChanged().connect(boost::bind(&Application::InterpretReservedInternalPath, this));
+	InterpretReservedInternalPath();
 
 	//Style CSS Stylesheet
 	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
@@ -224,16 +221,17 @@ Application *Application::instance()
 	return dynamic_cast<Application*>(Wt::WApplication::instance());
 }
 
-ConfigurationsProxy *Application::Configurations()
+ConfigurationsCache *Application::Configurations() const
 {
 	return _Configurations;
 }
 
-void Application::SetLanguageFromInternalPath()
+void Application::InterpretReservedInternalPath()
 {
-	if(_SkipLanguageInternalPath) //Skip when setInternalPath() was recalled from this function
+	//Skip when setInternalPath() was recalled from this function OR when reserved internal path was not changed
+	if(_SkipReservedPathInterpretation)
 	{
-		_SkipLanguageInternalPath = false;
+		_SkipReservedPathInterpretation = false;
 		return;
 	}
 	WServer *Server = WServer::instance();
@@ -250,11 +248,13 @@ void Application::SetLanguageFromInternalPath()
 	{
 		if(IPLM == 1)
 		{
-			_SkipLanguageInternalPath = true;
-			setInternalPath(Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname), true);
+			_SkipReservedPathInterpretation = true;
+			_ReservedInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
+			setInternalPath(_ReservedInternalPath, true);
 		}
 		else if(IPLM == 2 && locale().name() != _SessionDefaultLocale.name()) //Set default if always hide default
 		{
+			_ReservedInternalPath = "";
 			setLocale(_SessionDefaultLocale);
 		}
 		return;
@@ -265,24 +265,25 @@ void Application::SetLanguageFromInternalPath()
 	boost::char_separator<char> Sep("/");
 	Tokenizer Tokens(InternalPath, Sep);
 	Tokenizer::iterator Itr = Tokens.begin();
+	_ReservedInternalPath = ""; //Reset reserved internal path
 
-	//If first internal path is mobile then check next path
+	//If first internal path is mobile, confirm then check next path
 	long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
 	if(MobileAccessPathId != -1)
 	{
-		Wt::Dbo::ptr<AccessPath> CheckAccessPath = Server->AccessPaths()->GetPtr(HostName, *Itr);
-		if(!CheckAccessPath)
+		Wt::Dbo::ptr<AccessPath> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, *Itr);
+		if(!MobileCheckAccessPath)
 		{
 			if(HostName.substr(0, 4) == "www.")
 			{
-				CheckAccessPath = Server->AccessPaths()->GetPtr(HostName.substr(4), *Itr);
+				MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName.substr(4), *Itr);
 			}
-			if(!CheckAccessPath)
+			if(!MobileCheckAccessPath)
 			{
-				CheckAccessPath = Server->AccessPaths()->GetPtr("", *Itr);
+				MobileCheckAccessPath = Server->AccessPaths()->GetPtr("", *Itr);
 			}
 		}
-		if(CheckAccessPath.id() == MobileAccessPathId)
+		if(MobileCheckAccessPath.id() == MobileAccessPathId)
 		{
 			//Emit if MobileVersion just got enabled
 			if(IsMobileVersion() == false)
@@ -290,6 +291,7 @@ void Application::SetLanguageFromInternalPath()
 				_MobileVersionChanged.emit(true);
 			}
 			_MobileVersionFromInternalPath = true;
+			_ReservedInternalPath = std::string("/") + *Itr; //Add mobile access path to reserved path
 			++Itr;
 			if(Itr == Tokens.end())
 			{
@@ -334,12 +336,13 @@ void Application::SetLanguageFromInternalPath()
 	{
 		if(locale().name() != LanguageCode)
 		{
+			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
 			setLocale(Server->Languages()->GetLocaleFromCode(LanguageCode));
 		}
 		//Remove default language automatically from internal path if mode is always hide default and locale is default language
 		if((IPLM == 2 || IPLM == 3) && locale().name() == _SessionDefaultLocale.name())
 		{
-			_SkipLanguageInternalPath = true;
+			_SkipReservedPathInterpretation = true;
 			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr), Itr->size() + 1, ""), true);
 		}
 	}
@@ -352,11 +355,17 @@ void Application::SetLanguageFromInternalPath()
 			{
 				CurrentLanguageInternalPath = "";
 			}
-			//Prepend current language instead of replacing because that path mostly wont be language code
-			_SkipLanguageInternalPath = true;
+			//Prepend current language instead of replacing because probably that path wont be a language code
+			_SkipReservedPathInterpretation = true;
 			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr),
 				Itr->size() + 1,
 				CurrentLanguageInternalPath + "/" + *Itr), true);
+
+			//Add language internal path to reserved
+			if(!CurrentLanguageInternalPath.empty())
+			{
+				_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
+			}
 		}
 	}
 }
@@ -374,12 +383,33 @@ Wt::Signal<void> &Application::LocaleChanged()
 
 std::string Application::InternalPathAfterReserved(const std::string &after) const
 {
-	return "";
+	return internalPathNextPart(_ReservedInternalPath + after);
+}
+
+void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
+{
+	//Skip reinterpreting reserved internal path
+	if(emitChange)
+	{
+		_SkipReservedPathInterpretation = true;
+	}
+
+	//Set path
+	setInternalPath(_ReservedInternalPath + path, emitChange);
+	if(emitChange)
+	{
+		_InternalPathAfterReservedChanged.emit();
+	}
+}
+
+std::string Application::InternalPathReserved() const
+{
+	return _ReservedInternalPath;
 }
 
 bool Application::IsMobileVersion() const
 {
-	return _MobileVersionFromHostname ? true : _MobileVersionFromInternalPath;
+	return _MobileVersionFromHostname || _MobileVersionFromInternalPath;
 }
 
 Wt::Signal<bool> &Application::MobileVersionChanged()
@@ -387,7 +417,7 @@ Wt::Signal<bool> &Application::MobileVersionChanged()
 	return _MobileVersionChanged;
 }
 
-Wt::Dbo::ptr<Style> Application::CurrentStyle()
+Wt::Dbo::ptr<Style> Application::CurrentStyle() const
 {
 	return _CurrentStylePtr;
 }
