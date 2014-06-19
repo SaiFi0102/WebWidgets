@@ -90,6 +90,7 @@ WWebWidget::LayoutImpl::LayoutImpl()
 WWebWidget::LookImpl::LookImpl(WWebWidget *w)
   : decorationStyle_(0),
     toolTip_(0),
+    toolTipTextFormat_(PlainText),
     loadToolTip_(w, "Wt-loadToolTip")
 { }
 
@@ -1097,7 +1098,7 @@ bool WWebWidget::isVisible() const
     if (parent())
       return parent()->isVisible();
     else
-      return true;
+      return isRendered();
 }
 
 void WWebWidget::setDisabled(bool disabled)
@@ -2099,8 +2100,8 @@ void WWebWidget::enableAjax()
     }
   }
 
-  if(flags_.test(BIT_TOOLTIP_DEFERRED) || (lookImpl_ &&
-                                lookImpl_->toolTipTextFormat_ != PlainText)){
+  if (flags_.test(BIT_TOOLTIP_DEFERRED) || 
+      (lookImpl_ && lookImpl_->toolTipTextFormat_ != PlainText)) {
     flags_.set(BIT_TOOLTIP_CHANGED);
     repaint();
   }

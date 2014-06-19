@@ -98,7 +98,7 @@ WApplication::WApplication(const WEnvironment& env
     eventSignalPool_(new boost::pool<>(sizeof(EventSignal<>))),
 #endif // WT_CNOR
     javaScriptClass_("Wt"),
-    quited_(false),
+    quitted_(false),
     internalPathsEnabled_(false),
     exposedOnly_(0),
     loadingIndicator_(0),
@@ -553,6 +553,11 @@ void WApplication::useStyleSheet(const WLink& link,
 void WApplication::useStyleSheet(const WCssStyleSheet& styleSheet,
 				 const std::string& condition)
 {
+
+  if (styleSheet.link().isNull())
+    throw WException(
+        "WApplication::useStyleSheet stylesheet must have valid link!");
+
   bool display = true;
 
   if (!condition.empty()) {
@@ -673,7 +678,13 @@ std::string WApplication::resolveRelativeUrl(const std::string& url) const
 
 void WApplication::quit()
 {
-  quited_ = true;
+  quit(WString::tr("Wt.QuittedMessage"));
+}
+
+void WApplication::quit(const WString& restartMessage)
+{
+  quitted_ = true;
+  quittedMessage_ = restartMessage;
 }
 
 WWidget *WApplication::findWidget(const std::string& name)
@@ -708,6 +719,12 @@ void WApplication::unload()
   }
 #endif // WT_TARGET_JAVA
 
+  quit();
+}
+
+void WApplication::handleJavaScriptError(const std::string& errorText)
+{
+  LOG_ERROR("JavaScript error: " << errorText);
   quit();
 }
 
@@ -928,7 +945,7 @@ void WApplication::refresh()
   if (domRoot2_) {
     domRoot2_->refresh();
   } else {
-    widgetRoot_->refresh();
+    domRoot_->refresh();
   }
 
   if (title_.refresh())
