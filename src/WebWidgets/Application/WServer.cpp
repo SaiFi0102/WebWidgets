@@ -24,7 +24,9 @@
 //#include <Wt/Dbo/backend/Firebird>
 
 WServer::WServer(const std::string &wtApplicationPath, const std::string &wtConfigurationFile)
-	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService)
+	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService),
+	SQLPool(0), _AccessPaths(0), _Configurations(0), _Installer(0),
+	_Languages(0), _Modules(0), _Pages(0), _Styles(0)
 { }
 void WServer::Initialize()
 {

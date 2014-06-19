@@ -21,7 +21,8 @@ class Application : public Wt::WApplication
 		ConfigurationsCache *Configurations() const;
 
 		//URL and Internal Paths
-		std::string InternalPathAfterReserved(const std::string &after = "") const;
+		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
+		std::string InternalPathAfterReserved() const;
 		std::string InternalPathReserved() const;
 		Wt::Signal<void> &internalPathAfterReservedChanged();
 		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);

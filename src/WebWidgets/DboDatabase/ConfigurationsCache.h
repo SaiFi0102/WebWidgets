@@ -1,5 +1,5 @@
-#ifndef CONFIGURATIONS_PROXY_H
-#define CONFIGURATIONS_PROXY_H
+#ifndef CONFIGURATIONS_CACHE_H
+#define CONFIGURATIONS_CACHE_H
 
 #include "Dbo/Configuration.h"
 #include <boost/unordered_map.hpp>

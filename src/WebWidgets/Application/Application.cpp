@@ -108,8 +108,7 @@ Application::Application(const Wt::WEnvironment &env)
 	}
 	_SessionDefaultLocale = locale();
 
-	//Connect SetLanguageFromInternalPath() and Set language from internal path
-	internalPathChanged().connect(boost::bind(&Application::InterpretReservedInternalPath, this));
+	//Set language from internal path
 	InterpretReservedInternalPath();
 
 	//Style CSS Stylesheet
@@ -123,19 +122,33 @@ Application::Application(const Wt::WEnvironment &env)
 	//TEST//
 	new Wt::WText("HI", root());
 	new Wt::WBreak(root());
+	(new Wt::WText("Internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto ip = new Wt::WText(internalPath(), root());
 	new Wt::WBreak(root());
+	(new Wt::WText("Reserved internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto ipr = new Wt::WText(InternalPathReserved(), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Internal path after reserve(subpath): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto ipar = new Wt::WText(InternalPathAfterReserved(), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Internal path after reserve next part(Arg '/'): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto iparnp = new Wt::WText(InternalPathAfterReservedNextPart("/"), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Current language: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto txt = new Wt::WText(locale().name(), root());
-	internalPathChanged().connect(boost::bind<void>([this, ip](){
+	internalPathChanged().connect(boost::bind<void>([this, ip, ipr, ipar, iparnp](){
 		ip->setText(internalPath());
+		ipr->setText(InternalPathReserved());
+		ipar->setText(InternalPathAfterReserved());
+		iparnp->setText(InternalPathAfterReservedNextPart("/"));
 	}));
 	LocaleChanged().connect(boost::bind<void>([this, txt](){
 		txt->setText(locale().name());
 	}));
 	new Wt::WBreak(root());
-	new Wt::WText(std::string("Session Default Language: ") + _SessionDefaultLocale.name(), root());
+	(new Wt::WText(std::string("Session Default Language: ") + _SessionDefaultLocale.name(), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	new Wt::WBreak(root());
-	new Wt::WText(std::string("Mobile Version: "), root());
+	(new Wt::WText(std::string("Mobile Version: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto mvt = new Wt::WText(std::string(IsMobileVersion() ? "On" : "Off"), root());
 	MobileVersionChanged().connect(boost::bind<void>([mvt](bool MobileVersion){
 		mvt->setText(MobileVersion ? "On" : "Off");
@@ -194,6 +207,9 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Update Server's active application's mapping
 	Server->NewApp(this);
+
+	//Connect slots that should run first
+	internalPathChanged().connect(boost::bind(&Application::InterpretReservedInternalPath, this));
 
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
@@ -254,8 +270,12 @@ void Application::InterpretReservedInternalPath()
 		}
 		else if(IPLM == 2 && locale().name() != _SessionDefaultLocale.name()) //Set default if always hide default
 		{
-			_ReservedInternalPath = "";
+			_ReservedInternalPath = "/";
 			setLocale(_SessionDefaultLocale);
+		}
+		else
+		{
+			_ReservedInternalPath = "/";
 		}
 		return;
 	}
@@ -291,7 +311,7 @@ void Application::InterpretReservedInternalPath()
 				_MobileVersionChanged.emit(true);
 			}
 			_MobileVersionFromInternalPath = true;
-			_ReservedInternalPath = std::string("/") + *Itr; //Add mobile access path to reserved path
+			_ReservedInternalPath += "/" + *Itr; //Add mobile access path to reserved path
 			++Itr;
 			if(Itr == Tokens.end())
 			{
@@ -336,7 +356,6 @@ void Application::InterpretReservedInternalPath()
 	{
 		if(locale().name() != LanguageCode)
 		{
-			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
 			setLocale(Server->Languages()->GetLocaleFromCode(LanguageCode));
 		}
 		//Remove default language automatically from internal path if mode is always hide default and locale is default language
@@ -344,6 +363,10 @@ void Application::InterpretReservedInternalPath()
 		{
 			_SkipReservedPathInterpretation = true;
 			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr), Itr->size() + 1, ""), true);
+		}
+		else
+		{
+			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
 		}
 	}
 	else
@@ -362,11 +385,14 @@ void Application::InterpretReservedInternalPath()
 				CurrentLanguageInternalPath + "/" + *Itr), true);
 
 			//Add language internal path to reserved
-			if(!CurrentLanguageInternalPath.empty())
-			{
-				_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
-			}
+			_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
 		}
+	}
+
+	//Reserved internal path should not be empty
+	if(_ReservedInternalPath.empty())
+	{
+		_ReservedInternalPath = "/";
 	}
 }
 
@@ -381,9 +407,14 @@ Wt::Signal<void> &Application::LocaleChanged()
 	return _LocaleChanged;
 }
 
-std::string Application::InternalPathAfterReserved(const std::string &after) const
+std::string Application::InternalPathAfterReservedNextPart(const std::string &after) const
 {
 	return internalPathNextPart(_ReservedInternalPath + after);
+}
+
+std::string Application::InternalPathAfterReserved() const
+{
+	return internalSubPath(_ReservedInternalPath + "/");
 }
 
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
