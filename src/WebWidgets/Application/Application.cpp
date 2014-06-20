@@ -117,7 +117,7 @@ Application::Application(const Wt::WEnvironment &env)
 	ChangeStyle(Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor));
 
 	//User stylesheet
-	useStyleSheet(_UserStyleSheet);
+	//useStyleSheet(_UserStyleSheet);
 
 	//TEST//
 	new Wt::WText("HI", root());
@@ -528,8 +528,7 @@ void Application::RefreshStyleStrings()
 			it != CssRules.end();
 			++it)
 		{
-			DboCssRule *Rule = new DboCssRule(*it);
-			itr->second.addRule(Rule);
+			itr->second.addRule(new DboCssRule(*it));
 		}
 	}
 
