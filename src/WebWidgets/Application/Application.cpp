@@ -1,6 +1,6 @@
 #include "Application/Application.h"
 #include "Application/WServer.h"
-#include "Objects/LocalizedStrings.h"
+#include "Objects/DboLocalizedStrings.h"
 #include "Objects/DboCssRule.h"
 
 #include "DboDatabase/ModulesDatabase.h"

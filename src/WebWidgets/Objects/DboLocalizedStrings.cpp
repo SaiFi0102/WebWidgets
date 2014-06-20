@@ -1,6 +1,6 @@
 #include <Wt/WMessageResources>
 
-#include "Objects/LocalizedStrings.h"
+#include "Objects/DboLocalizedStrings.h"
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
 #include "DboDatabase/ConfigurationsCache.h"
