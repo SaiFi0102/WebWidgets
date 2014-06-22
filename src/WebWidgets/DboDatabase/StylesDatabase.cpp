@@ -1,5 +1,8 @@
 #include "DboDatabase/StylesDatabase.h"
+#include "Dbo/Style.h"
 #include "Application/WServer.h"
+#include <Wt/WString>
+#include "Application/Application.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
@@ -169,30 +172,33 @@ Wt::Dbo::ptr<StyleTemplate> StylesDatabase::GetStyleTemplatePtr(const std::strin
 	return *itr;
 }
 
-std::string StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId) const
+bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const
 {
 	Wt::Dbo::ptr<Template> TemplatePtr = GetTemplatePtr(Name, ModuleId);
 	if(!TemplatePtr)
 	{
 		_Server.log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
-		return std::string();
+		return false;
 	}
 	if(!TemplatePtr->TemplateStr.is_initialized())
 	{
-		return std::string();
+		result = "";
+		return true;
 	}
-	return *TemplatePtr->TemplateStr;
+	result = *TemplatePtr->TemplateStr;
+	return true;
 }
 
-std::string StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
+bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const
 {
 	Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
 		_Server.log("warn") << "StyleTemplatePtr not found in StylesDatabase in GetStyleTemplateStr(...). TemplateName: " << TemplateName << ", ModuleId: " << ModuleId << ", StyleName: " << StyleName << ", StyleAuthorId: " << StyleAuthorId;
-		return std::string();
+		return false;
 	}
-	return StyleTemplatePtr->TemplateStr;
+	result = StyleTemplatePtr->TemplateStr;
+	return true;
 }
 
 StylesDatabase::StyleCssRuleList StylesDatabase::GetStyleCssRules(const std::string &StyleName, long long AuthorId)

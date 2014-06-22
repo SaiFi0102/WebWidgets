@@ -15,6 +15,7 @@
 #include <Wt/WText>
 #include <Wt/WAnchor>
 #include <Wt/WPushButton>
+#include <Wt/WTemplate>
 
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
@@ -30,7 +31,7 @@ Application::Application(const Wt::WEnvironment &env)
 	_Configurations = new ConfigurationsCache(Server->Configurations(), this); //Local copy of configuration ptrs
 
 	//Use database backend localized strings instead of WMessageResourceBundle
-	setLocalizedStrings(new DboLocalizedStrings(Server->Languages()));
+	setLocalizedStrings(new DboLocalizedStrings(Server));
 
 	//Set Default and Client's environment locale
 	_ClientLocale = env.locale();
@@ -204,6 +205,18 @@ Application::Application(const Wt::WEnvironment &env)
 		}
 	}));
 	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tr("Wt.Auth.email"), root());
+	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tr("test", ModulesDatabase::Authentication), root());
+	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
+	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
+	new Wt::WBreak(root());
+	new Wt::WBreak(root());
+	new Wt::WTemplate(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
+	new Wt::WBreak(root());
+	new Wt::WTemplate(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
 
 	//Update Server's active application's mapping
 	Server->NewApp(this);
@@ -497,6 +510,7 @@ Wt::WCssStyleSheet &Application::UserStyleSheet()
 void Application::RefreshLocaleStrings()
 {
 	refresh();
+	triggerUpdate();
 }
 
 void Application::RefreshStyleStrings()
@@ -538,7 +552,8 @@ void Application::RefreshStyleStrings()
 
 void Application::RefreshPageStrings()
 {
-
+	//...
+	triggerUpdate();
 }
 
 void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)

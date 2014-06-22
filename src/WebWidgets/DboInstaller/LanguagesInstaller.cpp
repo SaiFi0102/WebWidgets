@@ -10,6 +10,7 @@ void DboInstaller::InsertLanguages()
 	O.EnglishLanguagePtr.modify()->LanguageAccept = "en*";
 	O.EnglishLanguagePtr.modify()->PluralExpression = "n > 1 ? 1 : 0"; //Case 0 for Singular string and Case 1 for Plural string
 	O.EnglishLanguagePtr.modify()->PluralCases = 2;
+	O.EnglishLanguagePtr.modify()->Installed = true;
 
 	//Uninstalled languages
 	Wt::Dbo::ptr<Language> abLanguagePtr = DboSession.add(new Language("ab", "Abkhaz", "", "ab*", "", -1, false));

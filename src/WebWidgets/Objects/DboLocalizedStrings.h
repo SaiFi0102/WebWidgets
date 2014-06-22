@@ -3,12 +3,12 @@
 
 #include <Wt/WLocalizedStrings>
 
-class LanguagesDatabase;
+class WServer;
 
 class DboLocalizedStrings : public Wt::WLocalizedStrings
 {
 	public:
-		DboLocalizedStrings(LanguagesDatabase *Languages);
+		DboLocalizedStrings(WServer *Server);
 
 		virtual void refresh();
 		virtual void hibernate();
@@ -18,8 +18,10 @@ class DboLocalizedStrings : public Wt::WLocalizedStrings
 		virtual bool resolvePluralKey(const std::string &key, std::string &result, uint64_t amount);
 		virtual bool resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount);
 
+		virtual bool resolveTemplateKey(const std::string &templateName, long long moduleId, std::string &result);
+
 	protected:
-		LanguagesDatabase *Languages;
+		WServer *_Server;
 };
 
 #endif

@@ -82,8 +82,8 @@ class StylesDatabase
 		Wt::Dbo::ptr<Template> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
 		Wt::Dbo::ptr<StyleTemplate> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 
-		std::string GetTemplateStr(const std::string &Name, long long ModuleId) const;
-		std::string GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		bool GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const;
+		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;
 		
 		StyleCssRuleList GetStyleCssRules(const std::string &StyleName, long long AuthorId);
 		TemplateCssRuleList GetTemplateCssRules(const std::string &TemplateName, long long ModuleId);
