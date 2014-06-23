@@ -205,6 +205,11 @@ Application::Application(const Wt::WEnvironment &env)
 		}
 	}));
 	new Wt::WBreak(root());
+	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());
+	rl->clicked().connect(boost::bind<void>([Server](){
+		Server->Languages()->Reload();
+	}));
+	new Wt::WBreak(root());
 	new Wt::WText(Wt::WString::tr("Wt.Auth.email"), root());
 	new Wt::WBreak(root());
 	new Wt::WText(Wt::WString::tr("test", ModulesDatabase::Authentication), root());
@@ -215,7 +220,6 @@ Application::Application(const Wt::WEnvironment &env)
 	new Wt::WBreak(root());
 	new Wt::WBreak(root());
 	new Wt::WTemplate(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
-	new Wt::WBreak(root());
 	new Wt::WTemplate(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
 
 	//Update Server's active application's mapping
@@ -547,6 +551,7 @@ void Application::RefreshStyleStrings()
 	}
 
 	//Send changes
+	refresh();
 	triggerUpdate();
 }
 
