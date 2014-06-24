@@ -13,7 +13,7 @@ DboCssRule::DboCssRule(Wt::Dbo::ptr<TemplateCssRule> CssRulePtr, Wt::WObject *pa
 	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(true)
 { }
 
-const std::string &DboCssRule::selector() const
+std::string DboCssRule::selector() const
 {
 	if(IsTemplate)
 	{
@@ -25,7 +25,7 @@ const std::string &DboCssRule::selector() const
 	}
 }
 
-const std::string DboCssRule::declarations()
+std::string DboCssRule::declarations()
 {
 	if(IsTemplate)
 	{
@@ -37,10 +37,10 @@ const std::string DboCssRule::declarations()
 	}
 }
 
-DboCssRule::~DboCssRule()
-{
-	if(sheet_)
-	{
-		sheet_->removeRule(this);
-	}
-}
+// DboCssRule::~DboCssRule()
+// {
+// 	if(sheet_)
+// 	{
+// 		sheet_->removeRule(this);
+// 	}
+// }

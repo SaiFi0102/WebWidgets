@@ -9,10 +9,10 @@ class DboCssRule : public Wt::WCssRule
 	public:
 		DboCssRule(Wt::Dbo::ptr<StyleCssRule> CssRulePtr, Wt::WObject *parent = 0);
 		DboCssRule(Wt::Dbo::ptr<TemplateCssRule> CssRulePtr, Wt::WObject *parent = 0);
-		~DboCssRule();
+		/*virtual ~DboCssRule();*/
 
-		virtual const std::string &selector() const;
-		const std::string declarations();
+		virtual std::string selector() const;
+		virtual std::string declarations();
 
 	protected:
 		Wt::Dbo::ptr<StyleCssRule> StyleCssRulePtr;
