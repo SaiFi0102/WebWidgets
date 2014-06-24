@@ -406,17 +406,38 @@ const std::string WString::key() const
 {
 	if(impl_)
 	{
-		if(impl_->isLanguage)
-		{
-			return impl_->key_ + "("+ boost::lexical_cast<std::string>(impl_->moduleAuthorId_) +")";
-		}
-		else
-		{
-			return impl_->key_ + "(" + boost::lexical_cast<std::string>(impl_->moduleAuthorId_) + ")";
-		}
+		// 		if(impl_->isLanguage)
+		// 		{
+		// 			return impl_->key_ + "("+ boost::lexical_cast<std::string>(impl_->moduleAuthorId_) +")";
+		// 		}
+		// 		else
+		// 		{
+		// 			return impl_->key_ + "(" + boost::lexical_cast<std::string>(impl_->moduleAuthorId_) + ")";
+		// 		}
+		return impl_->key_;
 	}
 	else
 		return std::string();
+}
+
+long long WString::moduleAuthorId() const
+{
+	if(impl_)
+	{
+		return impl_->moduleAuthorId_;
+	}
+	else
+		return -1;
+}
+
+bool WString::isLanguage() const
+{
+	if(impl_)
+	{
+		return impl_->isLanguage;
+	}
+	else
+		return true;
 }
 
 void WString::createImpl()

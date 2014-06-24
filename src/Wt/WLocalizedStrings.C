@@ -51,6 +51,11 @@ bool WLocalizedStrings::resolveTemplateKey(const std::string &templateName, long
 	return false;
 }
 
+bool WLocalizedStrings::loadTemplateStyleSheet(const std::string &templateName, long long moduleId)
+{
+	return false;
+}
+
 #else
   //TODO
 #endif

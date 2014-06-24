@@ -403,6 +403,9 @@ public:
    */
   const std::string key() const;
 
+  long long moduleAuthorId() const;
+  bool isLanguage() const;
+
 #ifndef WT_NO_STD_WSTRING
   /*! \brief Substitutes the next positional argument with a string value.
    *

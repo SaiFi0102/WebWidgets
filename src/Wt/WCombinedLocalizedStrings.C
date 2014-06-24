@@ -72,6 +72,16 @@ bool WCombinedLocalizedStrings::resolveTemplateKey(const std::string &templateNa
 
   return false;
 }
+
+bool WCombinedLocalizedStrings::loadTemplateStyleSheet(const std::string &templateName, long long moduleId)
+{
+  for (unsigned i = 0; i < localizedStrings_.size(); ++i) {
+    if (localizedStrings_[i]->loadTemplateStyleSheet(templateName, moduleId))
+      return true;
+  }
+
+  return false;
+}
 #else
 std::string *WCombinedLocalizedStrings::resolveKey(const std::string& key)
 {
