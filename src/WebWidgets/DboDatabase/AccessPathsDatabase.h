@@ -15,7 +15,7 @@ class AccessPathsDatabase
 		struct AccessPath_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> AccessPathPtr) const
+			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
 			{
 				return AccessPathPtr.id();
 			}
@@ -23,7 +23,7 @@ class AccessPathsDatabase
 		struct AccessPath_key_HostName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> AccessPathPtr) const
+			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
 			{
 				return AccessPathPtr->HostName;
 			}
@@ -31,7 +31,7 @@ class AccessPathsDatabase
 		struct AccessPath_key_InternalPath
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> AccessPathPtr) const
+			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
 			{
 				return AccessPathPtr->InternalPath;
 			}
@@ -39,7 +39,7 @@ class AccessPathsDatabase
 		struct AccessPath_key_LanguageCode
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> AccessPathPtr) const
+			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
 			{
 				return AccessPathPtr->LanguagePtr.id();
 			}

@@ -16,7 +16,7 @@ class StylesDatabase
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr.id().DerivingTemplatePtr.id().Name;
 			}
@@ -24,7 +24,7 @@ class StylesDatabase
 		struct StyleTemplate_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr.id().DerivingTemplatePtr.id().ModulePtr.id();
 			}
@@ -32,7 +32,7 @@ class StylesDatabase
 		struct StyleTemplate_key_StyleName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr.id().StylePtr.id().Name;
 			}
@@ -40,7 +40,7 @@ class StylesDatabase
 		struct StyleTemplate_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr) const
+			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr.id().StylePtr.id().AuthorPtr.id();
 			}

@@ -109,3 +109,13 @@ bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, lo
 	}
 	return true;
 }
+
+bool DboLocalizedStrings::loadTemplateStyleSheet(const std::string &templateName, long long moduleId)
+{
+	Application *app = Application::instance();
+	if(app)
+	{
+		app->UseTemplateStyleSheet(_Server->Styles()->GetTemplatePtr(templateName, moduleId));
+	}
+	return true;
+}

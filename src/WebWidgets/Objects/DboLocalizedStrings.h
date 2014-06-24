@@ -19,6 +19,7 @@ class DboLocalizedStrings : public Wt::WLocalizedStrings
 		virtual bool resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount);
 
 		virtual bool resolveTemplateKey(const std::string &templateName, long long moduleId, std::string &result);
+		virtual bool loadTemplateStyleSheet(const std::string &templateName, long long moduleId);
 
 	protected:
 		WServer *_Server;

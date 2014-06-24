@@ -15,7 +15,7 @@ class PagesDatabase
 		struct Page_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<Page> PagePtr) const
+			result_type operator()(const Wt::Dbo::ptr<Page> &PagePtr) const
 			{
 				return PagePtr.id().id;
 			}
@@ -23,7 +23,7 @@ class PagesDatabase
 		struct Page_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<Page> PagePtr) const
+			result_type operator()(const Wt::Dbo::ptr<Page> &PagePtr) const
 			{
 				return PagePtr.id().ModulePtr.id();
 			}

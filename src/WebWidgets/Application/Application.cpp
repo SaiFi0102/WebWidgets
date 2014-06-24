@@ -498,6 +498,7 @@ void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
 	}
 
 	_CurrentStylePtr = StylePtr;
+	refresh(); //To reload styletemplates
 	_StyleChanged.emit();
 }
 

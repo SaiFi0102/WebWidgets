@@ -17,7 +17,7 @@ class LanguagesDatabase
 		struct Language_key_Code
 		{
 			typedef std::string result_type; 
-			result_type operator()(const Wt::Dbo::ptr<Language> LanguagePtr) const
+			result_type operator()(const Wt::Dbo::ptr<Language> &LanguagePtr) const
 			{
 				return LanguagePtr.id();
 			}
@@ -25,7 +25,7 @@ class LanguagesDatabase
 		struct Language_key_LanguageAccept
 		{
 			typedef std::string result_type; 
-			result_type operator()(const Wt::Dbo::ptr<Language> LanguagePtr) const
+			result_type operator()(const Wt::Dbo::ptr<Language> &LanguagePtr) const
 			{
 				return LanguagePtr->LanguageAccept;
 			}
@@ -35,7 +35,7 @@ class LanguagesDatabase
 		struct LanguageSingle_key_Code
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> LanguageSinglePtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr.id().LanguagePtr.id();
 			}
@@ -43,7 +43,7 @@ class LanguagesDatabase
 		struct LanguageSingle_key_Key
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> LanguageSinglePtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr.id().Key;
 			}
@@ -51,7 +51,7 @@ class LanguagesDatabase
 		struct LanguageSingle_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> LanguageSinglePtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr.id().ModulePtr.id();
 			}
@@ -61,7 +61,7 @@ class LanguagesDatabase
 		struct LanguagePlural_key_Code
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr.id().LanguagePtr.id();
 			}
@@ -69,7 +69,7 @@ class LanguagesDatabase
 		struct LanguagePlural_key_Key
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr.id().Key;
 			}
@@ -77,7 +77,7 @@ class LanguagesDatabase
 		struct LanguagePlural_key_Case
 		{
 			typedef int result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr.id().Case;
 			}
@@ -85,7 +85,7 @@ class LanguagesDatabase
 		struct LanguagePlural_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr) const
+			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr.id().ModulePtr.id();
 			}

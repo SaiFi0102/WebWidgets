@@ -74,6 +74,8 @@ class Application : public Wt::WApplication
 		ConfigurationsCache *_Configurations;
 
 		boost::posix_time::ptime StartTime;
+
+		friend class DboLocalizedStrings;
 };
 
 #endif

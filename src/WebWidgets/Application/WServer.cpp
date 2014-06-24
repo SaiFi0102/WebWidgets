@@ -7,6 +7,7 @@
 #include "DboDatabase/StylesDatabase.h"
 #include "DboDatabase/PagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "Objects/DboLocalizedStrings.h"
 
 #include <fstream>
 #include <rapidxml/rapidxml_print.hpp>
@@ -257,6 +258,9 @@ void WServer::Initialize()
 		log("fatal") << "Error while loading access paths from database: " << e.what();
 		throw e;
 	}
+
+	//Server localized strings
+	setLocalizedStrings(new DboLocalizedStrings(this));
 
 	/* *************************************************************************
 	 * *********************  Create temporary XML file  ***********************
