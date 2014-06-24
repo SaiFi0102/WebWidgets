@@ -101,13 +101,17 @@ private:
   WCssTemplateRule *rule_;
 };
 
-WCssRule::WCssRule(WObject* parent)
+WCssRule::WCssRule(const std::string& selector, WObject* parent)
   : WObject(parent),
+    selector_(selector),
     sheet_(0)
 { }
 
 WCssRule::~WCssRule()
-{ }
+{ 
+  if (sheet_)
+    sheet_->removeRule(this);
+}
 
 void WCssRule::modified()
 {
@@ -122,16 +126,13 @@ bool WCssRule::updateDomElement(DomElement& cssRuleElement, bool all)
 
 WCssTemplateRule::WCssTemplateRule(const std::string& selector, 
 				   WObject* parent)
-  : WCssRule(parent), selector_(selector)
+  : WCssRule(selector, parent)
 {
   widget_ = new WCssTemplateWidget(this);
 }
 
 WCssTemplateRule::~WCssTemplateRule()
 {
-  if (sheet_)
-    sheet_->removeRule(this);
-
   delete widget_;
 }
 
@@ -140,7 +141,7 @@ WWidget *WCssTemplateRule::templateWidget()
   return widget_;
 }
 
-const std::string WCssTemplateRule::declarations()
+std::string WCssTemplateRule::declarations()
 {
   DomElement e(DomElement::ModeUpdate, widget_->domElementType());
   updateDomElement(e, true);
@@ -156,17 +157,11 @@ bool WCssTemplateRule::updateDomElement(DomElement& element, bool all)
 WCssTextRule::WCssTextRule(const std::string& selector,
 			   const WT_USTRING& declarations,
 			   WObject* parent)
-  : WCssRule(parent), selector_(selector),
+  : WCssRule(selector, parent),
     declarations_(declarations)
 { }
 
-WCssTextRule::~WCssTextRule()
-{
-  if (sheet_)
-    sheet_->removeRule(this);
-}
-
-const std::string WCssTextRule::declarations()
+std::string WCssTextRule::declarations()
 {
   return declarations_.toUTF8(); 
 }
