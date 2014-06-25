@@ -16,6 +16,7 @@
 #include <Wt/WAnchor>
 #include <Wt/WPushButton>
 #include <Wt/WTemplate>
+#include <WebUtils.h>
 
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
@@ -36,11 +37,11 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Set Default and Client's environment locale
 	_ClientLocale = env.locale();
-	Wt::Dbo::ptr<AccessPath> DefaultAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	Wt::Dbo::ptr<AccessPath> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	Wt::WLocale ConfigDefaultLocale;
-	if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+	if(DefaultLanguageAccessPath && DefaultLanguageAccessPath->LanguagePtr)
 	{
-		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultAccessPath->LanguagePtr.id());
+		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageAccessPath->LanguagePtr.id());
 	}
 	else
 	{
@@ -124,107 +125,8 @@ Application::Application(const Wt::WEnvironment &env)
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
 
-	//TEST//
-	new Wt::WText("HI", root());
-	new Wt::WBreak(root());
-	(new Wt::WText("Internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto ip = new Wt::WText(internalPath(), root());
-	new Wt::WBreak(root());
-	(new Wt::WText("Reserved internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto ipr = new Wt::WText(InternalPathReserved(), root());
-	new Wt::WBreak(root());
-	(new Wt::WText("Internal path after reserve(subpath): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto ipar = new Wt::WText(InternalPathAfterReserved(), root());
-	new Wt::WBreak(root());
-	(new Wt::WText("Internal path after reserve next part(Arg '/'): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto iparnp = new Wt::WText(InternalPathAfterReservedNextPart("/"), root());
-	new Wt::WBreak(root());
-	(new Wt::WText("Current language: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto txt = new Wt::WText(locale().name(), root());
-	internalPathChanged().connect(boost::bind<void>([this, ip, ipr, ipar, iparnp](){
-		ip->setText(internalPath());
-		ipr->setText(InternalPathReserved());
-		ipar->setText(InternalPathAfterReserved());
-		iparnp->setText(InternalPathAfterReservedNextPart("/"));
-	}));
-	LocaleChanged().connect(boost::bind<void>([this, txt](){
-		txt->setText(locale().name());
-	}));
-	new Wt::WBreak(root());
-	(new Wt::WText(std::string("Session Default Language: ") + _SessionDefaultLocale.name(), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	new Wt::WBreak(root());
-	(new Wt::WText(std::string("Mobile Version: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto mvt = new Wt::WText(std::string(IsMobileVersion() ? "On" : "Off"), root());
-	MobileVersionChanged().connect(boost::bind<void>([mvt](bool MobileVersion){
-		mvt->setText(MobileVersion ? "On" : "Off");
-	}, _1));
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/testing"), "Test Link", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/en"), "/en", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/fr"), "/fr", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/english"), "/english", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/french"), "/french", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/"), "/", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums"), "/forums", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums/topic"), "/forums/topic", root());
-	new Wt::WBreak(root());
-	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums/topic/1"), "/forums/topic/1", root());
-	new Wt::WBreak(root());
-	Wt::WPushButton *rc = new Wt::WPushButton("Reload Configurations", root());
-	new Wt::WBreak(root());
-	rc->clicked().connect(boost::bind<void>([this, Server](){
-		new Wt::WText(std::string("[Server Config; Before Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
-		new Wt::WText(std::string("[Cache Config; Before Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
-		new Wt::WBreak(root());
-		Server->Configurations()->Reload();
-		new Wt::WText(std::string("[Server Config; AFTER Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
-		new Wt::WText(std::string("[Cache Config; AFTER Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
-		new Wt::WBreak(root());
-	}));
-
-	Wt::WPushButton *rs = new Wt::WPushButton("Reload Styles", root());
-	rs->clicked().connect(boost::bind<void>([Server](){
-		Server->Styles()->Reload();
-	}));
-	Wt::WPushButton *cs = new Wt::WPushButton("Change Style", root());
-	cs->clicked().connect(boost::bind<void>([this, Server](){
-		if(!_CurrentStylePtr)
-		{
-			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
-		}
-		else if(_CurrentStylePtr.id().Name == "Default")
-		{
-			ChangeStyle(Server->Styles()->GetStylePtr("test", 1));
-		}
-		else
-		{
-			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
-		}
-	}));
-	new Wt::WBreak(root());
-	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());
-	rl->clicked().connect(boost::bind<void>([Server](){
-		Server->Languages()->Reload();
-	}));
-	new Wt::WBreak(root());
-	new Wt::WText(Wt::WString::tr("Wt.Auth.email"), root());
-	new Wt::WBreak(root());
-	new Wt::WText(Wt::WString::tr("test", ModulesDatabase::Authentication), root());
-	new Wt::WBreak(root());
-	new Wt::WText(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
-	new Wt::WBreak(root());
-	new Wt::WText(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
-	new Wt::WBreak(root());
-	new Wt::WBreak(root());
-	new Wt::WTemplate(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
-	new Wt::WTemplate(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
+	//TEST UI//
+	CreateTestUI();
 
 	//Update Server's active application's mapping
 	Server->NewApp(this);
@@ -329,7 +231,7 @@ Wt::Dbo::ptr<Style> Application::CurrentStyle() const
 
 void Application::ChangeStyle(Wt::Dbo::ptr<Style> StylePtr)
 {
-	if(!StylePtr || _CurrentStylePtr == StylePtr)
+	if(!StylePtr || StylePtr.isTransient() || _CurrentStylePtr.id() == StylePtr.id())
 	{
 		return;
 	}
@@ -469,7 +371,11 @@ void Application::HandleWtInternalPathChanged()
 	internalPathChanged().emit(internalPath());
 
 	//Check if internal path after reserved changed
-	//if(std::string(oldInternalPath_).replace(_OldReservedInternalPath, "");
+	std::string NewReservedInternalPath = InternalPathAfterReserved();
+	if(Wt::Utils::append(oldInternalPath_, '/').substr(_OldReservedInternalPath.size()) != NewReservedInternalPath)
+	{
+		internalPathAfterReservedChanged().emit(NewReservedInternalPath);
+	}
 }
 
 void Application::InterpretReservedInternalPath()
@@ -846,4 +752,109 @@ void Application::IRIPNoRestriction()
 		}
 		_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
 	}
+}
+
+void Application::CreateTestUI()
+{
+	//TEST//
+	WServer *Server = WServer::instance();
+
+	new Wt::WText("HI", root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto ip = new Wt::WText(internalPath(), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Reserved internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto ipr = new Wt::WText(InternalPathReserved(), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Internal path after reserve(subpath): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto ipar = new Wt::WText(InternalPathAfterReserved(), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Internal path after reserve next part(Arg '/'): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto iparnp = new Wt::WText(InternalPathAfterReservedNextPart("/"), root());
+	new Wt::WBreak(root());
+	(new Wt::WText("Current language: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto txt = new Wt::WText(locale().name(), root());
+	internalPathChanged().connect(boost::bind<void>([this, ip, ipr](){
+		ip->setText(internalPath());
+		ipr->setText(InternalPathReserved());
+	}));
+	internalPathAfterReservedChanged().connect(boost::bind<void>([this, ipar, iparnp](){
+		ipar->setText(InternalPathAfterReserved());
+		iparnp->setText(InternalPathAfterReservedNextPart("/"));
+	}));
+	LocaleChanged().connect(boost::bind<void>([this, txt](){
+		txt->setText(locale().name());
+	}));
+	new Wt::WBreak(root());
+	(new Wt::WText(std::string("Session Default Language: ") + _SessionDefaultLocale.name(), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	new Wt::WBreak(root());
+	(new Wt::WText(std::string("Mobile Version: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto mvt = new Wt::WText(std::string(IsMobileVersion() ? "On" : "Off"), root());
+	MobileVersionChanged().connect(boost::bind<void>([mvt](bool MobileVersion){
+		mvt->setText(MobileVersion ? "On" : "Off");
+	}, _1));
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/testing"), "Test Link", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/en"), "/en", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/fr"), "/fr", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/english"), "/english", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/french"), "/french", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/"), "/", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums"), "/forums", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums/topic"), "/forums/topic", root());
+	new Wt::WBreak(root());
+	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/forums/topic/1"), "/forums/topic/1", root());
+	new Wt::WBreak(root());
+	Wt::WPushButton *rc = new Wt::WPushButton("Reload Configurations", root());
+	new Wt::WBreak(root());
+	rc->clicked().connect(boost::bind<void>([this, Server](){
+		new Wt::WText(std::string("[Server Config; Before Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
+		new Wt::WText(std::string("[Cache Config; Before Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
+		new Wt::WBreak(root());
+		Server->Configurations()->Reload();
+		new Wt::WText(std::string("[Server Config; AFTER Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
+		new Wt::WText(std::string("[Cache Config; AFTER Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
+		new Wt::WBreak(root());
+	}));
+
+	Wt::WPushButton *rs = new Wt::WPushButton("Reload Styles", root());
+	rs->clicked().connect(boost::bind<void>([Server](){
+		Server->Styles()->Reload();
+	}));
+	Wt::WPushButton *cs = new Wt::WPushButton("Change Style", root());
+	cs->clicked().connect(boost::bind<void>([this, Server](){
+		if(!_CurrentStylePtr)
+		{
+			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
+		}
+		else if(_CurrentStylePtr.id().Name == "Default")
+		{
+			ChangeStyle(Server->Styles()->GetStylePtr("test", 1));
+		}
+		else
+		{
+			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
+		}
+	}));
+	new Wt::WBreak(root());
+	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());
+	rl->clicked().connect(boost::bind<void>([Server](){
+		Server->Languages()->Reload();
+	}));
+	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tr("Wt.Auth.email"), root());
+	new Wt::WBreak(root());
+	new Wt::WText(Wt::WString::tr("test", ModulesDatabase::Authentication), root());
+	new Wt::WBreak(root());
+	new Wt::WBreak(root());
+	new Wt::WTemplate(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
+	new Wt::WTemplate(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
 }

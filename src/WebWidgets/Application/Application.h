@@ -50,6 +50,7 @@ class Application : public Wt::WApplication
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
+		//Internal path change handlers
 		void HandleWtInternalPathChanged();
 		void InterpretReservedInternalPath();
 		bool IRIPMobileVersion(const std::string &HostName, const std::string &Path);
@@ -58,6 +59,7 @@ class Application : public Wt::WApplication
 		void IRIPNoRestrictionHideDef();
 		void IRIPNoRestriction();
 		
+		//Styling
 		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
 		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
 
@@ -85,6 +87,9 @@ class Application : public Wt::WApplication
 		boost::posix_time::ptime StartTime;
 
 		friend class DboLocalizedStrings;
+
+	private:
+		void CreateTestUI();
 };
 
 #endif
