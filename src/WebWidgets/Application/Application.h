@@ -24,7 +24,8 @@ class Application : public Wt::WApplication
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
 		std::string InternalPathReserved() const;
-		Wt::Signal<void> &internalPathAfterReservedChanged();
+		Wt::Signal<std::string> &internalPathChanged();
+		Wt::Signal<std::string> &internalPathAfterReservedChanged();
 		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);
 
 		//Localization
@@ -49,7 +50,13 @@ class Application : public Wt::WApplication
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
+		void HandleWtInternalPathChanged();
 		void InterpretReservedInternalPath();
+		bool IRIPMobileVersion(const std::string &HostName, const std::string &Path);
+		void IRIPAlwaysShow();
+		void IRIPAlwaysShowHideDef();
+		void IRIPNoRestrictionHideDef();
+		void IRIPNoRestriction();
 		
 		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
 		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
@@ -59,8 +66,10 @@ class Application : public Wt::WApplication
 		bool _LanguageFromHostname; //And independent of internal path
 		bool _SkipReservedPathInterpretation; //Used to skip InterpretReservedInternalPath on internalPathChanged()
 		std::string _ReservedInternalPath;
+		std::string _OldReservedInternalPath;
 		Wt::Signal<void> _LocaleChanged;
-		Wt::Signal<void> _InternalPathAfterReservedChanged;
+		Wt::Signal<std::string> _InternalPathChanged;
+		Wt::Signal<std::string> _InternalPathAfterReservedChanged;
 
 		bool _MobileVersionFromHostname; //And independent of internal path
 		bool _MobileVersionFromInternalPath; //Or in combination with the hostname

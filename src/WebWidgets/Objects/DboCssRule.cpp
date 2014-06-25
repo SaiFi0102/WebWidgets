@@ -36,11 +36,3 @@ std::string DboCssRule::declarations()
 		return StyleCssRulePtr->Declarations;
 	}
 }
-
-// DboCssRule::~DboCssRule()
-// {
-// 	if(sheet_)
-// 	{
-// 		sheet_->removeRule(this);
-// 	}
-// }

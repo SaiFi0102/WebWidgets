@@ -20,13 +20,14 @@
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
-	_LocaleChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
-	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), //Localization related bools
+	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
+	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization related bools
 	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI related bools
 {
 	//Enable server push
 	enableUpdates();
 
+	//Cache configurations
 	WServer *Server = WServer::instance();
 	_Configurations = new ConfigurationsCache(Server->Configurations(), this); //Local copy of configuration ptrs
 
@@ -46,7 +47,7 @@ Application::Application(const Wt::WEnvironment &env)
 		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode("en");
 	}
 
-	//Check if user is using an AccessPath before checking LanguageAccept for Language
+	//Check if user is using an Hostname AccessPath before checking LanguageAccept for Language
 	std::string _hostname = env.hostName();
 	Wt::Dbo::ptr<AccessPath> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
 	if(HostnameAccessPath) //Use hostname as received
@@ -108,6 +109,9 @@ Application::Application(const Wt::WEnvironment &env)
 		}
 	}
 	_SessionDefaultLocale = locale();
+
+	//Connect slots that should run first(must be mutually exclusive)
+	Wt::WApplication::internalPathChanged().connect(boost::bind(&Application::HandleWtInternalPathChanged, this));
 
 	//Set language from internal path
 	InterpretReservedInternalPath();
@@ -225,9 +229,6 @@ Application::Application(const Wt::WEnvironment &env)
 	//Update Server's active application's mapping
 	Server->NewApp(this);
 
-	//Connect slots that should run first
-	internalPathChanged().connect(boost::bind(&Application::InterpretReservedInternalPath, this));
-
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
 	new Wt::WText(std::string("Application initialization duration: ")
@@ -259,160 +260,6 @@ ConfigurationsCache *Application::Configurations() const
 	return _Configurations;
 }
 
-void Application::InterpretReservedInternalPath()
-{
-	//Skip when setInternalPath() was recalled from this function OR when reserved internal path was not changed
-	if(_SkipReservedPathInterpretation)
-	{
-		_SkipReservedPathInterpretation = false;
-		return;
-	}
-	WServer *Server = WServer::instance();
-	int IPLM = Configurations()->GetEnum("InternalPathMode", ModulesDatabase::Localization, 3); //Internal path language presentation mode
-	if(IPLM == 5) //Do not get language from internal path
-	{
-		return;
-	}
-	std::string InternalPath = internalPath();
-	std::string HostName = environment().hostName();
-
-	//If internal path is landing page then there is no need to know anything else
-	if(InternalPath == "/")
-	{
-		if(IPLM == 1)
-		{
-			_SkipReservedPathInterpretation = true;
-			_ReservedInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
-			setInternalPath(_ReservedInternalPath, true);
-		}
-		else if(IPLM == 2 && locale().name() != _SessionDefaultLocale.name()) //Set default if always hide default
-		{
-			_ReservedInternalPath = "/";
-			setLocale(_SessionDefaultLocale);
-		}
-		else
-		{
-			_ReservedInternalPath = "/";
-		}
-		return;
-	}
-
-	//Tokenize internal path
-	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
-	boost::char_separator<char> Sep("/");
-	Tokenizer Tokens(InternalPath, Sep);
-	Tokenizer::iterator Itr = Tokens.begin();
-	_ReservedInternalPath = ""; //Reset reserved internal path
-
-	//If first internal path is mobile, confirm then check next path
-	long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
-	if(MobileAccessPathId != -1)
-	{
-		Wt::Dbo::ptr<AccessPath> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, *Itr);
-		if(!MobileCheckAccessPath)
-		{
-			if(HostName.substr(0, 4) == "www.")
-			{
-				MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName.substr(4), *Itr);
-			}
-			if(!MobileCheckAccessPath)
-			{
-				MobileCheckAccessPath = Server->AccessPaths()->GetPtr("", *Itr);
-			}
-		}
-		if(MobileCheckAccessPath.id() == MobileAccessPathId)
-		{
-			//Emit if MobileVersion just got enabled
-			if(IsMobileVersion() == false)
-			{
-				_MobileVersionChanged.emit(true);
-			}
-			_MobileVersionFromInternalPath = true;
-			_ReservedInternalPath += "/" + *Itr; //Add mobile access path to reserved path
-			++Itr;
-			if(Itr == Tokens.end())
-			{
-				return;
-			}
-		}
-		else
-		{
-			//Emit if MobileVersion just got disabled
-			if(IsMobileVersion() == true && _MobileVersionFromHostname == false)
-			{
-				_MobileVersionChanged.emit(false);
-			}
-			_MobileVersionFromInternalPath = false;
-		}
-	}
-
-	//Set language if the language is correct in internal path
-	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
-	if(!Itr->empty() && HostName.substr(0, 4) == "www."
-		&& (LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) == 0) //Use hostname without "www." if access path does not exists with the "www."
-	{
-		HostName = HostName.substr(4);
-	}
-	std::string LanguageCode;
-	bool Found = false;
-
-	if(!Itr->empty() && (LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) != 0)
-	{
-		LanguageCode = LanguageAccessPath->LanguagePtr.id();
-		Found = true;
-	}
-	//If LanguageAccessPath exists but not if Language is set from hostname and using HostUnspecificLanguage is not allowed(false)
-	else if(!Itr->empty() && (LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr)) != 0
-		&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
-	{
-		LanguageCode = LanguageAccessPath->LanguagePtr.id();
-		Found = true;
-	}
-
-	if(Found)
-	{
-		if(locale().name() != LanguageCode)
-		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageCode));
-		}
-		//Remove default language automatically from internal path if mode is always hide default and locale is default language
-		if((IPLM == 2 || IPLM == 3) && locale().name() == _SessionDefaultLocale.name())
-		{
-			_SkipReservedPathInterpretation = true;
-			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr), Itr->size() + 1, ""), true);
-		}
-		else
-		{
-			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
-		}
-	}
-	else
-	{
-		if(IPLM == 1 || (IPLM == 2 && locale().name() != _SessionDefaultLocale.name())) //If set to always shown but not if set to hide default and if current language is default
-		{
-			std::string CurrentLanguageInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
-			if(CurrentLanguageInternalPath == "/")
-			{
-				CurrentLanguageInternalPath = "";
-			}
-			//Prepend current language instead of replacing because probably that path wont be a language code
-			_SkipReservedPathInterpretation = true;
-			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr),
-				Itr->size() + 1,
-				CurrentLanguageInternalPath + "/" + *Itr), true);
-
-			//Add language internal path to reserved
-			_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
-		}
-	}
-
-	//Reserved internal path should not be empty
-	if(_ReservedInternalPath.empty())
-	{
-		_ReservedInternalPath = "/";
-	}
-}
-
 void Application::setLocale(const Wt::WLocale &locale)
 {
 	Wt::WApplication::setLocale(locale);
@@ -431,7 +278,7 @@ std::string Application::InternalPathAfterReservedNextPart(const std::string &af
 
 std::string Application::InternalPathAfterReserved() const
 {
-	return internalSubPath(_ReservedInternalPath + "/");
+	return internalSubPath(_ReservedInternalPath);
 }
 
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
@@ -446,13 +293,23 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 	setInternalPath(_ReservedInternalPath + path, emitChange);
 	if(emitChange)
 	{
-		_InternalPathAfterReservedChanged.emit();
+		_InternalPathAfterReservedChanged.emit(path);
 	}
 }
 
 std::string Application::InternalPathReserved() const
 {
 	return _ReservedInternalPath;
+}
+
+Wt::Signal<std::string> &Application::internalPathAfterReservedChanged()
+{
+	return _InternalPathAfterReservedChanged;
+}
+
+Wt::Signal<std::string> &Application::internalPathChanged()
+{
+	return _InternalPathChanged;
 }
 
 bool Application::IsMobileVersion() const
@@ -601,4 +458,392 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	//Add to template style sheets map and application to be loaded
 	_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())] = TemplateStyleSheet;
 	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())]);
+}
+
+void Application::HandleWtInternalPathChanged()
+{
+	//Call events in order
+	InterpretReservedInternalPath();
+
+	//Emit our version of internalPathChanged()
+	internalPathChanged().emit(internalPath());
+
+	//Check if internal path after reserved changed
+	//if(std::string(oldInternalPath_).replace(_OldReservedInternalPath, "");
+}
+
+void Application::InterpretReservedInternalPath()
+{
+	//Skip when setInternalPath() was recalled from this function OR when reserved internal path was not changed
+	if(_SkipReservedPathInterpretation)
+	{
+		_SkipReservedPathInterpretation = false;
+		return;
+	}
+
+	//Internal path language presentation mode
+	int IPLM = Configurations()->GetEnum("InternalPathMode", ModulesDatabase::Localization, 3);
+	if(environment().agentIsSpiderBot() && (IPLM == 3 || IPLM == 4)) //Change NoRestriction modes to AlwaysShowHideDef for bots
+	{
+		IPLM = 2;
+	}
+
+	//Old reserved internal path
+	_OldReservedInternalPath = _ReservedInternalPath;
+
+	switch(IPLM)
+	{
+		case 1:
+			IRIPAlwaysShow();
+		break;
+		case 2:
+			IRIPAlwaysShowHideDef();
+		break;
+		case 3:
+			IRIPNoRestrictionHideDef();
+		break;
+		case 4:
+			IRIPNoRestriction();
+		break;
+	}
+
+	//Reserved internal path should not be empty
+	if(_ReservedInternalPath.empty())
+	{
+		_ReservedInternalPath = "/";
+	}
+}
+
+bool Application::IRIPMobileVersion(const std::string &HostName, const std::string &Path)
+{
+	WServer *Server = WServer::instance();
+	long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
+
+	if(MobileAccessPathId != -1)
+	{
+		//Check all possible mobile access paths
+		Wt::Dbo::ptr<AccessPath> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
+		if(!MobileCheckAccessPath)
+		{
+			if(HostName.substr(0, 4) == "www.")
+			{
+				MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName.substr(4), Path);
+			}
+			if(!MobileCheckAccessPath)
+			{
+				MobileCheckAccessPath = Server->AccessPaths()->GetPtr("", Path);
+			}
+		}
+
+		//Check if the path is a mobile access path
+		if(MobileCheckAccessPath.id() == MobileAccessPathId)
+		{
+			//Emit if MobileVersion just got enabled
+			if(IsMobileVersion() == false)
+			{
+				_MobileVersionChanged.emit(true);
+			}
+			_MobileVersionFromInternalPath = true;
+			_ReservedInternalPath += "/" + Path; //Add mobile access path to reserved path
+			return true;
+		}
+		else
+		{
+			//Emit if MobileVersion just got disabled
+			if(IsMobileVersion() == true && _MobileVersionFromHostname == false)
+			{
+				_MobileVersionChanged.emit(false);
+			}
+			_MobileVersionFromInternalPath = false;
+			return false;
+		}
+	}
+	return false;
+}
+
+void Application::IRIPAlwaysShow()
+{
+	WServer *Server = WServer::instance();
+	std::string InternalPath = internalPath();
+	std::string HostName = environment().hostName();
+
+	if(InternalPath == "/")
+	{
+		_SkipReservedPathInterpretation = true;
+		_ReservedInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
+		setInternalPath(_ReservedInternalPath, true);
+		return;
+	}
+
+	//Tokenize internal path
+	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
+	boost::char_separator<char> Sep("/");
+	Tokenizer Tokens(InternalPath, Sep);
+	Tokenizer::iterator Itr = Tokens.begin();
+	_ReservedInternalPath = ""; //Reset reserved internal path
+
+	//Check mobile version
+	if(IRIPMobileVersion(HostName, *Itr))
+	{
+		++Itr;
+		if(Itr == Tokens.end())
+		{
+			return;
+		}
+	}
+
+	//Check if internal path includes language access path and set LanguageAccessPath ptr
+	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	if(!Itr->empty())
+	{
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
+			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		{
+			HostName = HostName.substr(4);
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+		}
+		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
+			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		{
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
+		}
+	}
+
+	//Check if LanguageAccessPath was found and set locale accordingly
+	if(LanguageAccessPath) //Found
+	{
+		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		{
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+		}
+		_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
+	}
+	else //Not found
+	{
+		std::string CurrentLanguageInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
+		if(CurrentLanguageInternalPath == "/")
+		{
+			CurrentLanguageInternalPath = "";
+		}
+		//Prepend current language instead of replacing because probably that path wont be a language code
+		_SkipReservedPathInterpretation = true;
+		setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr),
+			Itr->size() + 1,
+			CurrentLanguageInternalPath + "/" + *Itr), true);
+
+		//Add language internal path to reserved
+		_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
+	}
+}
+
+void Application::IRIPAlwaysShowHideDef()
+{
+	WServer *Server = WServer::instance();
+	std::string InternalPath = internalPath();
+	std::string HostName = environment().hostName();
+
+	if(InternalPath == "/")
+	{
+		if(locale().name() != _SessionDefaultLocale.name())
+		{
+			_ReservedInternalPath = "/";
+			setLocale(_SessionDefaultLocale);
+		}
+		return;
+	}
+
+	//Tokenize internal path
+	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
+	boost::char_separator<char> Sep("/");
+	Tokenizer Tokens(InternalPath, Sep);
+	Tokenizer::iterator Itr = Tokens.begin();
+	_ReservedInternalPath = ""; //Reset reserved internal path
+
+	//Check mobile version
+	if(IRIPMobileVersion(HostName, *Itr))
+	{
+		++Itr;
+		if(Itr == Tokens.end())
+		{
+			return;
+		}
+	}
+
+	//Check if internal path includes language access path and set LanguageAccessPath ptr
+	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	if(!Itr->empty())
+	{
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
+			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		{
+			HostName = HostName.substr(4);
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+		}
+		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
+			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		{
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
+		}
+	}
+
+	//Check if LanguageAccessPath was found and set locale accordingly
+	if(LanguageAccessPath) //Found
+	{
+		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		{
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+		}
+		//Remove default language from internal path if its there
+		if(locale().name() == _SessionDefaultLocale.name())
+		{
+			_SkipReservedPathInterpretation = true;
+			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr), Itr->size() + 1, ""), true);
+		}
+		else
+		{
+			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
+		}
+	}
+	else //Not found
+	{
+		if(locale().name() != _SessionDefaultLocale.name()) //if set to hide default and if current language is NOT default
+		{
+			std::string CurrentLanguageInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
+			if(CurrentLanguageInternalPath == "/")
+			{
+				CurrentLanguageInternalPath = "";
+			}
+			//Prepend current language instead of replacing because probably that path wont be a language code
+			_SkipReservedPathInterpretation = true;
+			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr),
+				Itr->size() + 1,
+				CurrentLanguageInternalPath + "/" + *Itr), true);
+
+			//Add language internal path to reserved
+			_ReservedInternalPath += "/" + CurrentLanguageInternalPath;
+		}
+	}
+}
+
+void Application::IRIPNoRestrictionHideDef()
+{
+	WServer *Server = WServer::instance();
+	std::string InternalPath = internalPath();
+	std::string HostName = environment().hostName();
+
+	if(InternalPath == "/")
+	{
+		_ReservedInternalPath = "/";
+		return;
+	}
+
+	//Tokenize internal path
+	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
+	boost::char_separator<char> Sep("/");
+	Tokenizer Tokens(InternalPath, Sep);
+	Tokenizer::iterator Itr = Tokens.begin();
+	_ReservedInternalPath = ""; //Reset reserved internal path
+
+	//Check mobile version
+	if(IRIPMobileVersion(HostName, *Itr))
+	{
+		++Itr;
+		if(Itr == Tokens.end())
+		{
+			return;
+		}
+	}
+
+	//Check if internal path includes language access path and set LanguageAccessPath ptr
+	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	if(!Itr->empty())
+	{
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
+			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		{
+			HostName = HostName.substr(4);
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+		}
+		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
+			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		{
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
+		}
+	}
+
+	//Check if LanguageAccessPath was found and set locale accordingly
+	if(LanguageAccessPath) //Found
+	{
+		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		{
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+		}
+		//Remove default language automatically from internal path if locale is default language
+		if(locale().name() == _SessionDefaultLocale.name())
+		{
+			_SkipReservedPathInterpretation = true;
+			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr), Itr->size() + 1, ""), true);
+		}
+		else
+		{
+			_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
+		}
+	}
+}
+
+void Application::IRIPNoRestriction()
+{
+	WServer *Server = WServer::instance();
+	std::string InternalPath = internalPath();
+	std::string HostName = environment().hostName();
+
+	if(InternalPath == "/")
+	{
+		_ReservedInternalPath = "/";
+		return;
+	}
+
+	//Tokenize internal path
+	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
+	boost::char_separator<char> Sep("/");
+	Tokenizer Tokens(InternalPath, Sep);
+	Tokenizer::iterator Itr = Tokens.begin();
+	_ReservedInternalPath = ""; //Reset reserved internal path
+
+	//Check mobile version
+	if(IRIPMobileVersion(HostName, *Itr))
+	{
+		++Itr;
+		if(Itr == Tokens.end())
+		{
+			return;
+		}
+	}
+
+	//Check if internal path includes language access path and set LanguageAccessPath ptr
+	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	if(!Itr->empty())
+	{
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
+			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		{
+			HostName = HostName.substr(4);
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+		}
+		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
+			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		{
+			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
+		}
+	}
+
+	//Check if LanguageAccessPath was found and set locale accordingly
+	if(LanguageAccessPath) //Found
+	{
+		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		{
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+		}
+		_ReservedInternalPath += "/" + *Itr; //Add language internal path to reserved
+	}
 }
