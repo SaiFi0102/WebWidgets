@@ -236,8 +236,8 @@ void DboInstaller::InsertConfigurations()
 	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVNoRestrictionHideDefault);
 	InternalPathModeVal.modify()->EnumValueCollection.insert(IPMVNoRestriction);
 
-	InternalPathModeVal.modify()->Value = IPMVNoRestrictionHideDefault->Value;
-	InternalPathModeVal.modify()->DefaultValue = IPMVNoRestrictionHideDefault->Value;
+	InternalPathModeVal.modify()->Value = IPMVShowHideDefault->Value;
+	InternalPathModeVal.modify()->DefaultValue = IPMVShowHideDefault->Value;
 
 	InternalPathMode.modify()->EnumPtr = InternalPathModeVal;
 
