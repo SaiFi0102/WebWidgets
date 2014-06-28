@@ -22,7 +22,7 @@ Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
 	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
-	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), //Localization related bools
+	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization related bools
 	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI related bools
 {
 	//Enable server push
@@ -175,26 +175,29 @@ Wt::Signal<void> &Application::LocaleChanged()
 
 std::string Application::InternalPathAfterReservedNextPart(const std::string &after) const
 {
-	std::string arg = _ReservedInternalPath.size() ? "/" : "";
-	arg +=_ReservedInternalPath + after;
-	return internalPathNextPart(arg);
+	if(_ReservedInternalPath == "/")
+	{
+		return internalPathNextPart(after);
+	}
+	return internalPathNextPart(_ReservedInternalPath + after);
 }
 
 std::string Application::InternalPathAfterReserved() const
 {
-	return internalSubPath(std::string("/") + _ReservedInternalPath);
+	return internalSubPath(_ReservedInternalPath);
 }
 
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
 {
-	//Skip reinterpreting reserved internal path
-	if(emitChange)
-	{
-		_SkipReservedPathInterpretation = true;
-	}
-
 	//Set path
-	setInternalPath(std::string("/") + _ReservedInternalPath + path, emitChange);
+	if(_ReservedInternalPath == "/")
+	{
+		setInternalPath(path, false);
+	}
+	else
+	{
+		setInternalPath(_ReservedInternalPath + path, false);
+	}
 	if(emitChange)
 	{
 		_InternalPathAfterReservedChanged.emit(path);
@@ -203,7 +206,7 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 
 std::string Application::InternalPathReserved() const
 {
-	return std::string("/") + _ReservedInternalPath;
+	return _ReservedInternalPath;
 }
 
 Wt::Signal<std::string> &Application::internalPathAfterReservedChanged()
@@ -373,11 +376,13 @@ void Application::HandleWtInternalPathChanged()
 	internalPathChanged().emit(internalPath());
 
 	//Check if internal path after reserved changed
-	std::string NewReservedInternalPath = InternalPathAfterReserved();
-	if(Wt::Utils::append(oldInternalPath_, '/').substr(_OldReservedInternalPath.size()) != NewReservedInternalPath)
-	{
-		internalPathAfterReservedChanged().emit(NewReservedInternalPath);
-	}
+	internalPathAfterReservedChanged().emit(InternalPathAfterReserved());
+// 	std::string NewReservedInternalPath = InternalPathAfterReserved();
+// 	std::string OldReservedInternalPath = Wt::Utils::append(oldInternalPath_, '/').substr(_OldReservedInternalPath.size());
+// 	if(OldReservedInternalPath != NewReservedInternalPath)
+// 	{
+// 		internalPathAfterReservedChanged().emit(NewReservedInternalPath);
+// 	}
 }
 
 void Application::InterpretReservedInternalPath()
@@ -398,7 +403,7 @@ void Application::InterpretReservedInternalPath()
 
 	//Old reserved internal path
 	_OldReservedInternalPath = _ReservedInternalPath;
-	_ReservedInternalPath = "";
+	_ReservedInternalPath = "/";
 
 	switch(IPLM)
 	{
@@ -414,12 +419,6 @@ void Application::InterpretReservedInternalPath()
 		case 4:
 			IRIPNoRestriction();
 		break;
-	}
-
-	//Remove trailing slash if its there
-	if(!_ReservedInternalPath.empty() && _ReservedInternalPath[_ReservedInternalPath.size()-1] == '/')
-	{
-		_ReservedInternalPath = _ReservedInternalPath.substr(0, _ReservedInternalPath.size()-1);
 	}
 }
 
@@ -453,7 +452,7 @@ bool Application::IRIPMobileVersion(const std::string &HostName, const std::stri
 				_MobileVersionChanged.emit(true);
 			}
 			_MobileVersionFromInternalPath = true;
-			_ReservedInternalPath += Path + "/"; //Add mobile access path to reserved path
+			_ReservedInternalPath += Path; //Add mobile access path to reserved path
 			return true;
 		}
 		else
@@ -478,9 +477,9 @@ void Application::IRIPAlwaysShow()
 
 	if(InternalPath == "/")
 	{
-		_ReservedInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname).substr(1); //Without the starting "/"
+		_ReservedInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
 		_SkipReservedPathInterpretation = true;
-		setInternalPath(std::string("/") + _ReservedInternalPath, true);
+		setInternalPath(_ReservedInternalPath, true);
 		return;
 	}
 
@@ -524,12 +523,20 @@ void Application::IRIPAlwaysShow()
 		{
 			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
 		}
+		if(_ReservedInternalPath != "/")
+		{
+			_ReservedInternalPath += "/";
+		}
 		_ReservedInternalPath += *Itr; //Add language internal path to reserved
 	}
 	else //Not found
 	{
 		std::string CurrentLanguageInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
-		_ReservedInternalPath += CurrentLanguageInternalPath.substr(1); //Add language internal path to reserved without the starting "/"
+		if(_ReservedInternalPath == "/")
+		{
+			_ReservedInternalPath = "";
+		}
+		_ReservedInternalPath += CurrentLanguageInternalPath; //Add language internal path to reserved
 		if(CurrentLanguageInternalPath == "/")
 		{
 			CurrentLanguageInternalPath = "";
@@ -552,7 +559,7 @@ void Application::IRIPAlwaysShowHideDef()
 	{
 		if(locale().name() != _SessionDefaultLocale.name())
 		{
-			_ReservedInternalPath = "";
+			//_ReservedInternalPath = "/";
 			setLocale(_SessionDefaultLocale);
 		}
 		return;
@@ -606,6 +613,10 @@ void Application::IRIPAlwaysShowHideDef()
 		}
 		else
 		{
+			if(_ReservedInternalPath != "/")
+			{
+				_ReservedInternalPath += "/";
+			}
 			_ReservedInternalPath += *Itr; //Add language internal path to reserved
 		}
 	}
@@ -613,17 +624,7 @@ void Application::IRIPAlwaysShowHideDef()
 	{
 		if(locale().name() != _SessionDefaultLocale.name()) //if set to hide default and if current language is NOT default
 		{
-			std::string CurrentLanguageInternalPath = Server->AccessPaths()->FirstInternalPath(locale().name(), HostName, _LanguageFromHostname);
-			_ReservedInternalPath += CurrentLanguageInternalPath.substr(1); //Add language internal path to reserved without the starting "/"
-			if(CurrentLanguageInternalPath == "/")
-			{
-				CurrentLanguageInternalPath = "";
-			}
-			//Prepend current language instead of replacing because probably that path wont be a language code
-			_SkipReservedPathInterpretation = true;
-			setInternalPath(std::string(InternalPath).replace(InternalPath.find(std::string("/") + *Itr),
-				Itr->size() + 1,
-				CurrentLanguageInternalPath + "/" + *Itr), true);
+			setLocale(_SessionDefaultLocale);
 		}
 	}
 }
@@ -636,7 +637,7 @@ void Application::IRIPNoRestrictionHideDef()
 
 	if(InternalPath == "/")
 	{
-		_ReservedInternalPath = "";
+		//_ReservedInternalPath = "/";
 		return;
 	}
 
@@ -693,6 +694,10 @@ void Application::IRIPNoRestrictionHideDef()
 		}
 		else
 		{
+			if(_ReservedInternalPath != "/")
+			{
+				_ReservedInternalPath += "/";
+			}
 			_ReservedInternalPath += *Itr; //Add language internal path to reserved
 		}
 	}
@@ -706,7 +711,7 @@ void Application::IRIPNoRestriction()
 
 	if(InternalPath == "/")
 	{
-		_ReservedInternalPath = "";
+		//_ReservedInternalPath = "/";
 		return;
 	}
 
@@ -749,6 +754,10 @@ void Application::IRIPNoRestriction()
 		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
 		{
 			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+		}
+		if(_ReservedInternalPath != "/")
+		{
+			_ReservedInternalPath += "/";
 		}
 		_ReservedInternalPath += *Itr; //Add language internal path to reserved
 	}
