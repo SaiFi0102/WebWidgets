@@ -12,26 +12,39 @@ class WServer;
 class PagesDatabase
 {
 	private:
+		struct MetaPage
+		{
+			MetaPage(Wt::Dbo::ptr<Page> PagePtr = Wt::Dbo::ptr<Page>())
+				: PagePtr(PagePtr)
+			{ }
+			MetaPage(Wt::Dbo::ptr<Page> PagePtr, boost::function<void()> Handler)
+				: PagePtr(PagePtr), HandlerFunction(Handler)
+			{ }
+
+			Wt::Dbo::ptr<Page> PagePtr;
+			boost::function<void()> HandlerFunction;
+		};
+
 		struct Page_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<Page> &PagePtr) const
+			result_type operator()(const MetaPage &Page) const
 			{
-				return PagePtr.id().id;
+				return Page.PagePtr.id().id;
 			}
 		};
 		struct Page_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<Page> &PagePtr) const
+			result_type operator()(const MetaPage &Page) const
 			{
-				return PagePtr.id().ModulePtr.id();
+				return Page.PagePtr.id().ModulePtr.id();
 			}
 		};
 		struct ByCompositeKey{};
 
 		typedef boost::multi_index_container<
-			Wt::Dbo::ptr<Page>,
+			MetaPage,
 
 			boost::multi_index::indexed_by<
 				//Index by Page Id and Module Id
@@ -56,6 +69,8 @@ class PagesDatabase
 
 		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
 		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
+
+		void RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler);
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;

@@ -23,7 +23,7 @@ class Page : public Wt::Dbo::Dbo<Page>
 		std::string	DefaultInternalPath;
 		std::string	Title;
 
-		AccessPathCollections AccessPathCollection;
+		Wt::Dbo::ptr<AccessPath> AccessPathPtr;
 
 		//PageCollections ChildrenPages;
 		//Wt::Dbo::ptr<Page> ParentPage;
@@ -37,7 +37,7 @@ class Page : public Wt::Dbo::Dbo<Page>
 			Wt::Dbo::field(a, DefaultInternalPath, "DefaultInternalPath", 50);
 			Wt::Dbo::field(a, Title, "Title");
 
-			Wt::Dbo::hasMany(a, AccessPathCollection, Wt::Dbo::ManyToOne, "Page");
+			Wt::Dbo::belongsTo(a, AccessPathPtr, "accesspath", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
 
 			//Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
 			//Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);

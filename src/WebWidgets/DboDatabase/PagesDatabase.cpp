@@ -91,7 +91,7 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) c
 	{
 		return Wt::Dbo::ptr<Page>();
 	}
-	return *itr;
+	return itr->PagePtr;
 }
 /*Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
 {
@@ -103,6 +103,20 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) c
 	}
 	return *itr;
 }*/
+
+void PagesDatabase::RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler)
+{
+	WRITE_LOCK;
+	PageByCompositeKey::iterator itr = PageContainer.get<ByCompositeKey>().find(boost::make_tuple(PageId, ModuleId));
+	if(itr == PageContainer.get<ByCompositeKey>().end())
+	{
+		
+	}
+	else
+	{
+		itr->HandlerFunction = Handler;
+	}
+}
 
 std::size_t PagesDatabase::CountPages() const
 {

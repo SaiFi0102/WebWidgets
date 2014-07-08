@@ -41,8 +41,8 @@ void WServer::Initialize()
 	{
 		log("info") << "Connecting to database";
 
-		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
+		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
+		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
 		SQLConnection->setProperty("show-queries", "true");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
@@ -80,14 +80,14 @@ void WServer::Initialize()
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	bool REINSTALLDBO = false;
+	bool REINSTALLDBO = true;
 	if(REINSTALLDBO)
 	{
 		//Drop
 		try
 		{
 			_Installer = new DboInstaller(*SQLPool);
-			_Installer->DropTables();
+			//_Installer->DropTables();
 		}
 		catch(Wt::Dbo::Exception &e)
 		{

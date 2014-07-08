@@ -57,13 +57,33 @@ void AccessPathsDatabase::FetchAll()
 	accesspathcontainer.swap(AccessPathContainer);
 
 	//Strong transaction like exception safety
+	AccessPathCollections AccessPathCollection;
 	try
 	{
 		DboSession.disconnectAll();
 		Wt::Dbo::Transaction transaction(DboSession);
-		AccessPathCollections AccessPathCollection = DboSession.find<AccessPath>().orderBy("CHAR_LENGTH(\"InternalPath\") ASC"); //TODO no CHAR_LENGTH in SQLite
-	
+		AccessPathCollection = DboSession.find<AccessPath>().orderBy("CHAR_LENGTH(\"InternalPath\") ASC");
+		transaction.commit();
+	}
+	catch(Wt::Dbo::Exception &)
+	{
+		try
+		{
+			Wt::Dbo::Transaction transaction(DboSession);
+			AccessPathCollection = DboSession.find<AccessPath>().orderBy("LENGTH(\"InternalPath\") ASC");
+			transaction.commit();
+		}
+		catch(...)
+		{
+			AccessPathContainer.swap(accesspathcontainer);
+			throw;
+		}
+	}
+
+	try
+	{
 		//All AccessPaths
+		Wt::Dbo::Transaction transaction(DboSession);
 		for(AccessPathCollections::const_iterator itr = AccessPathCollection.begin();
 			itr != AccessPathCollection.end();
 			++itr)
@@ -199,24 +219,3 @@ void AccessPathsDatabase::Reload()
 {
 	FetchAll();
 }
-
-/*Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::AccessPathFrom(const std::string &HostName, std::string InternalPath, bool LanguageFromHostname) const
-{
-	READ_LOCK;
-	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
-	AccessPathByURL::const_iterator enditr = AccessPathContainer.get<ByURL>().end();
-	if(itr == enditr && HostName.substr(0, 4) == "www.")
-	{
-		itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName.substr(4), InternalPath));
-	}
-	if(itr == enditr
-		&& (!LanguageFromHostname || _Server.GetConfigurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
-	{
-		itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple("", InternalPath));
-	}
-	if(itr == enditr)
-	{
-		return Wt::Dbo::ptr<AccessPath>();
-	}
-	return *itr;
-}*/
