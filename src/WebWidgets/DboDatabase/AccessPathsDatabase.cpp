@@ -154,6 +154,41 @@ Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::LanguageAccessPathPtr(const std::s
 	return *itr;
 }
 
+Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
+{
+	READ_LOCK;
+	AccessPathById::const_iterator itr = AccessPathContainer.get<ById>().find(Id);
+	if (itr == AccessPathContainer.get<ById>().end())
+	{
+		return Wt::Dbo::ptr<AccessPath>();
+	}
+	if (!(*itr)->PagePtr)
+	{
+		return Wt::Dbo::ptr<AccessPath>();
+	}
+	return *itr;
+}
+
+Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
+{
+	READ_LOCK;
+	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
+	if (itr == AccessPathContainer.get<ByURL>().end())
+	{
+		return Wt::Dbo::ptr<AccessPath>();
+	}
+	if (!(*itr)->PagePtr)
+	{
+		return Wt::Dbo::ptr<AccessPath>();
+	}
+	return *itr;
+}
+
+Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::HomePageAccessPathPtr() const
+{
+	return PageAccessPathPtr(_Server.Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
+}
+
 bool AccessPathsDatabase::AccessPathExists(long long Id) const
 {
 	READ_LOCK;

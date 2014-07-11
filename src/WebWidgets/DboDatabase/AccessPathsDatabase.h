@@ -92,6 +92,9 @@ class AccessPathsDatabase
 		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
 		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(long long Id) const;
 		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(long long Id) const;
+		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		Wt::Dbo::ptr<AccessPath> HomePageAccessPathPtr() const;
 
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;

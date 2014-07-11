@@ -52,12 +52,15 @@ class Application : public Wt::WApplication
 
 		//Internal path change handlers
 		void HandleWtInternalPathChanged();
+
 		void InterpretReservedInternalPath();
 		bool IRIPMobileVersion(const std::string &HostName, const std::string &Path);
 		void IRIPAlwaysShow();
 		void IRIPAlwaysShowHideDef();
 		void IRIPNoRestrictionHideDef();
 		void IRIPNoRestriction();
+
+		void InterpretPageInternalPath();
 		
 		//Styling
 		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
@@ -81,6 +84,9 @@ class Application : public Wt::WApplication
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
+
+		Wt::Dbo::ptr<Page> _CurrentPagePtr;
+		Wt::Signal<void> _PageChanged;
 
 		ConfigurationsCache *_Configurations;
 

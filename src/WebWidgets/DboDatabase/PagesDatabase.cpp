@@ -1,4 +1,5 @@
 #include "DboDatabase/PagesDatabase.h"
+#include "DboDatabase/AccessPathsDatabase.h"
 #include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
@@ -51,8 +52,8 @@ void PagesDatabase::FetchAll()
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
 	//Copy into temporary objects and reset the original
-	PageContainers pagecontainer;
-	boost::multi_index::swap(pagecontainer, PageContainer);
+	PageMaps pagemap;
+	pagemap.swap(PageMap);
 
 	//Strong transaction like exception safety
 	try
@@ -67,14 +68,14 @@ void PagesDatabase::FetchAll()
 			itr != PageCollection.end();
 			++itr)
 		{
-			PageContainer.get<0>().insert(*itr);
+			PageMap[std::make_pair(itr->id().id, itr->id().ModulePtr.id())] = MetaPage(*itr);
 		}
 
 		transaction.commit();
 	}
 	catch(...)
 	{
-		boost::multi_index::swap(PageContainer, pagecontainer);
+		PageMap.swap(pagemap);
 		throw;
 	}
 
@@ -86,13 +87,24 @@ void PagesDatabase::FetchAll()
 Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
 {
 	READ_LOCK;
-	PageByCompositeKey::iterator itr = PageContainer.get<ByCompositeKey>().find(boost::make_tuple(PageId, ModuleId));
-	if(itr == PageContainer.get<ByCompositeKey>().end())
+	PageMaps::const_iterator itr = PageMap.find(std::make_pair(PageId, ModuleId));
+	if(itr == PageMap.end())
 	{
 		return Wt::Dbo::ptr<Page>();
 	}
-	return itr->PagePtr;
+	return itr->second.PagePtr;
 }
+
+Wt::Dbo::ptr<Page> PagesDatabase::HomePagePtr() const
+{
+	Wt::Dbo::ptr<AccessPath> HomePageAccessPath = _Server.AccessPaths()->HomePageAccessPathPtr();
+	if(!HomePageAccessPath)
+	{
+		return Wt::Dbo::ptr<Page>();
+	}
+	return GetPtr(HomePageAccessPath->PagePtr.id().id, HomePageAccessPath->PagePtr.id().ModulePtr.id());
+}
+
 /*Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
 {
 	READ_LOCK;
@@ -107,21 +119,30 @@ Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) c
 void PagesDatabase::RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler)
 {
 	WRITE_LOCK;
-	PageByCompositeKey::iterator itr = PageContainer.get<ByCompositeKey>().find(boost::make_tuple(PageId, ModuleId));
-	if(itr == PageContainer.get<ByCompositeKey>().end())
+	PageMap[std::make_pair(PageId, ModuleId)].HandlerFunction = Handler;
+}
+
+bool PagesDatabase::CallPageHandler(long long PageId, long long ModuleId)
+{
+	READ_LOCK;
+	PageMaps::const_iterator itr = PageMap.find(std::make_pair(PageId, ModuleId));
+	if(itr == PageMap.end())
 	{
-		
+		return false;
 	}
-	else
+	if(itr->second.HandlerFunction.empty())
 	{
-		itr->HandlerFunction = Handler;
+		return false;
 	}
+
+	itr->second.HandlerFunction();
+	return true;
 }
 
 std::size_t PagesDatabase::CountPages() const
 {
 	READ_LOCK;
-	return PageContainer.size();
+	return PageMap.size();
 }
 long long PagesDatabase::GetLoadDurationinMS() const
 {

@@ -9,6 +9,7 @@
 #include "DboDatabase/ConfigurationsDatabase.h"
 #include "DboDatabase/ConfigurationsCache.h"
 #include "DboDatabase/StylesDatabase.h"
+#include "DboDatabase/PagesDatabase.h"
 #include "DboDatabase/ReadLock.h"
 
 #include <Wt/WEnvironment>
@@ -21,7 +22,7 @@
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
-	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
+	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), _PageChanged(this), //Signals
 	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization related bools
 	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI related bools
 {
@@ -111,11 +112,18 @@ Application::Application(const Wt::WEnvironment &env)
 	}
 	_SessionDefaultLocale = locale();
 
-	//Connect slots that should run first(must be mutually exclusive)
+	//Internal paths
+	setInternalPathDefaultValid(true);
+
+	//Connect slots that should run first
 	Wt::WApplication::internalPathChanged().connect(boost::bind(&Application::HandleWtInternalPathChanged, this));
 
 	//Set language from internal path
 	InterpretReservedInternalPath();
+
+	//Page change signal/slot
+	internalPathAfterReservedChanged().connect(boost::bind(&Application::InterpretPageInternalPath, this));
+	InterpretPageInternalPath();
 
 	//Style CSS Stylesheet
 	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
@@ -760,6 +768,84 @@ void Application::IRIPNoRestriction()
 			_ReservedInternalPath += "/";
 		}
 		_ReservedInternalPath += *Itr; //Add language internal path to reserved
+	}
+}
+
+void Application::InterpretPageInternalPath()
+{
+	WServer *Server = WServer::instance();
+	std::string InternalPath = InternalPathAfterReserved();
+	std::string HostName = environment().hostName();
+
+	//Tokenize internal path
+	typedef boost::tokenizer<boost::char_separator<char>> Tokenizer;
+	boost::char_separator<char> Sep("/");
+	Tokenizer Tokens(InternalPath, Sep);
+
+	//Check if internal path includes page access path and set PageAccessPath ptr
+	Wt::Dbo::ptr<AccessPath> PageAccessPath;
+	for(Tokenizer::iterator Itr = Tokens.begin(), Wt::Dbo::ptr<AccessPath> ParentAccessPath;
+		Itr != Tokens.end();
+		++Itr)
+	{
+		if(!(PageAccessPath = Server->AccessPaths()->PageAccessPathPtr(HostName, *Itr))
+			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		{
+			HostName = HostName.substr(4);
+			PageAccessPath = Server->AccessPaths()->PageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+		}
+		if(!PageAccessPath) //Check again if STILL not found(without hostname)
+		{
+			PageAccessPath = Server->AccessPaths()->PageAccessPathPtr("", *Itr);
+		}
+		if(!PageAccessPath && InternalPath == "/") //If still not found use the default homepage if user is on homepage
+		{
+			PageAccessPath = Server->AccessPaths()->HomePageAccessPathPtr();
+		}
+
+		//Stop iteration if
+		if(ParentAccessPath)
+		{
+			if(PageAccessPath)
+			{
+// 				if(ParentAccessPath != PageAccessPath->ParentPage)
+// 				{
+// 					//Set invalid child path status
+// 					break;
+// 				}
+			}
+			else if(!ParentAccessPath->HasChildPaths)
+			{
+				//set invalid child path status
+				break;
+			}
+		}
+		else if(!PageAccessPath)
+		{
+			break;
+		}
+	}
+
+
+	if(PageAccessPath)
+	{
+		//Set PagePtr and call its handler if the page has changed
+		Wt::Dbo::ptr<Page> PagePtr = Server->Pages->GetPtr(PageAccessPath->PagePtr.id().id, PageAccessPath->PagePtr.id().ModulePtr.id());
+		if(!PagePtr)
+		{
+			return;
+		}
+		if(PagePtr != _CurrentPagePtr)
+		{
+			_CurrentPagePtr = PagePtr;
+			Server->Pages()->CallPageHandler(_CurrentPagePtr.id().id, _CurrentPagePtr.id().ModulePtr.id());
+		}
+	}
+	else
+	{
+		_CurrentPagePtr = Wt::Dbo::ptr<Page>();
+		setInternalPathValid(false);
+		//TODO Show 404 page
 	}
 }
 

@@ -6,6 +6,7 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/unordered_map.hpp>
 
 class WServer;
 
@@ -25,40 +26,7 @@ class PagesDatabase
 			boost::function<void()> HandlerFunction;
 		};
 
-		struct Page_key_id
-		{
-			typedef long long result_type;
-			result_type operator()(const MetaPage &Page) const
-			{
-				return Page.PagePtr.id().id;
-			}
-		};
-		struct Page_key_ModuleId
-		{
-			typedef long long result_type;
-			result_type operator()(const MetaPage &Page) const
-			{
-				return Page.PagePtr.id().ModulePtr.id();
-			}
-		};
-		struct ByCompositeKey{};
-
-		typedef boost::multi_index_container<
-			MetaPage,
-
-			boost::multi_index::indexed_by<
-				//Index by Page Id and Module Id
-				boost::multi_index::hashed_unique<
-					boost::multi_index::tag<ByCompositeKey>,
-					boost::multi_index::composite_key<
-						Wt::Dbo::ptr<Page>,
-						Page_key_id,
-						Page_key_ModuleId
-					>
-				>
-			>
-		> PageContainers;
-		typedef PageContainers::index<ByCompositeKey>::type PageByCompositeKey;
+		typedef boost::unordered_map<std::pair<long long, long long>, MetaPage> PageMaps;
 
 	public:
 		PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
@@ -68,6 +36,7 @@ class PagesDatabase
 		void Reload();
 
 		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
+		Wt::Dbo::ptr<Page> HomePagePtr() const;
 		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
 
 		void RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler);
@@ -79,7 +48,9 @@ class PagesDatabase
 		void MapClasses();
 		void FetchAll();
 
-		PageContainers PageContainer;
+		bool CallPageHandler(long long PageId, long long ModuleId);
+
+		PageMaps PageMap;
 		boost::posix_time::time_duration LoadDuration;
 		Wt::Dbo::Session DboSession;
 		WServer &_Server;
@@ -87,6 +58,7 @@ class PagesDatabase
 
 	private:
 		friend class ReadLock;
+		friend class Application;
 };
 
 #endif
