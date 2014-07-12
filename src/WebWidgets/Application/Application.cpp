@@ -723,8 +723,9 @@ void Application::InterpretPageInternalPath()
 	Tokenizer Tokens(InternalPath, Sep);
 
 	//Check if internal path includes page access path and set PageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> PageAccessPath;
-	for(Tokenizer::iterator Itr = Tokens.begin(), Wt::Dbo::ptr<AccessPath> ParentAccessPath;
+	Wt::Dbo::ptr<AccessPath> PageAccessPath, ParentAccessPath;
+
+	for(Tokenizer::iterator Itr = Tokens.begin();
 		Itr != Tokens.end();
 		++Itr)
 	{
@@ -770,7 +771,7 @@ void Application::InterpretPageInternalPath()
 	if(PageAccessPath)
 	{
 		//Set PagePtr and call its handler if the page has changed
-		Wt::Dbo::ptr<Page> PagePtr = Server->Pages->GetPtr(PageAccessPath->PagePtr.id().id, PageAccessPath->PagePtr.id().ModulePtr.id());
+		Wt::Dbo::ptr<Page> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PagePtr.id().id, PageAccessPath->PagePtr.id().ModulePtr.id());
 		if(!PagePtr)
 		{
 			return;

@@ -25,6 +25,7 @@ struct LanguageSingleKeys
 		return LanguagePtr == other.LanguagePtr && Key == other.Key && ModulePtr == other.ModulePtr;
 	}
 };
+std::ostream &operator<< (std::ostream &o, const LanguageSingleKeys &c);
 
 struct LanguagePluralKeys : public LanguageSingleKeys
 {
@@ -43,11 +44,6 @@ struct LanguagePluralKeys : public LanguageSingleKeys
 		return LanguagePtr == other.LanguagePtr && Key == other.Key && Case == other.Case && ModulePtr == other.ModulePtr;
 	}
 };
-
-//Overloaded operator<< for Language Single Keys structure
-std::ostream &operator<< (std::ostream &o, const LanguageSingleKeys &c);
-
-//Overloaded operator<< for Language Plural Keys structure
 std::ostream &operator<< (std::ostream &o, const LanguagePluralKeys &c);
 
 class Language : public Wt::Dbo::Dbo<Language>

@@ -24,6 +24,7 @@ class Style;
 class StyleCssRule;
 class TemplateCssRule;
 class StyleTemplate;
+class WidgetDbo;
 
 struct ConfigurationKeys;
 struct LanguageSingleKeys;
@@ -54,6 +55,7 @@ typedef Wt::Dbo::collection< Wt::Dbo::ptr<Style> > StyleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleTemplate> > StyleTemplateCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<WidgetDbo> > WidgetDboCollections;
 
 template<>
 struct Wt::Dbo::dbo_traits<Author> : public Wt::Dbo::dbo_default_traits
@@ -85,7 +87,7 @@ namespace Wt
 		struct dbo_traits<::Configuration> : public dbo_default_traits
 		{
 			typedef ConfigurationKeys IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationBool DBO
@@ -93,7 +95,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationBool> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationDouble DBO
@@ -101,7 +103,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationDouble> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationEnum DBO
@@ -109,7 +111,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationEnum> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationFloat DBO
@@ -117,7 +119,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationFloat> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationInt DBO
@@ -125,7 +127,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationInt> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationLongInt DBO
@@ -133,7 +135,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationLongInt> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationString DBO
@@ -141,7 +143,7 @@ namespace Wt
 		struct dbo_traits<ConfigurationString> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId() { return IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded Wt::Dbo::field() for Language Single Keys structure
@@ -168,7 +170,7 @@ namespace Wt
 		struct dbo_traits<Language> : public dbo_default_traits
 		{
 			typedef std::string IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId() { return IdType(); }
 			static const char *surrogateIdField() { return 0; }
 		};
 
@@ -177,7 +179,7 @@ namespace Wt
 		struct dbo_traits<LanguageSingle> : public dbo_default_traits
 		{
 			typedef LanguageSingleKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 
@@ -186,7 +188,7 @@ namespace Wt
 		struct dbo_traits<LanguagePlural> : public dbo_default_traits
 		{
 			typedef LanguagePluralKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
@@ -199,7 +201,7 @@ namespace Wt
 		struct dbo_traits<Page> : public dbo_default_traits
 		{
 			typedef PageKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
@@ -212,7 +214,7 @@ namespace Wt
 		struct dbo_traits<Style> : public dbo_default_traits
 		{
 			typedef StyleKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
@@ -225,7 +227,7 @@ namespace Wt
 		struct dbo_traits<Template> : public dbo_default_traits
 		{
 			typedef TemplateKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
@@ -238,7 +240,7 @@ namespace Wt
 		struct dbo_traits<StyleTemplate> : public dbo_default_traits
 		{
 			typedef StyleTemplateKeys IdType;
-			static IdType invalidId() { IdType(); }
+			static IdType invalidId();
 			static const char *surrogateIdField() { return 0; }
 		};
 	}
