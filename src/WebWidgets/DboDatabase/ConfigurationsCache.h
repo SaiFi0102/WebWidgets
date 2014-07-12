@@ -37,7 +37,7 @@ class ConfigurationsCache
 		long long GetLongInt(const std::string &Name, long long ModuleId, long long Default) const;
 		std::string GetStr(const std::string &Name, long long ModuleId, std::string Default = "") const;
 
-		ConfigurationsDatabase *Database();
+		ConfigurationsDatabase *Database() { return _Database; }
 
 	protected:
 		BoolMaps BoolMap;

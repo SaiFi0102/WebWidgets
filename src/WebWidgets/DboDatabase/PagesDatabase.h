@@ -32,7 +32,7 @@ class PagesDatabase
 		PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		PagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void Load();
+		void Load() { FetchAll(); }
 		void Reload();
 
 		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;

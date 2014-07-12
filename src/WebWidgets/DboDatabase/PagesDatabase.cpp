@@ -150,11 +150,6 @@ long long PagesDatabase::GetLoadDurationinMS() const
 	return LoadDuration.total_milliseconds();
 }
 
-void PagesDatabase::Load()
-{
-	FetchAll();
-}
-
 void PagesDatabase::Reload()
 {
 	FetchAll();

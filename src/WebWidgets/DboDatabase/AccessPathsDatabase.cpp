@@ -184,11 +184,6 @@ Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::PageAccessPathPtr(const std::strin
 	return *itr;
 }
 
-Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::HomePageAccessPathPtr() const
-{
-	return PageAccessPathPtr(_Server.Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
-}
-
 bool AccessPathsDatabase::AccessPathExists(long long Id) const
 {
 	READ_LOCK;
@@ -243,14 +238,4 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 		return "/";
 	}
 	return std::string("/") + (*itr)->InternalPath;
-}
-
-void AccessPathsDatabase::Load()
-{
-	FetchAll();
-}
-
-void AccessPathsDatabase::Reload()
-{
-	FetchAll();
 }

@@ -85,64 +85,64 @@ namespace Wt
 		struct dbo_traits<::Configuration> : public dbo_default_traits
 		{
 			typedef ConfigurationKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationBool DBO
 		template<>
 		struct dbo_traits<ConfigurationBool> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationDouble DBO
 		template<>
 		struct dbo_traits<ConfigurationDouble> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationEnum DBO
 		template<>
 		struct dbo_traits<ConfigurationEnum> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationFloat DBO
 		template<>
 		struct dbo_traits<ConfigurationFloat> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationInt DBO
 		template<>
 		struct dbo_traits<ConfigurationInt> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationLongInt DBO
 		template<>
 		struct dbo_traits<ConfigurationLongInt> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded dbo_traits for ConfigurationString DBO
 		template<>
 		struct dbo_traits<ConfigurationString> : public dbo_default_traits
 		{
 			typedef Wt::Dbo::ptr<::Configuration> IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		//Overloaded Wt::Dbo::field() for Language Single Keys structure
 		template<class Action>
@@ -168,8 +168,8 @@ namespace Wt
 		struct dbo_traits<Language> : public dbo_default_traits
 		{
 			typedef std::string IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 
 		//Overloaded dbo_traits for LanguageSingle DBO
@@ -177,8 +177,8 @@ namespace Wt
 		struct dbo_traits<LanguageSingle> : public dbo_default_traits
 		{
 			typedef LanguageSingleKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 
 		//Overloaded dbo_traits for LanguagePlural DBO
@@ -186,8 +186,8 @@ namespace Wt
 		struct dbo_traits<LanguagePlural> : public dbo_default_traits
 		{
 			typedef LanguagePluralKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
 		void field(Action &action, PageKeys &Keys, const std::string &name, int size = -1)
@@ -199,8 +199,8 @@ namespace Wt
 		struct dbo_traits<Page> : public dbo_default_traits
 		{
 			typedef PageKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
 		void field(Action &action, StyleKeys &Key, const std::string &name, int size = -1)
@@ -212,8 +212,8 @@ namespace Wt
 		struct dbo_traits<Style> : public dbo_default_traits
 		{
 			typedef StyleKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
 		void field(Action &action, TemplateKeys &Key, const std::string &name, int size = -1)
@@ -225,8 +225,8 @@ namespace Wt
 		struct dbo_traits<Template> : public dbo_default_traits
 		{
 			typedef TemplateKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 		template<class Action>
 		void field(Action &action, StyleTemplateKeys &Key, const std::string &name, int size = -1)
@@ -238,8 +238,8 @@ namespace Wt
 		struct dbo_traits<StyleTemplate> : public dbo_default_traits
 		{
 			typedef StyleTemplateKeys IdType;
-			static IdType invalidId();
-			static const char *surrogateIdField();
+			static IdType invalidId() { IdType(); }
+			static const char *surrogateIdField() { return 0; }
 		};
 	}
 }

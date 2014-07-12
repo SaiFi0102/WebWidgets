@@ -9,11 +9,18 @@ struct PageKeys
 	long long id;
 	Wt::Dbo::ptr<Module> ModulePtr;
 
-	PageKeys();
-	PageKeys(long long id, Wt::Dbo::ptr<Module> ModulePtr);
+	PageKeys()
+		: id(-1)
+	{ }
+	PageKeys(long long id, Wt::Dbo::ptr<Module> ModulePtr)
+		: id(id), ModulePtr(ModulePtr)
+	{ }
 
 	bool operator< (const PageKeys &other) const;
-	bool operator== (const PageKeys &other) const;
+	bool operator== (const PageKeys &other) const
+	{
+		return id == other.id && ModulePtr == other.ModulePtr;
+	}
 };
 std::ostream &operator<< (std::ostream &o, const PageKeys &c);
 
@@ -28,8 +35,10 @@ class Page : public Wt::Dbo::Dbo<Page>
 		//PageCollections ChildrenPages;
 		//Wt::Dbo::ptr<Page> ParentPage;
 
-		Page();
-		Page(long long id, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>());
+		Page() { }
+		Page(long long id, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
+			: _Id(id, ModulePtr)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{

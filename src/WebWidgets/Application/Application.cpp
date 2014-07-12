@@ -155,30 +155,10 @@ Application::~Application()
 	Server->AppDeleted(this);
 }
 
-Application *Application::CreateApplication(const Wt::WEnvironment &env)
-{
-	return new Application(env);
-}
-
-Application *Application::instance()
-{
-	return dynamic_cast<Application*>(Wt::WApplication::instance());
-}
-
-ConfigurationsCache *Application::Configurations() const
-{
-	return _Configurations;
-}
-
 void Application::setLocale(const Wt::WLocale &locale)
 {
 	Wt::WApplication::setLocale(locale);
 	_LocaleChanged.emit();
-}
-
-Wt::Signal<void> &Application::LocaleChanged()
-{
-	return _LocaleChanged;
 }
 
 std::string Application::InternalPathAfterReservedNextPart(const std::string &after) const
@@ -212,36 +192,6 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 	}
 }
 
-std::string Application::InternalPathReserved() const
-{
-	return _ReservedInternalPath;
-}
-
-Wt::Signal<std::string> &Application::internalPathAfterReservedChanged()
-{
-	return _InternalPathAfterReservedChanged;
-}
-
-Wt::Signal<std::string> &Application::internalPathChanged()
-{
-	return _InternalPathChanged;
-}
-
-bool Application::IsMobileVersion() const
-{
-	return _MobileVersionFromHostname || _MobileVersionFromInternalPath;
-}
-
-Wt::Signal<bool> &Application::MobileVersionChanged()
-{
-	return _MobileVersionChanged;
-}
-
-Wt::Dbo::ptr<Style> Application::CurrentStyle() const
-{
-	return _CurrentStylePtr;
-}
-
 void Application::ChangeStyle(Wt::Dbo::ptr<Style> StylePtr)
 {
 	if(!StylePtr || StylePtr.isTransient() || _CurrentStylePtr.id() == StylePtr.id())
@@ -272,16 +222,6 @@ void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
 	_CurrentStylePtr = StylePtr;
 	refresh(); //To reload styletemplates
 	_StyleChanged.emit();
-}
-
-Wt::Signal<void> &Application::StyleChanged()
-{
-	return _StyleChanged;
-}
-
-Wt::WCssStyleSheet &Application::UserStyleSheet()
-{
-	return _UserStyleSheet;
 }
 
 void Application::RefreshLocaleStrings()

@@ -22,8 +22,8 @@ class ConfigurationsDatabase
 		ConfigurationsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		ConfigurationsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void Load();
-		void Reload();
+		void Load() { FetchAll(); }
+		void Reload() { FetchAll(); }
 
 		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
 		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;

@@ -15,12 +15,6 @@ DboLocalizedStrings::DboLocalizedStrings(WServer *Server)
 	: _Server(Server)
 { }
 
-void DboLocalizedStrings::refresh()
-{}
-
-void DboLocalizedStrings::hibernate()
-{}
-
 bool DboLocalizedStrings::resolveKey(const std::string &key, std::string &result)
 {
 	return resolveKey(key, ModulesDatabase::Wt, result);

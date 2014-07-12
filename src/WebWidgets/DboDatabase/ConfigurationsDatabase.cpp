@@ -351,13 +351,3 @@ std::size_t ConfigurationsDatabase::CountConfigurations() const
 	READ_LOCK;
 	return Count;
 }
-
-void ConfigurationsDatabase::Load()
-{
-	FetchAll();
-}
-
-void ConfigurationsDatabase::Reload()
-{
-	FetchAll();
-}

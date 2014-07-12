@@ -10,11 +10,16 @@ struct StyleKeys
 	std::string Name;
 	Wt::Dbo::ptr<Author> AuthorPtr;
 
-	StyleKeys();
-	StyleKeys(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr);
+	StyleKeys() { }
+	StyleKeys(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
+		: Name(Name), AuthorPtr(AuthorPtr)
+	{ }
 
 	bool operator< (const StyleKeys &other) const;
-	bool operator== (const StyleKeys &other) const;
+	bool operator== (const StyleKeys &other) const
+	{
+		return Name == other.Name && AuthorPtr == other.AuthorPtr;
+	}
 };
 std::ostream &operator<< (std::ostream &o, const StyleKeys &c);
 
@@ -28,8 +33,12 @@ class Style : public Wt::Dbo::Dbo<Style>
 		StyleCssRuleCollections		CssRuleCollection;
 		StyleTemplateCollections	TemplateCollection;
 
-		Style();
-		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr = Wt::Dbo::ptr<Author>());
+		Style()
+			: CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
+		{ }
+		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr = Wt::Dbo::ptr<Author>())
+			: _Id(Name, AuthorPtr), CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{
@@ -55,8 +64,10 @@ struct TemplateKeys
 	std::string Name;
 	Wt::Dbo::ptr<Module> ModulePtr;
 
-	TemplateKeys();
-	TemplateKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr);
+	TemplateKeys() { }
+	TemplateKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
+		: Name(Name), ModulePtr(ModulePtr)
+	{ }
 
 	bool operator< (const TemplateKeys &other) const;
 	bool operator== (const TemplateKeys &other) const;
@@ -110,8 +121,10 @@ class Template : public Wt::Dbo::Dbo<Template>
 		StyleTemplateCollections	StyleTemplateCollection;
 		TemplateCssRuleCollections	CssRuleCollection;
 
-		Template();
-		Template(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>());
+		Template() { }
+		Template(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
+			: _Id(Name, ModulePtr)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{
@@ -136,8 +149,10 @@ struct StyleTemplateKeys
 	Wt::Dbo::ptr<Template>	DerivingTemplatePtr;
 	Wt::Dbo::ptr<Style>		StylePtr;
 
-	StyleTemplateKeys();
-	StyleTemplateKeys(Wt::Dbo::ptr<Template> DerivingTemplatePtr, Wt::Dbo::ptr<Style> StylePtr);
+	StyleTemplateKeys() { }
+	StyleTemplateKeys(Wt::Dbo::ptr<Template> DerivingTemplatePtr, Wt::Dbo::ptr<Style> StylePtr)
+		: DerivingTemplatePtr(DerivingTemplatePtr), StylePtr(StylePtr)
+	{ }
 
 	bool operator< (const StyleTemplateKeys &other) const;
 	bool operator== (const StyleTemplateKeys &other) const;
@@ -149,7 +164,9 @@ class StyleTemplate : public Wt::Dbo::Dbo<StyleTemplate>
 	public:
 		std::string TemplateStr;
 
-		StyleTemplate(Wt::Dbo::ptr<Style> StylePtr = Wt::Dbo::ptr<Style>(), Wt::Dbo::ptr<Template> TemplatePtr = Wt::Dbo::ptr<Template>());
+		StyleTemplate(Wt::Dbo::ptr<Style> StylePtr = Wt::Dbo::ptr<Style>(), Wt::Dbo::ptr<Template> TemplatePtr = Wt::Dbo::ptr<Template>())
+			: _Id(TemplatePtr, StylePtr)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{

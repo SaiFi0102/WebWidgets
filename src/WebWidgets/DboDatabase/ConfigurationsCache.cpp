@@ -173,8 +173,3 @@ std::string ConfigurationsCache::GetStr(const std::string &Name, long long Modul
 	}
 	return *StringPtr->Value;
 }
-
-ConfigurationsDatabase *ConfigurationsCache::Database()
-{
-	return _Database;
-}

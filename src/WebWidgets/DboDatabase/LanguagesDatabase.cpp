@@ -241,10 +241,6 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 	Locale.setDateFormat(DateFormat);
 	return Locale;
 }
-Wt::WLocale LanguagesDatabase::GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
-{
-	return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code);
-}
 
 long long LanguagesDatabase::GetLoadDurationinMS() const
 {
@@ -265,11 +261,6 @@ std::size_t LanguagesDatabase::CountLanguages() const
 {
 	READ_LOCK;
 	return LanguageContainer.get<0>().size();
-}
-
-void LanguagesDatabase::Load()
-{
-	FetchAll();
 }
 
 void LanguagesDatabase::Reload()

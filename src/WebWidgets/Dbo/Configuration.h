@@ -23,11 +23,18 @@ struct ConfigurationKeys
 	Wt::Dbo::ptr<Module> ModulePtr;
 	ValueTypes Type;
 
-	ConfigurationKeys();
-	ConfigurationKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ValueTypes Type);
+	ConfigurationKeys()
+		: Type(ConfigurationKeys::Bool)
+	{ }
+	ConfigurationKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ValueTypes Type)
+		: Name(Name), ModulePtr(ModulePtr), Type(Type)
+	{ }
 
 	bool operator< (const ConfigurationKeys &other) const;
-	bool operator== (const ConfigurationKeys &other) const;
+	bool operator== (const ConfigurationKeys &other) const
+	{
+		return Name == other.Name && ModulePtr == other.ModulePtr && Type == other.Type;
+	}
 };
 std::ostream &operator<< (std::ostream &o, const ConfigurationKeys &c);
 
@@ -50,8 +57,10 @@ class Configuration : public Wt::Dbo::Dbo<Configuration>
 		bool							RestartRequired;
 		boost::optional<std::string>	ExpertWarning;
 
-		Configuration();
-		Configuration(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ConfigurationKeys::ValueTypes Type);
+		Configuration() { }
+		Configuration(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ConfigurationKeys::ValueTypes Type)
+			: _Id(Name, ModulePtr, Type)
+		{ }
 
 		//Persistence Method
 		template<class Action>

@@ -10,9 +10,6 @@ class DboLocalizedStrings : public Wt::WLocalizedStrings
 	public:
 		DboLocalizedStrings(WServer *Server);
 
-		virtual void refresh();
-		virtual void hibernate();
-
 		virtual bool resolveKey(const std::string &key, std::string &result);
 		virtual bool resolveKey(const std::string &key, long long ModuleId, std::string &result);
 		virtual bool resolvePluralKey(const std::string &key, std::string &result, uint64_t amount);

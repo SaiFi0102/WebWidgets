@@ -138,7 +138,7 @@ class LanguagesDatabase
 		LanguagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		LanguagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void Load();
+		void Load() { FetchAll(); }
 		void Reload();
 
 		Wt::Dbo::ptr<Language> GetLanguagePtrFromCode(const std::string &Code) const;
@@ -153,7 +153,10 @@ class LanguagesDatabase
 		bool GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const;
 
 		Wt::WLocale GetLocaleFromCode(const std::string &Code) const;
-		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const;
+		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
+		{
+			return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code);
+		}
 
 		long long GetLoadDurationinMS() const;
 		std::size_t CountSingle() const;

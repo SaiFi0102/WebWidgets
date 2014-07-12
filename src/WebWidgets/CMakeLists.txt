@@ -8,6 +8,7 @@ FILE(GLOB_RECURSE sources_dbo Dbo/*.cpp Dbo/*.h)
 FILE(GLOB_RECURSE sources_dbodatabase DboDatabase/*.cpp DboDatabase/*.h)
 FILE(GLOB_RECURSE sources_dboinstaller DboInstaller/*.cpp DboInstaller/*.h)
 FILE(GLOB_RECURSE sources_application Application/*.cpp Application/*.h)
+FILE(GLOB_RECURSE sources_widgets Widgets/*.cpp Widgets/*.h)
 FILE(GLOB sources_localdir *.cpp *.h)
 #Group File
 SOURCE_GROUP(CMake FILES CMakeLists.txt ${sources_cmake})
@@ -16,6 +17,7 @@ SOURCE_GROUP(Dbo FILES ${sources_dbo})
 SOURCE_GROUP(DboDatabase FILES ${sources_dbodatabase})
 SOURCE_GROUP(DboInstaller FILES ${sources_dboinstaller})
 SOURCE_GROUP(Application FILES ${sources_application})
+SOURCE_GROUP(Widgets FILES ${sources_widgets})
 SOURCE_GROUP("" FILES ${sources_localdir})
 
 #Concatenate Files Lists
@@ -26,6 +28,7 @@ SET(WebWidgets_SRCS
 	${sources_dbodatabase}
 	${sources_dboinstaller}
 	${sources_application}
+	${sources_widgets}
 	${sources_localdir}
 )
 #Set Target/Project name
@@ -36,7 +39,7 @@ ADD_EXECUTABLE(${WT_PROJECT_TARGET} ${WebWidgets_SRCS})
 
 #Parallel compile
 IF(MSVC)
-	SET_TARGET_PROPERTIES(WebWidgets PROPERTIES COMPILE_FLAGS "${BUILD_PARALLEL}")
+	SET_TARGET_PROPERTIES(WebWidgets PROPERTIES COMPILE_FLAGS "${BUILD_PARALLEL} /bigobj")
 ENDIF(MSVC)
 
 #Link Libraries

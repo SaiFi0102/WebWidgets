@@ -75,7 +75,7 @@ class StylesDatabase
 		StylesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
 		StylesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
 
-		void Load();
+		void Load() { FetchAll(); }
 		void Reload();
 
 		Wt::Dbo::ptr<Style> GetStylePtr(const std::string &Name, long long AuthorId) const;

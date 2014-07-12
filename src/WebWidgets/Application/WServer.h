@@ -29,19 +29,19 @@ class WServer : public Wt::WServer
 		WServer(const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
 		~WServer();
 		
-		ModulesDatabase *Modules() const;
-		ConfigurationsDatabase *Configurations() const;
-		LanguagesDatabase *Languages() const;
-		StylesDatabase *Styles() const;
-		PagesDatabase *Pages() const;
-		AccessPathsDatabase *AccessPaths() const;
+		ModulesDatabase *Modules() const { return _Modules; }
+		ConfigurationsDatabase *Configurations() const { return _Configurations; }
+		LanguagesDatabase *Languages() const { return _Languages; }
+		StylesDatabase *Styles() const { return _Styles; }
+		PagesDatabase *Pages() const { return _Pages; }
+		AccessPathsDatabase *AccessPaths() const { return _AccessPaths; }
 
-		const Wt::Auth::AuthService &GetAuthService() const;
-		const Wt::Auth::PasswordService &GetPasswordService() const;
-		const OAuthServiceMap &GetOAuthServices() const;
+		const Wt::Auth::AuthService &GetAuthService() const { return AuthService; }
+		const Wt::Auth::PasswordService &GetPasswordService() const { return PasswordService; }
+		const OAuthServiceMap &GetOAuthServices() const { OAuthServices; }
 
 		Wt::WLogEntry log(const std::string &type) const;
-		boost::posix_time::ptime StartPTime() const;
+		boost::posix_time::ptime StartPTime() const { return PTStart; }
 		bool Start();
 		void NewApp(Application *App);
 		void AppDeleted(Application *App);
@@ -50,7 +50,7 @@ class WServer : public Wt::WServer
 		void RefreshStyleStrings();
 		void RefreshPageStrings();
 
-		static WServer *instance();
+		static WServer *instance() { return dynamic_cast<WServer*>(Wt::WServer::instance()); }
 
 	protected:
 		typedef std::set<Application *> ApplicationSet;

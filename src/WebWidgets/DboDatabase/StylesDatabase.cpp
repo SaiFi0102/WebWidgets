@@ -342,11 +342,6 @@ std::size_t StylesDatabase::CountTemplateCssRules() const
 	return TemplateCssRuleMap.size();
 }
 
-void StylesDatabase::Load()
-{
-	FetchAll();
-}
-
 void StylesDatabase::Reload()
 {
 	FetchAll();

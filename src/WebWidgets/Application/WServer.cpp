@@ -281,44 +281,6 @@ void WServer::Initialize()
 	ConfigureAuth();
 }
 
-ModulesDatabase *WServer::Modules() const
-{
-	return _Modules;
-}
-ConfigurationsDatabase *WServer::Configurations() const
-{
-	return _Configurations;
-}
-LanguagesDatabase *WServer::Languages() const
-{
-	return _Languages;
-}
-StylesDatabase *WServer::Styles() const
-{
-	return _Styles;
-}
-PagesDatabase *WServer::Pages() const
-{
-	return _Pages;
-}
-AccessPathsDatabase *WServer::AccessPaths() const
-{
-	return _AccessPaths;
-}
-
-const Wt::Auth::AuthService &WServer::GetAuthService() const
-{
-	return AuthService;
-}
-const Wt::Auth::PasswordService &WServer::GetPasswordService() const
-{
-	return PasswordService;
-}
-const OAuthServiceMap &WServer::GetOAuthServices() const
-{
-	return OAuthServices;
-}
-
 Wt::WLogEntry WServer::log(const std::string &type) const
 {
 	Wt::WApplication *app = Wt::WApplication::instance();
@@ -328,11 +290,6 @@ Wt::WLogEntry WServer::log(const std::string &type) const
 		return app->log(type);
 	}
 	return Wt::WServer::log(type);
-}
-
-boost::posix_time::ptime WServer::StartPTime() const
-{
-	return PTStart;
 }
 
 bool WServer::Start()
@@ -550,11 +507,6 @@ void WServer::CreateWtXmlConfiguration()
 	std::ofstream XmlFile("wt_config.xml", std::ios::trunc);
 	XmlFile << XmlDoc;
 	XmlFile.close();
-}
-
-WServer *WServer::instance()
-{
-	return dynamic_cast<WServer*>(Wt::WServer::instance());
 }
 
 WServer::~WServer()

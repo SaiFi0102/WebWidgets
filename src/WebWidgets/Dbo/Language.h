@@ -13,22 +13,35 @@ struct LanguageSingleKeys
 	std::string				Key;
 	Wt::Dbo::ptr<Module>	ModulePtr;
 
-	LanguageSingleKeys();
-	LanguageSingleKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr);
+	LanguageSingleKeys()
+	{ }
+	LanguageSingleKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr)
+		: LanguagePtr(LanguagePtr), Key(Key), ModulePtr(ModulePtr)
+	{ }
 
 	bool operator< (const LanguageSingleKeys &other) const;
-	bool operator== (const LanguageSingleKeys &other) const;
+	bool operator== (const LanguageSingleKeys &other) const
+	{
+		return LanguagePtr == other.LanguagePtr && Key == other.Key && ModulePtr == other.ModulePtr;
+	}
 };
 
 struct LanguagePluralKeys : public LanguageSingleKeys
 {
 	int Case; //Case ID (for example 1 = singular, 2 = plural)
 
-	LanguagePluralKeys();
-	LanguagePluralKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr, int Case);
+	LanguagePluralKeys()
+		: Case(-1)
+	{ }
+	LanguagePluralKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr, int Case)
+		: LanguageSingleKeys(LanguagePtr, Key, ModulePtr), Case(Case)
+	{ }
 
 	bool operator< (const LanguagePluralKeys &other) const;
-	bool operator== (const LanguagePluralKeys &other) const;
+	bool operator== (const LanguagePluralKeys &other) const
+	{
+		return LanguagePtr == other.LanguagePtr && Key == other.Key && Case == other.Case && ModulePtr == other.ModulePtr;
+	}
 };
 
 //Overloaded operator<< for Language Single Keys structure
@@ -48,8 +61,12 @@ class Language : public Wt::Dbo::Dbo<Language>
 		int			PluralCases; //In English and most languages there are 2, Singular and Plural, for example file and files
 		bool		Installed; //Weather its installed or just for the name
 
-		Language();
-		Language(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed);
+		Language()
+			: PluralCases(-1), Installed(false)
+		{ }
+		Language(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
+			: Code(Code), Name(Name), NativeName(NativeName), LanguageAccept(LanguageAccept), PluralExpression(PluralExpression), PluralCases(PluralCases), Installed(Installed)
+		{ }
 
 		//hasMany
 		AccessPathCollections AccessPathCollection;
@@ -82,9 +99,15 @@ class LanguageSingle : public Wt::Dbo::Dbo<LanguageSingle>
 		std::string String;
 		bool IsEmail;
 
-		LanguageSingle();
-		LanguageSingle(LanguageSingleKeys Key);
-		LanguageSingle(const std::string &Key, const std::string &String = "", Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>(), Wt::Dbo::ptr<Language> LanguagePtr = Wt::Dbo::ptr<Language>(), bool IsEmail = false);
+		LanguageSingle()
+			: IsEmail(false)
+		{ }
+		LanguageSingle(LanguageSingleKeys &Key)
+			: _Id(Key), IsEmail(false)
+		{ }
+		LanguageSingle(const std::string &Key, const std::string &String = "", Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>(), Wt::Dbo::ptr<Language> LanguagePtr = Wt::Dbo::ptr<Language>(), bool IsEmail = false)
+			: _Id(LanguagePtr, Key, ModulePtr), String(String), IsEmail(IsEmail)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{
@@ -106,8 +129,10 @@ class LanguagePlural : public Wt::Dbo::Dbo<LanguagePlural>
 	public:
 		std::string String;
 
-		LanguagePlural();
-		LanguagePlural(LanguagePluralKeys Key);
+		LanguagePlural() { }
+		LanguagePlural(LanguagePluralKeys Key)
+			: _Id(Key)
+		{ }
 
 		template<class Action>void persist(Action &a)
 		{

@@ -14,33 +14,33 @@ class Application : public Wt::WApplication
 		Application(const Wt::WEnvironment &env);
 		~Application();
 
-		static Application *instance();
-		static Application *CreateApplication(const Wt::WEnvironment &env);
+		static Application *instance() { return dynamic_cast<Application*>(Wt::WApplication::instance()); }
+		static Application *CreateApplication(const Wt::WEnvironment &env) { return new Application(env); }
 
 		//Cached database(s)
-		ConfigurationsCache *Configurations() const;
+		ConfigurationsCache *Configurations() const { return _Configurations; }
 
 		//URL and Internal Paths
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
-		std::string InternalPathReserved() const;
-		Wt::Signal<std::string> &internalPathChanged();
-		Wt::Signal<std::string> &internalPathAfterReservedChanged();
+		std::string InternalPathReserved() const { return _ReservedInternalPath; }
+		Wt::Signal<std::string> &internalPathChanged() { return _InternalPathChanged; }
+		Wt::Signal<std::string> &internalPathAfterReservedChanged() { return _InternalPathAfterReservedChanged; }
 		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);
 
 		//Localization
 		void setLocale(const Wt::WLocale &locale);
-		Wt::Signal<void> &LocaleChanged();
+		Wt::Signal<void> &LocaleChanged() { return _LocaleChanged; }
 
 		//Mobile UI
-		bool IsMobileVersion() const;
-		Wt::Signal<bool> &MobileVersionChanged();
+		bool IsMobileVersion() const { return _MobileVersionFromHostname || _MobileVersionFromInternalPath; }
+		Wt::Signal<bool> &MobileVersionChanged() { return _MobileVersionChanged; }
 
 		//Styling
-		Wt::Dbo::ptr<Style> CurrentStyle() const;
+		Wt::Dbo::ptr<Style> CurrentStyle() const { return _CurrentStylePtr; }
 		void ChangeStyle(Wt::Dbo::ptr<Style> StylePtr);
-		Wt::Signal<void> &StyleChanged();
-		Wt::WCssStyleSheet &UserStyleSheet();
+		Wt::Signal<void> &StyleChanged() { return _StyleChanged; }
+		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
 		//Database reload handlers
 		void RefreshLocaleStrings();
