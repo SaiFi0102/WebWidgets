@@ -19,3 +19,8 @@ std::ostream &operator<< (std::ostream &o, const PageKeys &c)
 {
 	return o << "(" << c.id << ", " << c.ModulePtr << ")";
 }
+
+Wt::Dbo::dbo_traits<Page>::IdType Wt::Dbo::dbo_traits<Page>::invalidId()
+{
+	return Wt::Dbo::dbo_traits<Page>::IdType();
+}
