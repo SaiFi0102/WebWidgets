@@ -56,6 +56,5 @@ class Module : public Wt::Dbo::Dbo<Module>
 #include "Dbo/Style.h"
 #include "Dbo/Language.h"
 #include "Dbo/Author.h"
-#include "Dbo/WidgetDbo.h"
 
 #endif

@@ -239,8 +239,3 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 	}
 	return std::string("/") + (*itr)->InternalPath;
 }
-
-Wt::Dbo::ptr<AccessPath> AccessPathsDatabase::HomePageAccessPathPtr() const
-{
-	return PageAccessPathPtr(_Server.Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
-}

@@ -74,12 +74,3 @@ std::ostream &operator<< (std::ostream &o, const LanguagePluralKeys &c)
 {
 	return o << "(" << c.LanguagePtr << ", " << c.Key << ", " << c.ModulePtr << ", " << c.Case << ")";
 }
-
-Wt::Dbo::dbo_traits<LanguageSingle>::IdType Wt::Dbo::dbo_traits<LanguageSingle>::invalidId()
-{
-	return Wt::Dbo::dbo_traits<LanguageSingle>::IdType();
-}
-Wt::Dbo::dbo_traits<LanguagePlural>::IdType Wt::Dbo::dbo_traits<LanguagePlural>::invalidId()
-{
-	return Wt::Dbo::dbo_traits<LanguagePlural>::IdType();
-}

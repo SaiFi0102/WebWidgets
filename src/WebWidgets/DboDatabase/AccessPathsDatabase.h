@@ -94,7 +94,10 @@ class AccessPathsDatabase
 		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
 		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(long long Id) const;
 		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		Wt::Dbo::ptr<AccessPath> HomePageAccessPathPtr() const;
+		Wt::Dbo::ptr<AccessPath> HomePageAccessPathPtr() const
+		{
+			return PageAccessPathPtr(_Server.Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
+		}
 
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;

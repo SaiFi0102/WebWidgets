@@ -70,16 +70,3 @@ std::ostream &operator<<(std::ostream &o, const StyleTemplateKeys &c)
 {
 	return o << "(" << c.DerivingTemplatePtr << ", " << c.StylePtr << ")";
 }
-
-Wt::Dbo::dbo_traits<Style>::IdType Wt::Dbo::dbo_traits<Style>::invalidId()
-{
-	return Wt::Dbo::dbo_traits<Style>::IdType();
-}
-Wt::Dbo::dbo_traits<Template>::IdType Wt::Dbo::dbo_traits<Template>::invalidId()
-{
-	return Wt::Dbo::dbo_traits<Template>::IdType();
-}
-Wt::Dbo::dbo_traits<StyleTemplate>::IdType Wt::Dbo::dbo_traits<StyleTemplate>::invalidId()
-{
-	return Wt::Dbo::dbo_traits<StyleTemplate>::IdType();
-}

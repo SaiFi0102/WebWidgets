@@ -23,36 +23,6 @@ struct StyleKeys
 };
 std::ostream &operator<< (std::ostream &o, const StyleKeys &c);
 
-struct TemplateKeys
-{
-	std::string Name;
-	Wt::Dbo::ptr<Module> ModulePtr;
-
-	TemplateKeys() { }
-	TemplateKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
-		: Name(Name), ModulePtr(ModulePtr)
-	{ }
-
-	bool operator< (const TemplateKeys &other) const;
-	bool operator== (const TemplateKeys &other) const;
-};
-std::ostream &operator<< (std::ostream &o, const TemplateKeys &c);
-
-struct StyleTemplateKeys
-{
-	Wt::Dbo::ptr<Template>	DerivingTemplatePtr;
-	Wt::Dbo::ptr<Style>		StylePtr;
-
-	StyleTemplateKeys() { }
-	StyleTemplateKeys(Wt::Dbo::ptr<Template> DerivingTemplatePtr, Wt::Dbo::ptr<Style> StylePtr)
-		: DerivingTemplatePtr(DerivingTemplatePtr), StylePtr(StylePtr)
-	{ }
-
-	bool operator< (const StyleTemplateKeys &other) const;
-	bool operator== (const StyleTemplateKeys &other) const;
-};
-std::ostream &operator<< (std::ostream &o, const StyleTemplateKeys &c);
-
 class Style : public Wt::Dbo::Dbo<Style>
 {
 	public:
@@ -88,6 +58,21 @@ class Style : public Wt::Dbo::Dbo<Style>
 	private:
 		StyleKeys _Id;
 };
+
+struct TemplateKeys
+{
+	std::string Name;
+	Wt::Dbo::ptr<Module> ModulePtr;
+
+	TemplateKeys() { }
+	TemplateKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
+		: Name(Name), ModulePtr(ModulePtr)
+	{ }
+
+	bool operator< (const TemplateKeys &other) const;
+	bool operator== (const TemplateKeys &other) const;
+};
+std::ostream &operator<< (std::ostream &o, const TemplateKeys &c);
 
 class StyleCssRule : public Wt::Dbo::Dbo<StyleCssRule>
 {
@@ -158,6 +143,21 @@ class Template : public Wt::Dbo::Dbo<Template>
 	private:
 		TemplateKeys _Id;
 };
+
+struct StyleTemplateKeys
+{
+	Wt::Dbo::ptr<Template>	DerivingTemplatePtr;
+	Wt::Dbo::ptr<Style>		StylePtr;
+
+	StyleTemplateKeys() { }
+	StyleTemplateKeys(Wt::Dbo::ptr<Template> DerivingTemplatePtr, Wt::Dbo::ptr<Style> StylePtr)
+		: DerivingTemplatePtr(DerivingTemplatePtr), StylePtr(StylePtr)
+	{ }
+
+	bool operator< (const StyleTemplateKeys &other) const;
+	bool operator== (const StyleTemplateKeys &other) const;
+};
+std::ostream &operator<< (std::ostream &o, const StyleTemplateKeys &c);
 
 class StyleTemplate : public Wt::Dbo::Dbo<StyleTemplate>
 {
