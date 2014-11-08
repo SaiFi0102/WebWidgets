@@ -81,6 +81,18 @@ public:
     Exception(const std::string& what);
   };
 
+#ifndef WT_TARGET_JAVA
+  /*! \class SessionInfo
+   *
+   * \brief Contains the information for one session.
+   */
+  struct WT_API SessionInfo
+  {
+    int64_t     processId; //!< The process id of the process the session is running in.
+    std::string sessionId; //!< The session id.
+  };
+#endif // WT_TARGET_JAVA
+
   /*! \brief Creates a new server instance.
    *
    * The \p wtApplicationPath is used to match specific
@@ -432,6 +444,18 @@ public:
   WT_API WLocalizedStrings *localizedStrings() { return localizedStrings_; }
 
 #ifndef WT_TARGET_JAVA
+
+  /*! \brief Retrieve information on all sessions.
+   *
+   * This is only implemented for the wthttp connector.
+   *
+   * If the dedicated process session policy is used, only the original
+   * process has access to the full list of sessions. Public resources
+   * (those registered with addResource()) run in the original process,
+   * so they can access this list.
+   */
+  WTCONNECTOR_API std::vector<SessionInfo> sessions() const;
+
   /*! \brief Returns the logger instance.
    *
    * This is the logger class used in WApplication::log() and
@@ -455,7 +479,13 @@ public:
 
   WT_API WebController *controller() { return webController_; }
 
-  virtual void newLogEntryCreated(const std::string &type, const std::string &contents) { };
+#ifndef WT_TARGET_JAVA
+  WT_API void scheduleStop();
+#endif // WT_TARGET_JAVA
+
+#ifdef WT_WIN32
+  WT_API static void terminate();
+#endif // WT_WIN32
 
 private:
   WebController *webController_;
@@ -489,6 +519,9 @@ private:
 
   WT_API static WServer *instance_;
   boost::function<std::string (std::size_t max_length, int purpose)> sslPasswordCallback_;
+#ifndef WT_TARGET_JAVA
+  boost::function<void ()> stopCallback_;
+#endif // WT_TARGET_JAVA
 };
 
 }

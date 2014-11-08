@@ -2143,9 +2143,6 @@ protected:
    * @param errorText the error will usually be in json format.
    */
   virtual void handleJavaScriptError(const std::string& errorText);
-
-  std::string oldInternalPath_;
-
 private:
   Signal< ::int64_t > requestTooLarge_;
 
@@ -2200,7 +2197,7 @@ private:
   WCssStyleSheet         styleSheet_;  // internal stylesheet
   WCombinedLocalizedStrings *localizedStrings_;
   WLocale                locale_;
-  std::string            newInternalPath_;
+  std::string            renderedInternalPath_, newInternalPath_;
   Signal<std::string>    internalPathChanged_, internalPathInvalid_;
   bool                   internalPathIsChanged_;
   bool                   internalPathDefaultValid_, internalPathValid_;
@@ -2342,7 +2339,6 @@ private:
   friend class WContainerWidget;
   friend class WDialog;
   friend class WFileUpload;
-  friend class WFormWidget;
   friend class WInteractWidget;
   friend class WLineEdit;
   friend class WMenu;
@@ -2353,6 +2349,7 @@ private:
   friend class WTimer;
   friend class WViewWidget;
   friend class WWidget;
+  friend class WWebWidget;
   friend class Ext::Dialog;
   friend class Ext::MessageBox;
 };

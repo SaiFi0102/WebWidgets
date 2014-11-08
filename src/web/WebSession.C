@@ -530,7 +530,7 @@ std::string WebSession::fixRelativeUrl(const std::string& url) const
        *  - we are a plain HTML session. but then we are not hashing internal
        *    paths, so first condition should never be met
        */
-      if (env_->hashInternalPaths())
+      if (env_->internalPathUsingFragments())
 	return url;
       else {
 	std::string rel = "";
@@ -969,8 +969,8 @@ void WebSession::processQueuedEvents(WebSession::Handler& handler)
 	if (app() && app()->isQuited())
 	  kill();
 
-	// if (dead())
-	//   controller.removeSession(event.sessionId);
+	if (dead())
+	  controller()->removeSession(event.sessionId);
       } else {
 	if (event.fallbackFunction)
 	  WT_CALL_FUNCTION(event.fallbackFunction);

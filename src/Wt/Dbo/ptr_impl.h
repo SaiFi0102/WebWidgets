@@ -242,7 +242,7 @@ void MetaDbo<C>::doLoad()
 }
 
 template <class C>
-ptr<C>::mutator::mutator(MetaDbo<C> *obj)
+ptr<C>::mutator::mutator(MetaDbo<MutC> *obj)
   : obj_(obj)
 { 
   obj_->setDirty();
@@ -277,7 +277,7 @@ ptr<C>::ptr(C *obj)
   : obj_(0)
 {
   if (obj) {
-    obj_ = new MetaDbo<C>(obj);
+    obj_ = new MetaDbo<MutC>(const_cast<MutC*>(obj));
     takeObj();
   }
 }
@@ -286,6 +286,19 @@ template <class C>
 ptr<C>::ptr(const ptr<C>& other)
   : obj_(other.obj_)
 {
+  takeObj();
+}
+
+template <class C>
+template <class D>
+ptr<C>::ptr(const ptr<D>& other)
+  : obj_(other.obj_)
+{
+  // Check if we can convert D* to C*
+  D *d = 0;
+  C *c = d;
+  (void)(c);
+
   takeObj();
 }
 
@@ -300,7 +313,7 @@ void ptr<C>::reset(C *obj)
 {
   freeObj();
   if (obj) {
-    obj_ = new MetaDbo<C>(obj);
+    obj_ = new MetaDbo<MutC>(const_cast<MutC*>(obj));
     takeObj();
   }
 }
@@ -308,6 +321,24 @@ void ptr<C>::reset(C *obj)
 template <class C>
 ptr<C>& ptr<C>::operator= (const ptr<C>& other)
 {
+  if (obj_ != other.obj_) {
+    freeObj();
+    obj_ = other.obj_;
+    takeObj();
+  }
+
+  return *this;
+}
+
+template <class C>
+template <class D>
+ptr<C>& ptr<C>::operator= (const ptr<D>& other)
+{
+  // Check if we can convert D* to C*
+  D *d = 0;
+  C *c = d;
+  (void)(c);
+
   if (obj_ != other.obj_) {
     freeObj();
     obj_ = other.obj_;
@@ -356,19 +387,61 @@ typename ptr<C>::mutator ptr<C>::modify() const
 }
 
 template <class C>
-bool ptr<C>::operator== (const ptr<C>& other) const
+bool ptr<C>::operator== (const ptr<MutC>& other) const
 {
   return obj_ == other.obj_;
 }
 
 template <class C>
-bool ptr<C>::operator!= (const ptr<C>& other) const
+bool ptr<C>::operator== (const ptr<const C>& other) const
+{
+  return obj_ == other.obj_;
+}
+
+template <class C>
+bool ptr<C>::operator== (const weak_ptr<MutC>& other) const
+{
+  return other == *this;
+}
+
+template <class C>
+bool ptr<C>::operator==(const weak_ptr<const C>& other) const
+{
+  return other == *this;
+}
+
+template <class C>
+bool ptr<C>::operator!= (const ptr<MutC>& other) const
 {
   return !(*this == other);
 }
 
 template <class C>
-bool ptr<C>::operator< (const ptr<C>& other) const
+bool ptr<C>::operator!= (const ptr<const C>& other) const
+{
+  return !(*this == other);
+}
+
+template <class C>
+bool ptr<C>::operator!= (const weak_ptr<MutC>& other) const
+{
+  return !(*this == other);
+}
+
+template <class C>
+bool ptr<C>::operator!= (const weak_ptr<const C>& other) const
+{
+  return !(*this == other);
+}
+
+template <class C>
+bool ptr<C>::operator< (const ptr<MutC>& other) const
+{
+  return obj_ < other.obj_;
+}
+
+template <class C>
+bool ptr<C>::operator< (const ptr<const C>& other) const
 {
   return obj_ < other.obj_;
 }
@@ -446,7 +519,7 @@ Session *ptr<C>::session() const
 }
 
 template <class C>
-ptr<C>::ptr(MetaDbo<C> *obj)
+ptr<C>::ptr(MetaDbo<MutC> *obj)
   : obj_(obj)
 {
   takeObj();
