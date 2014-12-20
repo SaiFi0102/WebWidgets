@@ -151,12 +151,20 @@ struct Dbo4Fixture : DboFixtureBase
 		//Drop/Create
 		try
 		{
-			session_->dropTables(); //todo:remove
+			//session_->dropTables(); //todo:remove
 		}
 		catch(...)
 		{ }
 		std::cout << "-------------------------- end of drop ----------------------*********" << std::endl;
-		session_->createTables();
+		try
+		{
+			session_->createTables();
+		}
+		catch(Wt::Dbo::Exception &e)
+		{
+			std::cerr << "Database error creating tables: " << e.what();
+			throw e;
+		}
 	}
 };
 

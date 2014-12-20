@@ -9,7 +9,7 @@
 
 #include <Wt/Dbo/SqlConnectionPool>
 
-#include <rapidxml/rapidxml.hpp>
+#include <3rdparty/rapidxml/rapidxml.hpp>
 #include <boost/thread.hpp>
 
 class Application;
@@ -71,7 +71,7 @@ class WServer : public Wt::WServer
 
 		ApplicationSet _Applications;
 
-		rapidxml::xml_document<> XmlDoc;
+		Wt::rapidxml::xml_document<> XmlDoc;
 		boost::posix_time::ptime PTBeforeLoad;
 		boost::posix_time::ptime PTStart;
 

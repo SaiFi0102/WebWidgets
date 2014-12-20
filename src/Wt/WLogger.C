@@ -34,11 +34,11 @@ WLogEntry::~WLogEntry()
     impl_->finish();
     impl_->logger_.addLine(impl_->type_, impl_->scope_, impl_->line_);
 
-	WServer *server = WServer::instance();
+	/*WServer *server = WServer::instance();
 	if(server)
 	{
 		server->newLogEntryCreated(impl_->type_, impl_->line_.str());
-	}
+	}*/
   }
 
   delete impl_;

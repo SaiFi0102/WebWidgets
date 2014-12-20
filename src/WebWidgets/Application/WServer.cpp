@@ -10,7 +10,7 @@
 #include "Objects/DboLocalizedStrings.h"
 
 #include <fstream>
-#include <rapidxml/rapidxml_print.hpp>
+#include <3rdparty/rapidxml/rapidxml_print.hpp>
 
 #include <Wt/Auth/HashFunction>
 #include <Wt/Auth/PasswordStrengthValidator>
@@ -41,8 +41,7 @@ void WServer::Initialize()
 	{
 		log("info") << "Connecting to database";
 
-		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
+		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
 		SQLConnection->setProperty("show-queries", "true");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
@@ -80,14 +79,14 @@ void WServer::Initialize()
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	bool REINSTALLDBO = true;
+	bool REINSTALLDBO = false;
 	if(REINSTALLDBO)
 	{
 		//Drop
 		try
 		{
 			_Installer = new DboInstaller(*SQLPool);
-			//_Installer->DropTables();
+			_Installer->DropTables();
 		}
 		catch(Wt::Dbo::Exception &e)
 		{
@@ -331,27 +330,27 @@ void WServer::ConfigureAuth()
 void WServer::CreateWtXmlConfiguration()
 {
 	//<server> element
-	rapidxml::xml_node<> *NodeServer = XmlDoc.allocate_node(rapidxml::node_element, "server");
+	Wt::rapidxml::xml_node<> *NodeServer = XmlDoc.allocate_node(Wt::rapidxml::node_element, "server");
 	XmlDoc.append_node(NodeServer);
 
 	//<application-settings> element
-	rapidxml::xml_node<> *NodeAppSett = XmlDoc.allocate_node(rapidxml::node_element, "application-settings");
+	Wt::rapidxml::xml_node<> *NodeAppSett = XmlDoc.allocate_node(Wt::rapidxml::node_element, "application-settings");
 	NodeAppSett->append_attribute(XmlDoc.allocate_attribute("location", "*"));
 	NodeServer->append_node(NodeAppSett);
 
 	//<session-management> element
-	rapidxml::xml_node<> *NodeSessMgmt = XmlDoc.allocate_node(rapidxml::node_element, "session-management");
+	Wt::rapidxml::xml_node<> *NodeSessMgmt = XmlDoc.allocate_node(Wt::rapidxml::node_element, "session-management");
 	NodeAppSett->append_node(NodeSessMgmt);
 
 	//<session-management> child element <shared-process>
-	rapidxml::xml_node<> *NodeSharedProcess = XmlDoc.allocate_node(rapidxml::node_element, "shared-process");
+	Wt::rapidxml::xml_node<> *NodeSharedProcess = XmlDoc.allocate_node(Wt::rapidxml::node_element, "shared-process");
 	NodeSessMgmt->append_node(NodeSharedProcess);
 
 	//<shared-process> child element <num-processes>
-	NodeSharedProcess->append_node(XmlDoc.allocate_node(rapidxml::node_element, "num-processes", "1"));
+	NodeSharedProcess->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "num-processes", "1"));
 
 	//<session-management> child element <tracking>
-	rapidxml::xml_node<> *NodeTracking = XmlDoc.allocate_node(rapidxml::node_element, "tracking");
+	Wt::rapidxml::xml_node<> *NodeTracking = XmlDoc.allocate_node(Wt::rapidxml::node_element, "tracking");
 	switch(_Configurations->GetEnum("SessionTracking", ModulesDatabase::Server, 1))
 	{
 		default:
@@ -365,40 +364,40 @@ void WServer::CreateWtXmlConfiguration()
 	NodeSessMgmt->append_node(NodeTracking);
 
 	//<session-management> child element <reload-is-new-session>
-	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "reload-is-new-session", "false"));
+	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "reload-is-new-session", "false"));
 
 	//<session-management> child element <timeout>
 	int ConfSessionTimeout = _Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);
 	if(ConfSessionTimeout < 60) ConfSessionTimeout = 60;
 	std::string ConfSessionTimeoutStr = boost::lexical_cast<std::string>(ConfSessionTimeout);
-	NodeSessMgmt->append_node(XmlDoc.allocate_node(rapidxml::node_element, "timeout", ConfSessionTimeoutStr.c_str()));
+	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "timeout", ConfSessionTimeoutStr.c_str()));
 
 	//<connector-fcgi> element
-	rapidxml::xml_node<> *NodeConnectorFcgi = XmlDoc.allocate_node(rapidxml::node_element, "connector-fcgi");
+	Wt::rapidxml::xml_node<> *NodeConnectorFcgi = XmlDoc.allocate_node(Wt::rapidxml::node_element, "connector-fcgi");
 	NodeAppSett->append_node(NodeConnectorFcgi);
 
 	//<connector-fcgi> child element <run-directory>
-	NodeConnectorFcgi->append_node(XmlDoc.allocate_node(rapidxml::node_element, "run-directory", "C:/witty")); //TODO Gotta understand this first
+	NodeConnectorFcgi->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "run-directory", "C:/witty")); //TODO Gotta understand this first
 
 	//<connector-fcgi> child element <num-threads>
-	NodeConnectorFcgi->append_node(XmlDoc.allocate_node(rapidxml::node_element, "num-threads", "5")); //TODO Gotta understand this first
+	NodeConnectorFcgi->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "num-threads", "5")); //TODO Gotta understand this first
 
 	//<connector-isapi> element
-	rapidxml::xml_node<> *NodeConnectorIsapi = XmlDoc.allocate_node(rapidxml::node_element, "connector-isapi");
+	Wt::rapidxml::xml_node<> *NodeConnectorIsapi = XmlDoc.allocate_node(Wt::rapidxml::node_element, "connector-isapi");
 	NodeAppSett->append_node(NodeConnectorIsapi);
 
 	//<connector-isapi> child element <num-threads>
-	NodeConnectorIsapi->append_node(XmlDoc.allocate_node(rapidxml::node_element, "num-threads", "10")); //TODO Gotta understand this first
+	NodeConnectorIsapi->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "num-threads", "10")); //TODO Gotta understand this first
 
 	//<connector-isapi> child element <max-memory-request-size>
-	NodeConnectorIsapi->append_node(XmlDoc.allocate_node(rapidxml::node_element, "max-memory-request-size", "128")); //TODO Gotta understand this first
+	NodeConnectorIsapi->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "max-memory-request-size", "128")); //TODO Gotta understand this first
 
 	//<debug> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "debug", "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "debug", "false"));
 
 	//<log-file> element
 	std::string LogFileStr = _Configurations->GetStr("LogDirectory", ModulesDatabase::Logging) + "/server.log";
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-file", LogFileStr.c_str()));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "log-file", LogFileStr.c_str()));
 
 	//<log-config> element
 	std::string LogConfigStr = "*";
@@ -422,47 +421,47 @@ void WServer::CreateWtXmlConfiguration()
 	{
 		LogConfigStr += " -error";
 	}
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "log-config", LogConfigStr.c_str()));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "log-config", LogConfigStr.c_str()));
 
 	//<max-request-size> element
 	std::string MaxReqSizeStr = boost::lexical_cast<std::string>(_Configurations->GetInt("MaxRequestSize", ModulesDatabase::Server, 128));
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "max-request-size", MaxReqSizeStr.c_str()));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "max-request-size", MaxReqSizeStr.c_str()));
 
 	//<ajax-puzzle> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "ajax-puzzle", _Configurations->GetBool("DosPuzzle", ModulesDatabase::Server, false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "ajax-puzzle", _Configurations->GetBool("DosPuzzle", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<strict-event-serialization> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "strict-event-serialization", "false")); //TODO: Gotta understand this first
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "strict-event-serialization", "false")); //TODO: Gotta understand this first
 
 	//<webgl-detection> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "webgl-detection", "false")); //TODO: Configuration to change detection
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "webgl-detection", "false")); //TODO: Configuration to change detection
 
 	//<redirect-message> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "redirect-message", "Click here if the page does not refreshes."));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "redirect-message", "Click here if the page does not refreshes."));
 
 	//<behind-reverse-proxy> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "behind-reverse-proxy", _Configurations->GetBool("ReverseProxy", ModulesDatabase::Server, false) ? "true" : "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "behind-reverse-proxy", _Configurations->GetBool("ReverseProxy", ModulesDatabase::Server, false) ? "true" : "false"));
 
 	//<progressive-bootstrap> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "progressive-bootstrap", "false"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "progressive-bootstrap", "false"));
 
 	//<session-id-cookie> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(rapidxml::node_element, "session-id-cookie", "true"));
+	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "session-id-cookie", "true"));
 
 	//<properties> element
-	rapidxml::xml_node<> *NodeProperties = XmlDoc.allocate_node(rapidxml::node_element, "properties");
+	Wt::rapidxml::xml_node<> *NodeProperties = XmlDoc.allocate_node(Wt::rapidxml::node_element, "properties");
 	NodeAppSett->append_node(NodeProperties);
 
 	std::string PropertyBaseUrl = _Configurations->GetStr("BaseURL", ModulesDatabase::Server);
 	if(!PropertyBaseUrl.empty())
 	{
-		rapidxml::xml_node<> *NodePropertyBaseURL = XmlDoc.allocate_node(rapidxml::node_element, "property", PropertyBaseUrl.c_str());
+		Wt::rapidxml::xml_node<> *NodePropertyBaseURL = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", PropertyBaseUrl.c_str());
 		NodePropertyBaseURL->append_attribute(XmlDoc.allocate_attribute("name", "baseURL"));
 		NodeProperties->append_node(NodePropertyBaseURL);
 	}
 
 	std::string ResourceUrlStr =  _Configurations->GetStr("ResourcesURL", ModulesDatabase::Styles, "resources/");
-	rapidxml::xml_node<> *NodePropertyResourceURL = XmlDoc.allocate_node(rapidxml::node_element, "property", ResourceUrlStr.c_str());
+	Wt::rapidxml::xml_node<> *NodePropertyResourceURL = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", ResourceUrlStr.c_str());
 	NodePropertyResourceURL->append_attribute(XmlDoc.allocate_attribute("name", "resourcesURL"));
 	NodeProperties->append_node(NodePropertyResourceURL);
 
@@ -472,15 +471,15 @@ void WServer::CreateWtXmlConfiguration()
 	std::string RedirectStr = PropertyBaseUrl + "oauth2callback";
 	if(_Configurations->GetBool("GoogleOAuth", ModulesDatabase::Authentication, false) && !GoogleClientIdStr.empty() && !GoogleClientSecretStr.empty())
 	{
-		rapidxml::xml_node<> *NodeGoogleClientId = XmlDoc.allocate_node(rapidxml::node_element, "property", GoogleClientIdStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeGoogleClientId = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", GoogleClientIdStr.c_str());
 		NodeGoogleClientId->append_attribute(XmlDoc.allocate_attribute("name", "google-oauth2-client-id"));
 		NodeProperties->append_node(NodeGoogleClientId);
 
-		rapidxml::xml_node<> *NodeGoogleClientSecret = XmlDoc.allocate_node(rapidxml::node_element, "property", GoogleClientSecretStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeGoogleClientSecret = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", GoogleClientSecretStr.c_str());
 		NodeGoogleClientSecret->append_attribute(XmlDoc.allocate_attribute("name", "google-oauth2-client-secret"));
 		NodeProperties->append_node(NodeGoogleClientSecret);
 
-		rapidxml::xml_node<> *NodeGoogleRedirect = XmlDoc.allocate_node(rapidxml::node_element, "property", RedirectStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeGoogleRedirect = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", RedirectStr.c_str());
 		NodeGoogleRedirect->append_attribute(XmlDoc.allocate_attribute("name", "google-oauth2-redirect-endpoint"));
 		NodeProperties->append_node(NodeGoogleRedirect);
 	}
@@ -490,15 +489,15 @@ void WServer::CreateWtXmlConfiguration()
 	std::string FacebookAppSecretStr = _Configurations->GetStr("FacebookAppSecret", ModulesDatabase::Authentication);
 	if(_Configurations->GetBool("FacebookOAuth", ModulesDatabase::Authentication, false) && !FacebookAppIdStr.empty() && !FacebookAppSecretStr.empty())
 	{
-		rapidxml::xml_node<> *NodeFacebookAppId = XmlDoc.allocate_node(rapidxml::node_element, "property", FacebookAppIdStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeFacebookAppId = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", FacebookAppIdStr.c_str());
 		NodeFacebookAppId->append_attribute(XmlDoc.allocate_attribute("name", "facebook-oauth2-app-id"));
 		NodeProperties->append_node(NodeFacebookAppId);
 
-		rapidxml::xml_node<> *NodeFacebookAppSecret = XmlDoc.allocate_node(rapidxml::node_element, "property", FacebookAppSecretStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeFacebookAppSecret = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", FacebookAppSecretStr.c_str());
 		NodeFacebookAppSecret->append_attribute(XmlDoc.allocate_attribute("name", "facebook-oauth2-app-secret"));
 		NodeProperties->append_node(NodeFacebookAppSecret);
 
-		rapidxml::xml_node<> *NodeGoogleRedirect = XmlDoc.allocate_node(rapidxml::node_element, "property", RedirectStr.c_str());
+		Wt::rapidxml::xml_node<> *NodeGoogleRedirect = XmlDoc.allocate_node(Wt::rapidxml::node_element, "property", RedirectStr.c_str());
 		NodeGoogleRedirect->append_attribute(XmlDoc.allocate_attribute("name", "facebook-oauth2-redirect-endpoint"));
 		NodeProperties->append_node(NodeGoogleRedirect);
 	}
