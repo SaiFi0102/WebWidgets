@@ -199,6 +199,9 @@ void Application::ChangeStyle(Wt::Dbo::ptr<Style> StylePtr)
 		return;
 	}
 	SetStyle(StylePtr);
+
+	refresh(); //To reload styletemplates
+	triggerUpdate();
 }
 
 void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
@@ -210,7 +213,7 @@ void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
 	styleSheet().clear();
 
 	//Add CSS rules for new style
-	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr.id().Name, StylePtr.id().AuthorPtr.id());
+	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr->Name(), StylePtr->AuthorPtr().id());
 	for(StyleCssRuleList::const_iterator itr = CssRules.begin();
 		itr != CssRules.end();
 		++itr)
@@ -220,7 +223,6 @@ void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
 	}
 
 	_CurrentStylePtr = StylePtr;
-	refresh(); //To reload styletemplates
 	_StyleChanged.emit();
 }
 
@@ -236,7 +238,7 @@ void Application::RefreshStyleStrings()
 	WServer *Server = WServer::instance();
 
 	//Style CssStyleSheet
-	Wt::Dbo::ptr<Style> NewStylePtr = Server->Styles()->GetStylePtr(CurrentStyle().id().Name, CurrentStyle().id().AuthorPtr.id());
+	Wt::Dbo::ptr<Style> NewStylePtr = Server->Styles()->GetStylePtr(CurrentStyle()->Name(), CurrentStyle()->AuthorPtr().id());
 	if(!NewStylePtr)
 	{
 		//Default style is taken from server's active configuration instead of cached configuration because it is possible
@@ -285,7 +287,7 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	}
 
 	//Ignore if the stylesheet is already loaded
-	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id()));
+	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id()));
 	if(itr != _TemplateStyleSheets.end())
 	{
 		return;
@@ -296,7 +298,7 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	Wt::WCssStyleSheet TemplateStyleSheet;
 	
 	//Ignore if there are no CSS rules for this template
-	TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id());
+	TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(TemplatePtr->Name(), TemplatePtr->ModulePtr().id());
 	if(CssRules.empty())
 	{
 		return;
@@ -311,8 +313,8 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	}
 
 	//Add to template style sheets map and application to be loaded
-	_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())] = TemplateStyleSheet;
-	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr.id().Name, TemplatePtr.id().ModulePtr.id())]);
+	_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id())] = TemplateStyleSheet;
+	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id())]);
 }
 
 void Application::HandleWtInternalPathChanged()
@@ -771,7 +773,7 @@ void Application::InterpretPageInternalPath()
 	if(PageAccessPath)
 	{
 		//Set PagePtr and call its handler if the page has changed
-		Wt::Dbo::ptr<Page> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PagePtr.id().id, PageAccessPath->PagePtr.id().ModulePtr.id());
+		Wt::Dbo::ptr<Page> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PagePtr->id(), PageAccessPath->PagePtr->ModulePtr().id());
 		if(!PagePtr)
 		{
 			return;
@@ -779,7 +781,7 @@ void Application::InterpretPageInternalPath()
 		if(PagePtr != _CurrentPagePtr)
 		{
 			_CurrentPagePtr = PagePtr;
-			Server->Pages()->CallPageHandler(_CurrentPagePtr.id().id, _CurrentPagePtr.id().ModulePtr.id());
+			Server->Pages()->CallPageHandler(_CurrentPagePtr->id(), _CurrentPagePtr->ModulePtr().id());
 		}
 	}
 	else
@@ -871,7 +873,7 @@ void Application::CreateTestUI()
 		{
 			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
 		}
-		else if(_CurrentStylePtr.id().Name == "Default")
+		else if(_CurrentStylePtr->Name() == "Default")
 		{
 			ChangeStyle(Server->Styles()->GetStylePtr("test", 1));
 		}

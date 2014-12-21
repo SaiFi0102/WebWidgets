@@ -5,74 +5,54 @@
 #include "Dbo/Module.h"
 #include "Dbo/Author.h"
 
-struct StyleKeys
+class BaseStyle
 {
-	std::string Name;
-	Wt::Dbo::ptr<Author> AuthorPtr;
+	protected:
+		std::string _Name;
 
-	StyleKeys() { }
-	StyleKeys(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
-		: Name(Name), AuthorPtr(AuthorPtr)
-	{ }
+		BaseStyle(const std::string &Name = "")
+			: _Name(Name), CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
+		{ }
 
-	bool operator< (const StyleKeys &other) const;
-	bool operator== (const StyleKeys &other) const
-	{
-		return Name == other.Name && AuthorPtr == other.AuthorPtr;
-	}
-};
-std::ostream &operator<< (std::ostream &o, const StyleKeys &c);
-
-struct TemplateKeys
-{
-	std::string Name;
-	Wt::Dbo::ptr<Module> ModulePtr;
-
-	TemplateKeys() { }
-	TemplateKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
-		: Name(Name), ModulePtr(ModulePtr)
-	{ }
-
-	bool operator< (const TemplateKeys &other) const;
-	bool operator== (const TemplateKeys &other) const;
-};
-std::ostream &operator<< (std::ostream &o, const TemplateKeys &c);
-
-struct StyleTemplateKeys
-{
-	Wt::Dbo::ptr<Template>	DerivingTemplatePtr;
-	Wt::Dbo::ptr<Style>		StylePtr;
-
-	StyleTemplateKeys() { }
-	StyleTemplateKeys(Wt::Dbo::ptr<Template> DerivingTemplatePtr, Wt::Dbo::ptr<Style> StylePtr)
-		: DerivingTemplatePtr(DerivingTemplatePtr), StylePtr(StylePtr)
-	{ }
-
-	bool operator< (const StyleTemplateKeys &other) const;
-	bool operator== (const StyleTemplateKeys &other) const;
-};
-std::ostream &operator<< (std::ostream &o, const StyleTemplateKeys &c);
-
-class Style : public Wt::Dbo::Dbo<Style>
-{
 	public:
-		std::string	Description;
-		int			CompatibilityVersionSeries;
-		int			CompatibilityVersionMajor;
+		std::string Description;
+		int CompatibilityVersionSeries;
+		int CompatibilityVersionMajor;
 
-		StyleCssRuleCollections		CssRuleCollection;
-		StyleTemplateCollections	TemplateCollection;
+		std::string Name() const { return _Name; }
+};
+class StyleData : public BaseStyle
+{
+	protected:
+		long long _AuthorId;
 
-		Style()
-			: CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
+	public:
+		StyleData(const std::string &Name, long long AuthorId)
+			: BaseStyle(Name), _AuthorId(AuthorId)
 		{ }
-		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr = Wt::Dbo::ptr<Author>())
-			: _Id(Name, AuthorPtr), CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
+
+		long long AuthorId() const { return _AuthorId; }
+};
+class Style : public BaseStyle
+{
+	protected:
+		Wt::Dbo::ptr<Author> _AuthorPtr;
+
+	public:
+		StyleCssRuleCollections CssRuleCollection;
+		StyleTemplateCollections TemplateCollection;
+
+		Style() { }
+		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
+			: BaseStyle(Name), _AuthorPtr(AuthorPtr)
 		{ }
+
+		Wt::Dbo::ptr<Author> AuthorPtr() const { return _AuthorPtr; }
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "Style");
+			Wt::Dbo::field(a, _Name, "StyleName", 256);
+			Wt::Dbo::belongsTo(a, _AuthorPtr, "Author", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, Description, "Description");
 			Wt::Dbo::field(a, CompatibilityVersionSeries, "CompatibilityVersionSeries");
 			Wt::Dbo::field(a, CompatibilityVersionMajor, "CompatibilityVersionMajor");
@@ -84,16 +64,26 @@ class Style : public Wt::Dbo::Dbo<Style>
 		{
 			return "styles";
 		}
-
-	private:
-		StyleKeys _Id;
 };
 
-class StyleCssRule : public Wt::Dbo::Dbo<StyleCssRule>
+class BaseStyleCssRule
 {
 	public:
-		std::string			Selector;
-		std::string			Declarations;
+		std::string Selector;
+		std::string Declarations;
+};
+class StyleCssRuleData : public BaseStyleCssRule
+{
+	public:
+		long long StyleId;
+
+		StyleCssRuleData()
+			: StyleId(-1)
+		{ }
+};
+class StyleCssRule : public BaseStyleCssRule
+{
+	public:
 		Wt::Dbo::ptr<Style>	StylePtr;
 
 		template<class Action>void persist(Action &a)
@@ -108,12 +98,25 @@ class StyleCssRule : public Wt::Dbo::Dbo<StyleCssRule>
 		}
 };
 
-class TemplateCssRule : public Wt::Dbo::Dbo<TemplateCssRule>
+class BaseTemplateCssRule
 {
 	public:
-		std::string				Selector;
-		std::string				Declarations;
-		Wt::Dbo::ptr<Template>	TemplatePtr;
+		std::string Selector;
+		std::string Declarations;
+};
+class TemplateCssRuleData : public BaseTemplateCssRule
+{
+	public:
+		long long TemplateId;
+
+		TemplateCssRuleData()
+			: TemplateId(-1)
+		{ }
+};
+class TemplateCssRule : public BaseTemplateCssRule
+{
+	public:
+		Wt::Dbo::ptr<Template> TemplatePtr;
 
 		template<class Action>void persist(Action &a)
 		{
@@ -127,23 +130,53 @@ class TemplateCssRule : public Wt::Dbo::Dbo<TemplateCssRule>
 		}
 };
 
-class Template : public Wt::Dbo::Dbo<Template>
+class BaseTemplate
 {
-	public:
-		std::string						Description;
-		boost::optional<std::string>	TemplateStr;
+	protected:
+		std::string _Name;
 
-		StyleTemplateCollections	StyleTemplateCollection;
-		TemplateCssRuleCollections	CssRuleCollection;
+		BaseTemplate(const std::string &Name = "")
+			: _Name(Name)
+		{ }
+
+	public:
+		std::string Description;
+		boost::optional<std::string> TemplateStr;
+
+		std::string Name() const { return _Name; }
+};
+class TemplateData : public BaseTemplate
+{
+	protected:
+		long long _ModuleId;
+
+	public:
+		TemplateData(long long ModuleId)
+			: _ModuleId(ModuleId)
+		{ }
+
+		long long ModuleId() const { return _ModuleId; }
+};
+class Template : public BaseTemplate
+{
+	protected:
+		Wt::Dbo::ptr<Module> _ModulePtr;
+
+	public:
+		StyleTemplateCollections StyleTemplateCollection;
+		TemplateCssRuleCollections CssRuleCollection;
 
 		Template() { }
-		Template(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
-			: _Id(Name, ModulePtr)
+		Template(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
+			: BaseTemplate(Name), _ModulePtr(ModulePtr)
 		{ }
+
+		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; }
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "Template");
+			Wt::Dbo::field(a, _Name, "TemplateName", 256);
+			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, Description, "Description");
 			Wt::Dbo::field(a, TemplateStr, "TemplateStr");
 
@@ -154,32 +187,52 @@ class Template : public Wt::Dbo::Dbo<Template>
 		{
 			return "templates";
 		}
-
-	private:
-		TemplateKeys _Id;
 };
 
-class StyleTemplate : public Wt::Dbo::Dbo<StyleTemplate>
+class BaseStyleTemplate
 {
 	public:
 		std::string TemplateStr;
+};
+class StyleTemplateData : public BaseStyleTemplate
+{
+	protected:
+		long long _DerivingTemplateId;
+		long long _StyleId;
 
-		StyleTemplate(Wt::Dbo::ptr<Style> StylePtr = Wt::Dbo::ptr<Style>(), Wt::Dbo::ptr<Template> TemplatePtr = Wt::Dbo::ptr<Template>())
-			: _Id(TemplatePtr, StylePtr)
+	public:
+		StyleTemplateData(long long StyleId, long long DerivingTemplateId)
+			: _DerivingTemplateId(DerivingTemplateId), _StyleId(StyleId)
 		{ }
+
+		long long DerivingTemplateId() const { return _DerivingTemplateId; }
+		long long StyleId() const { return _StyleId; }
+};
+class StyleTemplate : public BaseStyleTemplate
+{
+	protected:
+		Wt::Dbo::ptr<Template> _DerivingTemplatePtr;
+		Wt::Dbo::ptr<Style> _StylePtr;
+
+	public:
+		StyleTemplate() { }
+		StyleTemplate(Wt::Dbo::ptr<Style> StylePtr, Wt::Dbo::ptr<Template> TemplatePtr)
+			: _DerivingTemplatePtr(TemplatePtr), _StylePtr(StylePtr)
+		{ }
+
+		Wt::Dbo::ptr<Template> DerivingTemplatePtr() const { return _DerivingTemplatePtr; };
+		Wt::Dbo::ptr<Style> StylePtr() const { return _StylePtr; };
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "StyleTemplate");
+			Wt::Dbo::belongsTo(a, _DerivingTemplatePtr, "Template", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(a, _StylePtr, "Style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, TemplateStr, "TemplateStr");
 		}
 		static const char *TableName()
 		{
 			return "styletemplates";
 		}
-
-	private:
-		StyleTemplateKeys _Id;
 };
 
 #endif

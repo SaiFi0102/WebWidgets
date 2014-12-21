@@ -42,9 +42,18 @@ void DboInstaller::CreateTables()
 	Wt::Dbo::Transaction transaction(DboSession);
 	DboSession.createTables();
 
-	//INDEXes
+	//UNIQUE
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Language::TableName() + "\" (\"LanguageAccept\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_url\" ON \"") + AccessPath::TableName() + "\" (\"HostName\", \"InternalPath\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Configuration::TableName() + "\" (\"Name\", \"Module_id\", \"Type\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_singular\" ON \"") + LanguageSingle::TableName() + "\" (\"Language_Code\", \"Key\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_plural\" ON \"") + LanguagePlural::TableName() + "\" (\"Language_Code\", \"Key\", \"Case\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Page::TableName() + "\" (\"id\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style\" ON \"") + Style::TableName() + "\" (\"StyleName\", \"Author_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_template\" ON \"") + Template::TableName() + "\" (\"TemplateName\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style_template\" ON \"") + StyleTemplate::TableName() + "\" (\"Style_id\", \"Template_id\")");
+
+	//INDEX
 	DboSession.execute(std::string("CREATE INDEX \"idx_installed\" ON \"") + Language::TableName() + "\" (\"Installed\")");
 	
 	transaction.commit();
@@ -111,10 +120,10 @@ void DboInstaller::InsertRows()
 	O.HomePageAccessPathIdVal.modify()->Value = O.HomePageAccessPath.id();
 	O.MobileAccessPathIdVal.modify()->Value = O.MobileVersionAccessPath.id();
 
-	O.DefaultStyleNameVal.modify()->Value = O.DefaultStyle.id().Name;
-	O.DefaultStyleNameVal.modify()->DefaultValue = O.DefaultStyle.id().Name;
-	O.DefaultStyleAuthorVal.modify()->Value = O.DefaultStyle.id().AuthorPtr.id();
-	O.DefaultStyleAuthorVal.modify()->DefaultValue = O.DefaultStyle.id().AuthorPtr.id();
+	O.DefaultStyleNameVal.modify()->Value = O.DefaultStyle->Name();
+	O.DefaultStyleNameVal.modify()->DefaultValue = O.DefaultStyle->Name();
+	O.DefaultStyleAuthorVal.modify()->Value = O.DefaultStyle->AuthorPtr().id();
+	O.DefaultStyleAuthorVal.modify()->DefaultValue = O.DefaultStyle->AuthorPtr().id();
 
 	transaction2.commit();
 }

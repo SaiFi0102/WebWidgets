@@ -52,8 +52,8 @@ void LanguagesDatabase::FetchAll()
 			++itr)
 		{
 			//Fetch em all
-			LanguageSingleCollections LanguageSingleCollection = DboSession.find<LanguageSingle>().where("\"Language_Code\" = ?").bind((*itr)->Code);
-			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("\"Language_Code\" = ?").bind((*itr)->Code);
+			LanguageSingleCollections LanguageSingleCollection = DboSession.find<LanguageSingle>().where("\"Language_Code\" = ?").bind((*itr)->Code());
+			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("\"Language_Code\" = ?").bind((*itr)->Code());
 
 			//Insert language ptr
 			LanguageContainer.get<0>().insert(*itr);

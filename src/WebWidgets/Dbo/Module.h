@@ -3,7 +3,7 @@
 
 #include "DboTraits.h"
 
-class Module : public Wt::Dbo::Dbo<Module>
+class BaseModule
 {
 	public:
 		std::string Name;
@@ -11,6 +11,32 @@ class Module : public Wt::Dbo::Dbo<Module>
 		int VersionMajor;
 		int VersionMinor;
 
+	protected:
+		BaseModule(long long id = -1)
+			: _id(id), VersionSeries(-1), VersionMajor(-1), VersionMinor(-1)
+		{};
+
+		long long _id;
+};
+
+class ModuleData : public BaseModule
+{
+	public:
+		Wt::Dbo::dbo_traits<Author> AuthorId;
+
+		ModuleData(long long id)
+			: BaseModule(id)
+		{ }
+
+		long long id() const
+		{
+			return _id;
+		}
+};
+
+class Module : public BaseModule
+{
+	public:
 		ConfigurationCollections ConfigurationCollection;
 		PageCollections PageCollection;
 		TemplateCollections TemplateCollection;
@@ -19,12 +45,10 @@ class Module : public Wt::Dbo::Dbo<Module>
 
 		Wt::Dbo::ptr<Author> AuthorPtr;
 
-		Module()
-			: _id(-1), VersionSeries(-1), VersionMajor(-1), VersionMinor(-1)
-		{};
+		Module() {};
 
 		Module(long long id)
-			: _id(id), VersionSeries(-1), VersionMajor(-1), VersionMinor(-1)
+			: BaseModule(id)
 		{};
 
 		template<class Action>void persist(Action &a)
@@ -46,9 +70,6 @@ class Module : public Wt::Dbo::Dbo<Module>
 		{
 			return "modules";
 		}
-
-	private:
-		long long _id;
 };
 
 #include "Dbo/Configuration.h"

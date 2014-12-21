@@ -86,7 +86,7 @@ bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, lo
 	{
 		Wt::Dbo::ptr<Style> CurrentStyle = app->CurrentStyle();
 		if(!CurrentStyle
-			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle.id().Name, CurrentStyle.id().AuthorPtr.id(), result))
+			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorPtr().id(), result))
 		{
 			if(!_Server->Styles()->GetTemplateStr(templateName, moduleId, result))
 			{

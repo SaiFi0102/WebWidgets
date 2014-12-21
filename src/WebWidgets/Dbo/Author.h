@@ -4,7 +4,7 @@
 #include "DboTraits.h"
 #include "Dbo/Module.h"
 
-class Author : public Wt::Dbo::Dbo<Author>
+class Author
 {
 	public:
 		std::string Name;

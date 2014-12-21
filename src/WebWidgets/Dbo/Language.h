@@ -6,50 +6,12 @@
 #include <Wt/WString>
 #include <Wt/Dbo/WtSqlTraits>
 
-//Language Single Keys structure
-struct LanguageSingleKeys
+class LanguageData
 {
-	Wt::Dbo::ptr<Language>	LanguagePtr;
-	std::string				Key;
-	Wt::Dbo::ptr<Module>	ModulePtr;
+	protected:
+		std::string _Code; //en, zh, ur, ISO 639-1: two-letter code
 
-	LanguageSingleKeys()
-	{ }
-	LanguageSingleKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr)
-		: LanguagePtr(LanguagePtr), Key(Key), ModulePtr(ModulePtr)
-	{ }
-
-	bool operator< (const LanguageSingleKeys &other) const;
-	bool operator== (const LanguageSingleKeys &other) const
-	{
-		return LanguagePtr == other.LanguagePtr && Key == other.Key && ModulePtr == other.ModulePtr;
-	}
-};
-std::ostream &operator<< (std::ostream &o, const LanguageSingleKeys &c);
-
-struct LanguagePluralKeys : public LanguageSingleKeys
-{
-	int Case; //Case ID (for example 1 = singular, 2 = plural)
-
-	LanguagePluralKeys()
-		: Case(-1)
-	{ }
-	LanguagePluralKeys(Wt::Dbo::ptr<Language> LanguagePtr, const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr, int Case)
-		: LanguageSingleKeys(LanguagePtr, Key, ModulePtr), Case(Case)
-	{ }
-
-	bool operator< (const LanguagePluralKeys &other) const;
-	bool operator== (const LanguagePluralKeys &other) const
-	{
-		return LanguagePtr == other.LanguagePtr && Key == other.Key && Case == other.Case && ModulePtr == other.ModulePtr;
-	}
-};
-std::ostream &operator<< (std::ostream &o, const LanguagePluralKeys &c);
-
-class Language : public Wt::Dbo::Dbo<Language>
-{
 	public:
-		std::string	Code; //en, zh, ur, ISO 639-1: two-letter code
 		Wt::WString	Name; //English, Chinese, Russian
 		Wt::WString NativeName; // English, 中文, Русский
 		std::string	LanguageAccept; //en*, wildcard allowed
@@ -57,11 +19,24 @@ class Language : public Wt::Dbo::Dbo<Language>
 		int			PluralCases; //In English and most languages there are 2, Singular and Plural, for example file and files
 		bool		Installed; //Weather its installed or just for the name
 
-		Language()
-			: PluralCases(-1), Installed(false)
+		std::string Code() const { return _Code; }
+
+		LanguageData(const std::string &Code = "")
+			: _Code(Code), PluralCases(-1), Installed(false)
+		{ }
+		LanguageData(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
+			: _Code(Code), Name(Name), NativeName(NativeName), LanguageAccept(LanguageAccept), PluralExpression(PluralExpression), PluralCases(PluralCases), Installed(Installed)
+		{ }
+};
+class Language : public LanguageData
+{
+	public:
+		Language() { }
+		Language(const std::string &Code)
+			: LanguageData(Code)
 		{ }
 		Language(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
-			: Code(Code), Name(Name), NativeName(NativeName), LanguageAccept(LanguageAccept), PluralExpression(PluralExpression), PluralCases(PluralCases), Installed(Installed)
+			: LanguageData(Code, Name, NativeName, LanguageAccept, PluralExpression, PluralCases, Installed)
 		{ }
 
 		//hasMany
@@ -71,7 +46,7 @@ class Language : public Wt::Dbo::Dbo<Language>
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, Code,				"Code", 2);
+			Wt::Dbo::id(a, _Code,				"Code", 2);
 			Wt::Dbo::field(a, Name,				"Name", 256);
 			Wt::Dbo::field(a, NativeName,		"NativeName", 256);
 			Wt::Dbo::field(a, LanguageAccept,	"LanguageAccept", 256);
@@ -89,25 +64,58 @@ class Language : public Wt::Dbo::Dbo<Language>
 		}
 };
 
-class LanguageSingle : public Wt::Dbo::Dbo<LanguageSingle>
+class BaseLanguageSingle
 {
+	protected:
+		std::string _Key;
+
+		BaseLanguageSingle()
+			: IsEmail(false)
+		{ }
+		BaseLanguageSingle(const std::string &Key, const std::string &String = "", bool IsEmail = false)
+			: _Key(Key), String(String), IsEmail(IsEmail)
+		{ }
+
 	public:
 		std::string String;
 		bool IsEmail;
 
-		LanguageSingle()
-			: IsEmail(false)
+		std::string Key() const { return _Key; }
+};
+class LanguageSingleData : public BaseLanguageSingle
+{
+	protected:
+		std::string _LanguageCode;
+		long long _ModuleId;
+
+	public:
+		LanguageSingleData(const std::string &Key, const std::string &LanguageCode, long long ModuleId)
+			: BaseLanguageSingle(Key), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
 		{ }
-		LanguageSingle(LanguageSingleKeys &Key)
-			: _Id(Key), IsEmail(false)
-		{ }
+
+		std::string LanguageCode() const { return _LanguageCode; };
+		long long ModuleId() const { return _ModuleId; };
+};
+class LanguageSingle : public BaseLanguageSingle
+{
+	protected:
+		Wt::Dbo::ptr<Language> _LanguagePtr;
+		Wt::Dbo::ptr<Module> _ModulePtr;
+
+	public:
+		LanguageSingle() { }
 		LanguageSingle(const std::string &Key, const std::string &String = "", Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>(), Wt::Dbo::ptr<Language> LanguagePtr = Wt::Dbo::ptr<Language>(), bool IsEmail = false)
-			: _Id(LanguagePtr, Key, ModulePtr), String(String), IsEmail(IsEmail)
+			: BaseLanguageSingle(Key, String, IsEmail), _LanguagePtr(LanguagePtr), _ModulePtr(ModulePtr)
 		{ }
+
+		Wt::Dbo::ptr<Language> LanguagePtr() const { return _LanguagePtr; };
+		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "Language");
+			Wt::Dbo::belongsTo(a, _LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::field(a, _Key, "Key", 256);
+			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, String, "String");
 			Wt::Dbo::field(a, IsEmail, "IsEmail");
 		}
@@ -115,33 +123,68 @@ class LanguageSingle : public Wt::Dbo::Dbo<LanguageSingle>
 		{
 			return "languagesingles";
 		}
-
-	private:
-		LanguageSingleKeys _Id;
 };
 
-class LanguagePlural : public Wt::Dbo::Dbo<LanguagePlural>
+class BaseLanguagePlural
 {
+	protected:
+		std::string _Key;
+		int _Case;
+
+		BaseLanguagePlural()
+			: _Case(-1)
+		{ }
+		BaseLanguagePlural(const std::string &Key, int Case, const std::string &String = "")
+			: _Key(Key), _Case(Case), String(String)
+		{ }
+
 	public:
 		std::string String;
 
-		LanguagePlural() { }
-		LanguagePlural(LanguagePluralKeys Key)
-			: _Id(Key)
+		std::string Key() const { return _Key; };
+		int Case() const { return _Case; };
+};
+class LanguagePluralData : public BaseLanguagePlural
+{
+	protected:
+		std::string _LanguageCode;
+		long long _ModuleId;
+
+	public:
+		LanguagePluralData(const std::string &Key, int Case, const std::string &LanguageCode, long long ModuleId)
+			: BaseLanguagePlural(Key, Case), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
 		{ }
+
+		std::string LanguageCode() const { return _LanguageCode; };
+		long long ModuleId() const { return _ModuleId; };
+};
+class LanguagePlural : public BaseLanguagePlural
+{
+	protected:
+		Wt::Dbo::ptr<Language> _LanguagePtr;
+		Wt::Dbo::ptr<Module> _ModulePtr;
+
+	public:
+		LanguagePlural() { }
+		LanguagePlural(const std::string &Key, int Case, Wt::Dbo::ptr<Module> ModulePtr, Wt::Dbo::ptr<Language> LanguagePtr, const std::string &String = "")
+			: BaseLanguagePlural(Key, Case, String), _LanguagePtr(LanguagePtr), _ModulePtr(ModulePtr)
+		{ }
+
+		Wt::Dbo::ptr<Language> LanguagePtr() const { return _LanguagePtr; };
+		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "Language");
+			Wt::Dbo::belongsTo(a, _LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::field(a, _Key, "Key", 256);
+			Wt::Dbo::field(a, _Case, "Case");
+			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, String, "String");
 		}
 		static const char *TableName()
 		{
 			return "languageplurals";
 		}
-
-	private:
-		LanguagePluralKeys _Id;
 };
 
 #include "Dbo/AccessPath.h"

@@ -4,49 +4,59 @@
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
 
-struct PageKeys
+class BasePage : public DataSurrogateKey
 {
-	long long id;
-	Wt::Dbo::ptr<Module> ModulePtr;
+	protected:
+		BasePage(long long id)
+			: DataSurrogateKey(id)
+		{ }
 
-	PageKeys()
-		: id(-1)
-	{ }
-	PageKeys(long long id, Wt::Dbo::ptr<Module> ModulePtr)
-		: id(id), ModulePtr(ModulePtr)
-	{ }
-
-	bool operator< (const PageKeys &other) const;
-	bool operator== (const PageKeys &other) const
-	{
-		return id == other.id && ModulePtr == other.ModulePtr;
-	}
-};
-std::ostream &operator<< (std::ostream &o, const PageKeys &c);
-
-class Page : public Wt::Dbo::Dbo<Page>
-{
 	public:
 		std::string	DefaultInternalPath;
 		std::string	Title;
+};
+class PageData : public BasePage
+{
+	protected:
+		long long _ModuleId;
 
-		Wt::Dbo::ptr<AccessPath> AccessPathPtr;
+	public:
+		long long AccessPathId;
+
+		PageData(long long id, long long ModuleId)
+			: BasePage(id), _ModuleId(ModuleId), AccessPathId(-1)
+		{ }
+
+		long long ModuleId() const { return _ModuleId; }
+};
+class Page : public BasePage
+{
+	protected:
+		Wt::Dbo::ptr<Module> _ModulePtr;
+
+	public:
+		Wt::Dbo::weak_ptr<AccessPath> AccessPathPtr;
 
 		//PageCollections ChildrenPages;
 		//Wt::Dbo::ptr<Page> ParentPage;
 
-		Page() { }
-		Page(long long id, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
-			: _Id(id, ModulePtr)
+		Page()
+			: BasePage(-1)
 		{ }
+		Page(long long id, Wt::Dbo::ptr<Module> ModulePtr)
+			: BasePage(id), _ModulePtr(ModulePtr)
+		{ }
+
+		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id, "Page");
+			Wt::Dbo::field(a, _id, "pid");
+			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, DefaultInternalPath, "DefaultInternalPath", 50);
 			Wt::Dbo::field(a, Title, "Title");
 
-			Wt::Dbo::belongsTo(a, AccessPathPtr, "accesspath", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
+			Wt::Dbo::hasOne(a, AccessPathPtr, "accesspath");
 
 			//Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
 			//Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
@@ -57,7 +67,6 @@ class Page : public Wt::Dbo::Dbo<Page>
 		}
 
 	private:
-		PageKeys _Id;
 		friend class PagesDatabase;
 };
 

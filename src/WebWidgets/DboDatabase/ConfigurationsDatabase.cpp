@@ -78,7 +78,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != BoolCollection.end();
 			++itr, Count++)
 		{
-			BoolMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			BoolMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//Double
@@ -86,7 +86,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != DoubleCollection.end();
 			++itr, Count++)
 		{
-			DoubleMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			DoubleMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//Enum
@@ -94,7 +94,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != EnumCollection.end();
 			++itr, Count++)
 		{
-			EnumMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			EnumMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//Float
@@ -102,7 +102,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != FloatCollection.end();
 			++itr, Count++)
 		{
-			FloatMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			FloatMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//Int
@@ -110,7 +110,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != IntCollection.end();
 			++itr, Count++)
 		{
-			IntMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			IntMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//LongInt
@@ -118,7 +118,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != LongIntCollection.end();
 			++itr, Count++)
 		{
-			LongIntMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			LongIntMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		//String
@@ -126,7 +126,7 @@ void ConfigurationsDatabase::FetchAll()
 			itr != StringCollection.end();
 			++itr, Count++)
 		{
-			StringMap[std::make_pair(itr->id().id().ModulePtr.id(), itr->id().id().Name)] = *itr;
+			StringMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = *itr;
 		}
 
 		transaction.commit();

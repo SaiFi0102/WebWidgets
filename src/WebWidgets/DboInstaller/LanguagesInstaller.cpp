@@ -3,8 +3,7 @@
 void DboInstaller::InsertLanguages()
 {
 	//English
-	O.EnglishLanguagePtr = DboSession.add(new Language());
-	O.EnglishLanguagePtr.modify()->Code = "en";
+	O.EnglishLanguagePtr = DboSession.add(new Language("en"));
 	O.EnglishLanguagePtr.modify()->Name = "English";
 	O.EnglishLanguagePtr.modify()->NativeName = "English";
 	O.EnglishLanguagePtr.modify()->LanguageAccept = "en*";

@@ -68,7 +68,7 @@ void PagesDatabase::FetchAll()
 			itr != PageCollection.end();
 			++itr)
 		{
-			PageMap[std::make_pair(itr->id().id, itr->id().ModulePtr.id())] = MetaPage(*itr);
+			PageMap[std::make_pair((*itr)->id(), (*itr)->ModulePtr().id())] = MetaPage(*itr);
 		}
 
 		transaction.commit();
@@ -102,7 +102,7 @@ Wt::Dbo::ptr<Page> PagesDatabase::HomePagePtr() const
 	{
 		return Wt::Dbo::ptr<Page>();
 	}
-	return GetPtr(HomePageAccessPath->PagePtr.id().id, HomePageAccessPath->PagePtr.id().ModulePtr.id());
+	return GetPtr(HomePageAccessPath->PagePtr->id(), HomePageAccessPath->PagePtr->ModulePtr().id());
 }
 
 /*Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const

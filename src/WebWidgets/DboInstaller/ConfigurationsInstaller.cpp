@@ -3,7 +3,7 @@
 void DboInstaller::InsertConfigurations()
 {
 	//Hostname
-	Wt::Dbo::ptr<Configuration> Hostname = DboSession.add(new Configuration("Hostname", O.ServerModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> Hostname = DboSession.add(new Configuration("Hostname", O.ServerModule, Configuration::String));
 	Hostname.modify()->Title = "Hostname";
 	Hostname.modify()->Details = "This is the host name or domain name used to visit your website. If you have multiple host names, use the one with most priority. Do not enter the 'www.' part.";
 	Hostname.modify()->RestartRequired = false;
@@ -14,7 +14,7 @@ void DboInstaller::InsertConfigurations()
 	Hostname.modify()->StringPtr = HostnameVal;
 
 	//BaseURL
-	Wt::Dbo::ptr<Configuration> BaseUrl = DboSession.add(new Configuration("BaseURL", O.ServerModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> BaseUrl = DboSession.add(new Configuration("BaseURL", O.ServerModule, Configuration::String));
 	BaseUrl.modify()->Title = "Base URL";
 	BaseUrl.modify()->Details = "This is the base URL that the user can see when browsing. Can be left empty in which case the website will use relative paths.";
 	BaseUrl.modify()->RestartRequired = true;
@@ -26,7 +26,7 @@ void DboInstaller::InsertConfigurations()
 	BaseUrl.modify()->StringPtr = BaseUrlVal;
 
 	//DosPuzzle
-	Wt::Dbo::ptr<Configuration> DosPuzzle = DboSession.add(new Configuration("DosPuzzle", O.ServerModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> DosPuzzle = DboSession.add(new Configuration("DosPuzzle", O.ServerModule, Configuration::Bool));
 	DosPuzzle.modify()->Title = "Denial-of-Service protection puzzle";
 	DosPuzzle.modify()->Details = "When enabled the server adds a puzzle to validate Ajax sessions in the first Ajax request. This is a simple measure which avoids Denial-of-Service attacks on Ajax sessions.";
 	DosPuzzle.modify()->RestartRequired = true;
@@ -36,7 +36,7 @@ void DboInstaller::InsertConfigurations()
 	DosPuzzle.modify()->BoolPtr = DosPuzzleVal;
 
 	//JavascriptDebug
-	Wt::Dbo::ptr<Configuration> JavascriptDebug = DboSession.add(new Configuration("JavascriptDebug", O.ServerModule, ConfigurationKeys::Enum));
+	Wt::Dbo::ptr<Configuration> JavascriptDebug = DboSession.add(new Configuration("JavascriptDebug", O.ServerModule, Configuration::Enum));
 	JavascriptDebug.modify()->Title = "Debug javascript mode";
 	JavascriptDebug.modify()->Details = "Enable this only if you are a developer and to debug javascript.";
 	JavascriptDebug.modify()->ExpertWarning = "Only change this if you are a developer and are trying to debug javascript of the website.";
@@ -67,7 +67,7 @@ void DboInstaller::InsertConfigurations()
 	JavascriptDebug.modify()->EnumPtr = JavascriptDebugVal;
 
 	//MaxRequestSize
-	Wt::Dbo::ptr<Configuration> MaxRequestSize = DboSession.add(new Configuration("MaxRequestSize", O.ServerModule, ConfigurationKeys::Int));
+	Wt::Dbo::ptr<Configuration> MaxRequestSize = DboSession.add(new Configuration("MaxRequestSize", O.ServerModule, Configuration::Int));
 	MaxRequestSize.modify()->Title = "Max request size";
 	MaxRequestSize.modify()->Details = "Maximum request size in kilobytes. This must be increased to allow uploading larger sized files.";
 	MaxRequestSize.modify()->RestartRequired = true;
@@ -78,7 +78,7 @@ void DboInstaller::InsertConfigurations()
 	MaxRequestSize.modify()->IntPtr = MaxRequestSizeVal;
 
 	//ReverseProxy
-	Wt::Dbo::ptr<Configuration> ReverseProxy = DboSession.add(new Configuration("ReverseProxy", O.ServerModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> ReverseProxy = DboSession.add(new Configuration("ReverseProxy", O.ServerModule, Configuration::Bool));
 	ReverseProxy.modify()->Title = "Behind reverse proxy";
 	ReverseProxy.modify()->Details = "Enable this if the server is behind a reverse proxy. If you do not know what this means then disable it.";
 	ReverseProxy.modify()->RestartRequired = true;
@@ -88,7 +88,7 @@ void DboInstaller::InsertConfigurations()
 	ReverseProxy.modify()->BoolPtr = ReverseProxyVal;
 
 	//SessionTimeout
-	Wt::Dbo::ptr<Configuration> SessionTimeout = DboSession.add(new Configuration("SessionTimeout", O.ServerModule, ConfigurationKeys::Int));
+	Wt::Dbo::ptr<Configuration> SessionTimeout = DboSession.add(new Configuration("SessionTimeout", O.ServerModule, Configuration::Int));
 	SessionTimeout.modify()->Title = "Session timeout delay";
 	SessionTimeout.modify()->Details = "Session timeout delay in seconds. Users inactive for this amount of time will be considered offline.";
 	SessionTimeout.modify()->RestartRequired = true;
@@ -100,7 +100,7 @@ void DboInstaller::InsertConfigurations()
 	SessionTimeout.modify()->IntPtr = SessionTimeoutVal;
 
 	//SessionTracking
-	Wt::Dbo::ptr<Configuration> SessionTracking = DboSession.add(new Configuration("SessionTracking", O.ServerModule, ConfigurationKeys::Enum));
+	Wt::Dbo::ptr<Configuration> SessionTracking = DboSession.add(new Configuration("SessionTracking", O.ServerModule, Configuration::Enum));
 	SessionTracking.modify()->Title = "Session tracking strategy";
 	SessionTracking.modify()->RestartRequired = true;
 
@@ -124,7 +124,7 @@ void DboInstaller::InsertConfigurations()
 	SessionTracking.modify()->EnumPtr = SessionTrackingVal;
 
 	//LogDebugLevel
-	Wt::Dbo::ptr<Configuration> LogDebugLevel = DboSession.add(new Configuration("LogDebugLevel", O.LoggingModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> LogDebugLevel = DboSession.add(new Configuration("LogDebugLevel", O.LoggingModule, Configuration::Bool));
 	LogDebugLevel.modify()->Title = "Log debugging messages";
 	LogDebugLevel.modify()->Details = "When enabled debugging events/messages will be included in the log file. These notices only gives information for developers and might not be meaningful to users.";
 	LogDebugLevel.modify()->ExpertWarning = "Only change this if you are a developer and are trying to debug javascript of the website.";
@@ -136,7 +136,7 @@ void DboInstaller::InsertConfigurations()
 	LogDebugLevel.modify()->BoolPtr = LogDebugLevelVal;
 
 	//LogDirectory
-	Wt::Dbo::ptr<Configuration> LogDirectory = DboSession.add(new Configuration("LogDirectory", O.LoggingModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> LogDirectory = DboSession.add(new Configuration("LogDirectory", O.LoggingModule, Configuration::String));
 	LogDirectory.modify()->Title = "Logging file directory";
 	LogDirectory.modify()->Details = "Location of where the logging file will be created. If this is left empty, no log file will be created but instead it will be stored in HTTP server logs. Disabling file logging is highly not recommended.";
 	LogDirectory.modify()->RestartRequired = true;
@@ -147,7 +147,7 @@ void DboInstaller::InsertConfigurations()
 	LogDirectory.modify()->StringPtr = LogDirectoryVal;
 
 	//LogErrorLevel
-	Wt::Dbo::ptr<Configuration> LogErrorLevel = DboSession.add(new Configuration("LogErrorLevel", O.LoggingModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> LogErrorLevel = DboSession.add(new Configuration("LogErrorLevel", O.LoggingModule, Configuration::Bool));
 	LogErrorLevel.modify()->Title = "Log error messages";
 	LogErrorLevel.modify()->Details = "When enabled errors will be included in the logs.";
 	LogErrorLevel.modify()->RestartRequired = true;
@@ -158,7 +158,7 @@ void DboInstaller::InsertConfigurations()
 	LogErrorLevel.modify()->BoolPtr = LogErrorLevelVal;
 
 	//LogInfoLevel
-	Wt::Dbo::ptr<Configuration> LogInfoLevel = DboSession.add(new Configuration("LogInfoLevel", O.LoggingModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> LogInfoLevel = DboSession.add(new Configuration("LogInfoLevel", O.LoggingModule, Configuration::Bool));
 	LogInfoLevel.modify()->Title = "Log informational notices";
 	LogInfoLevel.modify()->Details = "When enabled informational notices will be included in the logs.";
 	LogInfoLevel.modify()->RestartRequired = true;
@@ -168,7 +168,7 @@ void DboInstaller::InsertConfigurations()
 	LogInfoLevel.modify()->BoolPtr = LogInfoLevelVal;
 
 	//LogSecureLevel
-	Wt::Dbo::ptr<Configuration> LogSecureLevel = DboSession.add(new Configuration("LogSecureLevel", O.LoggingModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> LogSecureLevel = DboSession.add(new Configuration("LogSecureLevel", O.LoggingModule, Configuration::Bool));
 	LogSecureLevel.modify()->Title = "Log security events";
 	LogSecureLevel.modify()->Details = "When enabled security related messages will be included in the logs.";
 	LogSecureLevel.modify()->RestartRequired = true;
@@ -179,7 +179,7 @@ void DboInstaller::InsertConfigurations()
 	LogSecureLevel.modify()->BoolPtr = LogSecureLevelVal;
 
 	//LogWarnLevel
-	Wt::Dbo::ptr<Configuration> LogWarnLevel = DboSession.add(new Configuration("LogWarnLevel", O.LoggingModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> LogWarnLevel = DboSession.add(new Configuration("LogWarnLevel", O.LoggingModule, Configuration::Bool));
 	LogWarnLevel.modify()->Title = "Log warnings";
 	LogWarnLevel.modify()->Details = "When enabled warnings will be included in the log file. These warnings indicate that there was something could have caused an error and should be considered.\n\nRecommended Value: On";
 	LogWarnLevel.modify()->RestartRequired = true;
@@ -190,7 +190,7 @@ void DboInstaller::InsertConfigurations()
 	LogWarnLevel.modify()->BoolPtr = LogWarnLevelVal;
 
 	//DefaultAccessPath
-	Wt::Dbo::ptr<Configuration> DefaultAccessPath = DboSession.add(new Configuration("DefaultAccessPath", O.LocalizationModule, ConfigurationKeys::LongInt));
+	Wt::Dbo::ptr<Configuration> DefaultAccessPath = DboSession.add(new Configuration("DefaultAccessPath", O.LocalizationModule, Configuration::LongInt));
 	DefaultAccessPath.modify()->Title = "Default language access path";
 	DefaultAccessPath.modify()->Details = "The access path that links to default language.";
 	DefaultAccessPath.modify()->RestartRequired = false;
@@ -199,7 +199,7 @@ void DboInstaller::InsertConfigurations()
 	DefaultAccessPath.modify()->LongIntPtr = O.DefaultAccessPathVal;
 
 	//HostUnspecificLanguage
-	Wt::Dbo::ptr<Configuration> HostUnspecificLanguage = DboSession.add(new Configuration("HostUnspecificLanguage", O.LocalizationModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> HostUnspecificLanguage = DboSession.add(new Configuration("HostUnspecificLanguage", O.LocalizationModule, Configuration::Bool));
 	HostUnspecificLanguage.modify()->Title = "Set language from host unspecific access path";
 	HostUnspecificLanguage.modify()->Details = "If there are two conflicting access paths linking to different languages for example one with host name \"englishwebsite.com\" and no internal path and the other with internal path \"fr\" and no host name in that case if this is enabled then the access path without the host name would be used to set language of the user.";
 	HostUnspecificLanguage.modify()->RestartRequired = false;
@@ -209,7 +209,7 @@ void DboInstaller::InsertConfigurations()
 	HostUnspecificLanguage.modify()->BoolPtr = HostUnspecificLanguageVal;
 
 	//InternalPathMode
-	Wt::Dbo::ptr<Configuration> InternalPathMode = DboSession.add(new Configuration("InternalPathMode", O.LocalizationModule, ConfigurationKeys::Enum));
+	Wt::Dbo::ptr<Configuration> InternalPathMode = DboSession.add(new Configuration("InternalPathMode", O.LocalizationModule, Configuration::Enum));
 	InternalPathMode.modify()->Title = "Presentation of language in internal path";
 	InternalPathMode.modify()->RestartRequired = false;
 
@@ -242,7 +242,7 @@ void DboInstaller::InsertConfigurations()
 	InternalPathMode.modify()->EnumPtr = InternalPathModeVal;
 
 	//EnableTokens
-	Wt::Dbo::ptr<Configuration> EnableTokens = DboSession.add(new Configuration("EnableTokens", O.AuthenticationModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> EnableTokens = DboSession.add(new Configuration("EnableTokens", O.AuthenticationModule, Configuration::Bool));
 	EnableTokens.modify()->Title = "Enable Remember-Me Tokens";
 	EnableTokens.modify()->Details = "If enabled then remember me feature before login will be enabled. This means that if users agree to keep them self logged in, they will not have to login again even after end of session. Cookies will be set as tokens.";
 	EnableTokens.modify()->RestartRequired = true;
@@ -253,7 +253,7 @@ void DboInstaller::InsertConfigurations()
 	EnableTokens.modify()->BoolPtr = EnableTokensVal;
 
 	//LoginCookie
-	Wt::Dbo::ptr<Configuration> LoginCookie = DboSession.add(new Configuration("LoginCookie", O.AuthenticationModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> LoginCookie = DboSession.add(new Configuration("LoginCookie", O.AuthenticationModule, Configuration::String));
 	LoginCookie.modify()->Title = "Remember-Me Cookie Name";
 	LoginCookie.modify()->Details = "Name of the cookie that will be used to set the remember-me token. Do not change this if you do not know what this means.";
 	LoginCookie.modify()->ExpertWarning = "Changing cookie name to an invalid name may prevent the remember-me function to work properly.";
@@ -267,7 +267,7 @@ void DboInstaller::InsertConfigurations()
 	LoginCookie.modify()->StringPtr = LoginCookieVal;
 
 	//EmailVerification
-	Wt::Dbo::ptr<Configuration> EmailVerification = DboSession.add(new Configuration("EmailVerification", O.AuthenticationModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> EmailVerification = DboSession.add(new Configuration("EmailVerification", O.AuthenticationModule, Configuration::Bool));
 	EmailVerification.modify()->Title = "Enable Email Verification";
 	EmailVerification.modify()->Details = "If enabled then all new users must verify their email address after registration. Verification is done by sending an automatically generated email asking to verify the email.";
 	EmailVerification.modify()->RestartRequired = true;
@@ -277,7 +277,7 @@ void DboInstaller::InsertConfigurations()
 	EmailVerification.modify()->BoolPtr = EmailVerificationVal;
 
 	//FacebookOAuth
-	Wt::Dbo::ptr<Configuration> FacebookOAuth = DboSession.add(new Configuration("FacebookOAuth", O.AuthenticationModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> FacebookOAuth = DboSession.add(new Configuration("FacebookOAuth", O.AuthenticationModule, Configuration::Bool));
 	FacebookOAuth.modify()->Title = "Enable Facebook Login";
 	FacebookOAuth.modify()->Details = "If enabled then users would be able to login from their facebook account. Note that facebook connect configurations also have to be changed.";
 	FacebookOAuth.modify()->RestartRequired = true;
@@ -287,7 +287,7 @@ void DboInstaller::InsertConfigurations()
 	FacebookOAuth.modify()->BoolPtr = FacebookOAuthVal;
 
 	//FacebookAppID
-	Wt::Dbo::ptr<Configuration> FacebookAppID = DboSession.add(new Configuration("FacebookAppId", O.AuthenticationModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> FacebookAppID = DboSession.add(new Configuration("FacebookAppId", O.AuthenticationModule, Configuration::String));
 	FacebookAppID.modify()->Title = "OAuth 2 Facebook App ID";
 	FacebookAppID.modify()->Details = "Facebook app ID that you get by registering on OAuth 2.";
 	FacebookAppID.modify()->RestartRequired = true;
@@ -297,7 +297,7 @@ void DboInstaller::InsertConfigurations()
 	FacebookAppID.modify()->StringPtr = FacebookAppIDVal;
 
 	//FacebookAppSecret
-	Wt::Dbo::ptr<Configuration> FacebookAppSecret = DboSession.add(new Configuration("FacebookAppSecret", O.AuthenticationModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> FacebookAppSecret = DboSession.add(new Configuration("FacebookAppSecret", O.AuthenticationModule, Configuration::String));
 	FacebookAppSecret.modify()->Title = "OAuth 2 Facebook App Secret";
 	FacebookAppSecret.modify()->Details = "Facebook app secret that you get by registering on OAuth 2.";
 	FacebookAppSecret.modify()->RestartRequired = true;
@@ -307,7 +307,7 @@ void DboInstaller::InsertConfigurations()
 	FacebookAppSecret.modify()->StringPtr = FacebookAppSecretVal;
 
 	//GoogleOAuth
-	Wt::Dbo::ptr<Configuration> GoogleOAuth = DboSession.add(new Configuration("GoogleOAuth", O.AuthenticationModule, ConfigurationKeys::Bool));
+	Wt::Dbo::ptr<Configuration> GoogleOAuth = DboSession.add(new Configuration("GoogleOAuth", O.AuthenticationModule, Configuration::Bool));
 	GoogleOAuth.modify()->Title = "Enable Google Login";
 	GoogleOAuth.modify()->Details = "If enabled then users would be able to login from their google account. Note that google api configurations also have to be changed.";
 	GoogleOAuth.modify()->RestartRequired = false;
@@ -317,7 +317,7 @@ void DboInstaller::InsertConfigurations()
 	GoogleOAuth.modify()->BoolPtr = GoogleOAuthVal;
 
 	//GoogleClientID
-	Wt::Dbo::ptr<Configuration> GoogleClientID = DboSession.add(new Configuration("GoogleClientId", O.AuthenticationModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> GoogleClientID = DboSession.add(new Configuration("GoogleClientId", O.AuthenticationModule, Configuration::String));
 	GoogleClientID.modify()->Title = "OAuth 2 Google Client ID";
 	GoogleClientID.modify()->Details = "Google client ID that you get by registering on OAuth 2.";
 	GoogleClientID.modify()->RestartRequired = true;
@@ -327,7 +327,7 @@ void DboInstaller::InsertConfigurations()
 	GoogleClientID.modify()->StringPtr = GoogleClientIDVal;
 
 	//GoogleClientSecret
-	Wt::Dbo::ptr<Configuration> GoogleClientSecret = DboSession.add(new Configuration("GoogleClientSecret", O.AuthenticationModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> GoogleClientSecret = DboSession.add(new Configuration("GoogleClientSecret", O.AuthenticationModule, Configuration::String));
 	GoogleClientSecret.modify()->Title = "OAuth 2 Google Client Secret";
 	GoogleClientSecret.modify()->Details = "Google client secret that you get by registering on OAuth 2.";
 	GoogleClientSecret.modify()->RestartRequired = true;
@@ -337,7 +337,7 @@ void DboInstaller::InsertConfigurations()
 	GoogleClientSecret.modify()->StringPtr = GoogleClientSecretVal;
 
 	//HomePageAccessPathId
-	Wt::Dbo::ptr<Configuration> HomePageAccessPathId = DboSession.add(new Configuration("HomePageAccessPathId", O.NavigationModule, ConfigurationKeys::LongInt));
+	Wt::Dbo::ptr<Configuration> HomePageAccessPathId = DboSession.add(new Configuration("HomePageAccessPathId", O.NavigationModule, Configuration::LongInt));
 	HomePageAccessPathId.modify()->Title = "Home page access path";
 	HomePageAccessPathId.modify()->Details = "This is the page which will be treated as the default or landing page.";
 	HomePageAccessPathId.modify()->RestartRequired = false;
@@ -346,7 +346,7 @@ void DboInstaller::InsertConfigurations()
 	HomePageAccessPathId.modify()->LongIntPtr = O.HomePageAccessPathIdVal;
 
 	//MobileAccessPathId
-	Wt::Dbo::ptr<Configuration> MobileAccessPathId = DboSession.add(new Configuration("MobileAccessPathId", O.NavigationModule, ConfigurationKeys::LongInt));
+	Wt::Dbo::ptr<Configuration> MobileAccessPathId = DboSession.add(new Configuration("MobileAccessPathId", O.NavigationModule, Configuration::LongInt));
 	MobileAccessPathId.modify()->Title = "Mobile version access path";
 	MobileAccessPathId.modify()->Details = "The access path from where mobile version will be accessed.";
 	MobileAccessPathId.modify()->RestartRequired = false;
@@ -355,7 +355,7 @@ void DboInstaller::InsertConfigurations()
 	MobileAccessPathId.modify()->LongIntPtr = O.MobileAccessPathIdVal;
 
 	//ResourcesURL
-	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", O.StylesModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", O.StylesModule, Configuration::String));
 	ResourcesURL.modify()->Title = "Resources folder URL";
 	ResourcesURL.modify()->Details = "Path to Wt's resources folder.";
 	ResourcesURL.modify()->RestartRequired = true;
@@ -367,7 +367,7 @@ void DboInstaller::InsertConfigurations()
 	ResourcesURL.modify()->StringPtr = ResourcesURLVal;
 
 	//StylesURL
-	Wt::Dbo::ptr<Configuration> StylesURL = DboSession.add(new Configuration("StylesURL", O.StylesModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> StylesURL = DboSession.add(new Configuration("StylesURL", O.StylesModule, Configuration::String));
 	StylesURL.modify()->Title = "Images folder URL";
 	StylesURL.modify()->Details = "Path to the images folder that contain general and style images.";
 	StylesURL.modify()->RestartRequired = false;
@@ -379,7 +379,7 @@ void DboInstaller::InsertConfigurations()
 	StylesURL.modify()->StringPtr = StylesURLVal;
 
 	//DefaultStyleName
-	Wt::Dbo::ptr<Configuration> DefaultStyleName = DboSession.add(new Configuration("DefaultStyleName", O.StylesModule, ConfigurationKeys::String));
+	Wt::Dbo::ptr<Configuration> DefaultStyleName = DboSession.add(new Configuration("DefaultStyleName", O.StylesModule, Configuration::String));
 	DefaultStyleName.modify()->Title = "Default style's name";
 	DefaultStyleName.modify()->Details = "Name of the style which would be used to show as default.";
 	DefaultStyleName.modify()->RestartRequired = false;
@@ -387,7 +387,7 @@ void DboInstaller::InsertConfigurations()
 	DefaultStyleName.modify()->StringPtr = O.DefaultStyleNameVal;
 
 	//DefaultStyleAuthor
-	Wt::Dbo::ptr<Configuration> DefaultStyleAuthor = DboSession.add(new Configuration("DefaultStyleAuthor", O.StylesModule, ConfigurationKeys::LongInt));
+	Wt::Dbo::ptr<Configuration> DefaultStyleAuthor = DboSession.add(new Configuration("DefaultStyleAuthor", O.StylesModule, Configuration::LongInt));
 	DefaultStyleAuthor.modify()->Title = "Default style's author id";
 	DefaultStyleAuthor.modify()->Details = "Author ID of the style which would be used to show as default.";
 	DefaultStyleAuthor.modify()->RestartRequired = false;

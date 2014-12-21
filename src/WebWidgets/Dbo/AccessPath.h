@@ -5,17 +5,31 @@
 #include "Dbo/Language.h"
 #include "Dbo/Page.h"
 
-class AccessPath :	public Wt::Dbo::Dbo<AccessPath>
+class BaseAccessPath
 {
 	public:
-		AccessPath()
-			: HasChildPaths(false)
-		{ }
-
 		std::string HostName;
 		std::string InternalPath;
 		bool HasChildPaths;
-		Wt::Dbo::weak_ptr<Page> PagePtr;
+
+	protected:
+		BaseAccessPath()
+			: HasChildPaths(false)
+		{ }
+};
+class AccessPathData : public BaseAccessPath, public DataSurrogateKey
+{
+	public:
+		std::string LanguageCode;
+
+		AccessPathData(long long id)
+			: DataSurrogateKey(id)
+		{ }
+};
+class AccessPath : public BaseAccessPath
+{
+	public:
+		Wt::Dbo::ptr<Page> PagePtr;
 		Wt::Dbo::ptr<Language> LanguagePtr;
 
 		template<class Action>void persist(Action &a)
@@ -24,7 +38,7 @@ class AccessPath :	public Wt::Dbo::Dbo<AccessPath>
 			Wt::Dbo::field(a, InternalPath, "InternalPath", 256);
 			Wt::Dbo::field(a, HasChildPaths, "HasChildPaths");
 			Wt::Dbo::belongsTo(a, LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::hasOne(a, PagePtr, "accesspath");
+			Wt::Dbo::belongsTo(a, PagePtr, "accesspath", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
 		}
 		static const char *TableName()
 		{

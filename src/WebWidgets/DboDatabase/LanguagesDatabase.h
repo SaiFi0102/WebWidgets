@@ -37,7 +37,7 @@ class LanguagesDatabase
 			typedef std::string result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
-				return LanguageSinglePtr.id().LanguagePtr.id();
+				return LanguageSinglePtr->LanguagePtr().id();
 			}
 		};
 		struct LanguageSingle_key_Key
@@ -45,7 +45,7 @@ class LanguagesDatabase
 			typedef std::string result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
-				return LanguageSinglePtr.id().Key;
+				return LanguageSinglePtr->Key();
 			}
 		};
 		struct LanguageSingle_key_ModuleId
@@ -53,7 +53,7 @@ class LanguagesDatabase
 			typedef long long result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguageSingle> &LanguageSinglePtr) const
 			{
-				return LanguageSinglePtr.id().ModulePtr.id();
+				return LanguageSinglePtr->ModulePtr().id();
 			}
 		};
 
@@ -63,7 +63,7 @@ class LanguagesDatabase
 			typedef std::string result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
-				return LanguagePluralPtr.id().LanguagePtr.id();
+				return LanguagePluralPtr->LanguagePtr().id();
 			}
 		};
 		struct LanguagePlural_key_Key
@@ -71,7 +71,7 @@ class LanguagesDatabase
 			typedef std::string result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
-				return LanguagePluralPtr.id().Key;
+				return LanguagePluralPtr->Key();
 			}
 		};
 		struct LanguagePlural_key_Case
@@ -79,7 +79,7 @@ class LanguagesDatabase
 			typedef int result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
-				return LanguagePluralPtr.id().Case;
+				return LanguagePluralPtr->Case();
 			}
 		};
 		struct LanguagePlural_key_ModuleId
@@ -87,7 +87,7 @@ class LanguagesDatabase
 			typedef long long result_type;
 			result_type operator()(const Wt::Dbo::ptr<LanguagePlural> &LanguagePluralPtr) const
 			{
-				return LanguagePluralPtr.id().ModulePtr.id();
+				return LanguagePluralPtr->ModulePtr().id();
 			}
 		};
 
@@ -155,7 +155,7 @@ class LanguagesDatabase
 		Wt::WLocale GetLocaleFromCode(const std::string &Code) const;
 		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
 		{
-			return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code);
+			return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code());
 		}
 
 		long long GetLoadDurationinMS() const;

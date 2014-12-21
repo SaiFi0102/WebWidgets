@@ -5,43 +5,32 @@
 #include "DboTraits.h"
 #include "Dbo/Module.h"
 
-//Configuration Keys structure
-struct ConfigurationKeys
-{
-	enum ValueTypes
-	{
-		Bool =		0,
-		Double =	1,
-		Enum =		2,
-		Float =		3,
-		Int =		4,
-		LongInt =	5,
-		String =	6,
-	};
-
-	std::string Name;
-	Wt::Dbo::ptr<Module> ModulePtr;
-	ValueTypes Type;
-
-	ConfigurationKeys()
-		: Type(ConfigurationKeys::Bool)
-	{ }
-	ConfigurationKeys(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ValueTypes Type)
-		: Name(Name), ModulePtr(ModulePtr), Type(Type)
-	{ }
-
-	bool operator< (const ConfigurationKeys &other) const;
-	bool operator== (const ConfigurationKeys &other) const
-	{
-		return Name == other.Name && ModulePtr == other.ModulePtr && Type == other.Type;
-	}
-};
-std::ostream &operator<< (std::ostream &o, const ConfigurationKeys &c);
-
 //Configuration DBO class
-class Configuration : public Wt::Dbo::Dbo<Configuration>
+class Configuration
 {
 	public:
+		enum ValueTypes
+		{
+			Bool	= 0,
+			Double	= 1,
+			Enum	= 2,
+			Float	= 3,
+			Int		= 4,
+			LongInt	= 5,
+			String	= 6,
+		};
+
+	protected:
+		Wt::Dbo::ptr<Module> _ModulePtr;
+		std::string _Name;
+		ValueTypes _Type;
+		
+	public:
+		std::string						Title;
+		boost::optional<std::string>	Details;
+		bool							RestartRequired;
+		boost::optional<std::string>	ExpertWarning;
+
 		//hasOne relations
 		Wt::Dbo::weak_ptr<ConfigurationBool>	BoolPtr;
 		Wt::Dbo::weak_ptr<ConfigurationDouble>	DoublePtr;
@@ -51,26 +40,28 @@ class Configuration : public Wt::Dbo::Dbo<Configuration>
 		Wt::Dbo::weak_ptr<ConfigurationLongInt>	LongIntPtr;
 		Wt::Dbo::weak_ptr<ConfigurationString>	StringPtr;
 
-		//Fields
-		std::string						Title;
-		boost::optional<std::string>	Details;
-		bool							RestartRequired;
-		boost::optional<std::string>	ExpertWarning;
-
-		Configuration() { }
-		Configuration(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ConfigurationKeys::ValueTypes Type)
-			: _Id(Name, ModulePtr, Type)
+		Configuration()
+			: _Type(Bool)
 		{ }
+		Configuration(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ValueTypes Type)
+			: _Name(Name), _Type(Type), _ModulePtr(ModulePtr)
+		{ }
+
+		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
+		std::string Name() const { return _Name; };
+		ValueTypes Type() const { return _Type; };
 
 		//Persistence Method
 		template<class Action>
 		void persist(Action &a)
 		{
-			Wt::Dbo::id(a, _Id);
-			Wt::Dbo::field(a, Title,			"Title");
-			Wt::Dbo::field(a, Details,			"Details");
-			Wt::Dbo::field(a, RestartRequired,	"RestartRequired");
-			Wt::Dbo::field(a, ExpertWarning,	"ExpertWarning");
+			Wt::Dbo::field(a, _Name, "Name", 256);
+			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::field(a, _Type, "Type");
+			Wt::Dbo::field(a, Title, "Title");
+			Wt::Dbo::field(a, Details, "Details");
+			Wt::Dbo::field(a, RestartRequired, "RestartRequired");
+			Wt::Dbo::field(a, ExpertWarning, "ExpertWarning");
 
 			Wt::Dbo::hasOne(a, BoolPtr, "Configuration");
 			Wt::Dbo::hasOne(a, DoublePtr, "Configuration");
@@ -84,19 +75,42 @@ class Configuration : public Wt::Dbo::Dbo<Configuration>
 		{
 			return "configurations";
 		}
+};
 
-	private:
-		ConfigurationKeys _Id;
+class ConfigurationDataKey
+{
+	protected:
+		std::string _Name;
+		long long _ModuleId;
+
+		ConfigurationDataKey(const std::string &Name, long long ModuleId)
+			: _Name(Name), _ModuleId(ModuleId)
+		{}
+
+	public:
+		std::string Name() const { return _Name; };
+		long long ModuleId() const { return _ModuleId; };
 };
 
 //ConfigurationBool DBO Class
-class ConfigurationBool : public Wt::Dbo::Dbo<ConfigurationBool>
+class BaseConfigurationBool
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		bool Value;
 		bool DefaultValue;
 		boost::optional<bool> RecommendedValue;
+};
+class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
+{
+	public:
+		ConfigurationBoolData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationBool : public BaseConfigurationBool
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{
@@ -112,16 +126,26 @@ class ConfigurationBool : public Wt::Dbo::Dbo<ConfigurationBool>
 };
 
 //ConfigurationDouble DBO Class
-class ConfigurationDouble : public Wt::Dbo::Dbo<ConfigurationDouble>
+class BaseConfigurationDouble
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		double Value;
 		double DefaultValue;
 		boost::optional<double> RecommendedValue;
-
 		boost::optional<double> MinValue;
 		boost::optional<double> MaxValue;
+};
+class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
+{
+	public:
+		ConfigurationDoubleData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationDouble : public BaseConfigurationDouble
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{
@@ -138,7 +162,7 @@ class ConfigurationDouble : public Wt::Dbo::Dbo<ConfigurationDouble>
 		}
 };
 
-class ConfigurationEnumValue : public Wt::Dbo::Dbo<ConfigurationEnumValue>
+class ConfigurationEnumValue
 {
 	public:
 		std::string Title;
@@ -162,16 +186,24 @@ class ConfigurationEnumValue : public Wt::Dbo::Dbo<ConfigurationEnumValue>
 };
 
 //ConfigurationEnum DBO Class
-class ConfigurationEnum : public Wt::Dbo::Dbo<ConfigurationEnum>
+class BaseConfigurationEnum
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
-
-		//hasOne
 		int Value;
 		int DefaultValue;
 		boost::optional<int> RecommendedValue;
-
+};
+class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
+{
+	public:
+		ConfigurationEnumData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationEnum : public BaseConfigurationEnum
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		EnumValueCollections EnumValueCollection;
 		
 		template<class Action>void persist(Action &a)
@@ -190,16 +222,26 @@ class ConfigurationEnum : public Wt::Dbo::Dbo<ConfigurationEnum>
 };
 
 //ConfigurationFloat DBO Class
-class ConfigurationFloat : public Wt::Dbo::Dbo<ConfigurationFloat>
+class BaseConfigurationFloat
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		float Value;
 		float DefaultValue;
 		boost::optional<float> RecommendedValue;
-
 		boost::optional<float> MinValue;
 		boost::optional<float> MaxValue;
+};
+class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
+{
+	public:
+		ConfigurationFloatData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationFloat : public BaseConfigurationFloat
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		
 		template<class Action>void persist(Action &a)
 		{
@@ -217,16 +259,26 @@ class ConfigurationFloat : public Wt::Dbo::Dbo<ConfigurationFloat>
 };
 
 //ConfigurationInt DBO Class
-class ConfigurationInt : public Wt::Dbo::Dbo<ConfigurationInt>
+class BaseConfigurationInt
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		int Value;
 		boost::optional<int> DefaultValue;
 		boost::optional<int> RecommendedValue;
-
 		boost::optional<int> MinValue;
 		boost::optional<int> MaxValue;
+};
+class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
+{
+	public:
+		ConfigurationIntData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationInt : public BaseConfigurationInt
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{
@@ -244,16 +296,26 @@ class ConfigurationInt : public Wt::Dbo::Dbo<ConfigurationInt>
 };
 
 //ConfigurationLongInt DBO Class
-class ConfigurationLongInt : public Wt::Dbo::Dbo<ConfigurationLongInt>
+class BaseConfigurationLongInt
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		long long Value;
 		boost::optional<long long> DefaultValue;
 		boost::optional<long long> RecommendedValue;
-
 		boost::optional<long long> MinValue;
 		boost::optional<long long> MaxValue;
+};
+class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
+{
+	public:
+		ConfigurationLongIntData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{}
+};
+class ConfigurationLongInt : public BaseConfigurationLongInt
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{
@@ -271,17 +333,27 @@ class ConfigurationLongInt : public Wt::Dbo::Dbo<ConfigurationLongInt>
 };
 
 //ConfigurationString DBO Class
-class ConfigurationString : public Wt::Dbo::Dbo<ConfigurationString>
+class BaseConfigurationString
 {
 	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 		boost::optional<std::string> Value;
 		boost::optional<std::string> DefaultValue;
 		boost::optional<std::string> RecommendedValue;
 		boost::optional<std::string> ExampleValue;
-
 		boost::optional<int> MinLength;
 		boost::optional<int> MaxLength;
+};
+class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey
+{
+public:
+	ConfigurationStringData(const std::string &Name, long long ModuleId)
+		: ConfigurationDataKey(Name, ModuleId)
+	{}
+};
+class ConfigurationString : public BaseConfigurationString
+{
+	public:
+		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{

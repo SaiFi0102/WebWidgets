@@ -60,7 +60,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleCollection.end();
 			++itr)
 		{
-			StyleMap[std::make_pair(itr->id().Name, itr->id().AuthorPtr.id())] = *itr;
+			StyleMap[std::make_pair((*itr)->Name(), (*itr)->AuthorPtr().id())] = *itr;
 		}
 
 		//Templates
@@ -68,7 +68,7 @@ void StylesDatabase::FetchAll()
 			itr != TemplateCollection.end();
 			++itr)
 		{
-			TemplateMap[std::make_pair(itr->id().Name, itr->id().ModulePtr.id())] = *itr;
+			TemplateMap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = *itr;
 		}
 
 		//StyleTemplates
@@ -84,7 +84,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleCssRuleCollection.end();
 			++itr)
 		{
-			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->id().Name, (*itr)->StylePtr->id().AuthorPtr->id())].push_back(*itr);
+			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].push_back(*itr);
 		}
 
 		//TemplateCssRules
@@ -92,7 +92,7 @@ void StylesDatabase::FetchAll()
 			itr != TemplateCssRuleCollection.end();
 			++itr)
 		{
-			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->id().Name, (*itr)->TemplatePtr->id().ModulePtr->id())].push_back(*itr);
+			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].push_back(*itr);
 		}
 
 		transaction.commit();
