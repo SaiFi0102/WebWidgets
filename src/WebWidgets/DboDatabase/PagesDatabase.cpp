@@ -58,8 +58,6 @@ void PagesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
-		DboSession.disconnectAll();
-
 		Wt::Dbo::Transaction transaction(DboSession);
 		PageCollections PageCollection = DboSession.find<Page>();
 
@@ -68,7 +66,7 @@ void PagesDatabase::FetchAll()
 			itr != PageCollection.end();
 			++itr)
 		{
-			PageMap[std::make_pair((*itr)->id(), (*itr)->ModulePtr().id())] = MetaPage(*itr);
+			PageMap[std::make_pair((*itr)->id(), (*itr)->ModulePtr().id())] = MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)));
 		}
 
 		transaction.commit();
@@ -84,34 +82,34 @@ void PagesDatabase::FetchAll()
 	LoadDuration = PTEnd - PTStart;
 }
 
-Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
+boost::shared_ptr<PageData> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
 {
 	READ_LOCK;
 	PageMaps::const_iterator itr = PageMap.find(std::make_pair(PageId, ModuleId));
 	if(itr == PageMap.end())
 	{
-		return Wt::Dbo::ptr<Page>();
+		return boost::shared_ptr<PageData>();
 	}
 	return itr->second.PagePtr;
 }
 
-Wt::Dbo::ptr<Page> PagesDatabase::HomePagePtr() const
+boost::shared_ptr<PageData> PagesDatabase::HomePagePtr() const
 {
-	Wt::Dbo::ptr<AccessPath> HomePageAccessPath = _Server.AccessPaths()->HomePageAccessPathPtr();
+	boost::shared_ptr<AccessPathData> HomePageAccessPath = _Server.AccessPaths()->HomePageAccessPathPtr();
 	if(!HomePageAccessPath)
 	{
-		return Wt::Dbo::ptr<Page>();
+		return boost::shared_ptr<PageData>();
 	}
-	return GetPtr(HomePageAccessPath->PagePtr->id(), HomePageAccessPath->PagePtr->ModulePtr().id());
+	return GetPtr(HomePageAccessPath->PageId, HomePageAccessPath->PageModuleId);
 }
 
-/*Wt::Dbo::ptr<Page> PagesDatabase::GetPtr(const std::string &InternalPath) const
+/*boost::shared_ptr<PageData> PagesDatabase::GetPtr(const std::string &InternalPath) const
 {
 	READ_LOCK;
 	PageByInternalPath::iterator itr = PageContainer.get<ByInternalPath>().find(InternalPath);
 	if(itr == PageContainer.get<ByInternalPath>().end())
 	{
-		return Wt::Dbo::ptr<Page>();
+		return boost::shared_ptr<PageData>();
 	}
 	return *itr;
 }*/

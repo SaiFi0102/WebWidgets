@@ -15,14 +15,14 @@ class PagesDatabase
 	private:
 		struct MetaPage
 		{
-			MetaPage(Wt::Dbo::ptr<Page> PagePtr = Wt::Dbo::ptr<Page>())
+			MetaPage(boost::shared_ptr<PageData> PagePtr = boost::shared_ptr<PageData>())
 				: PagePtr(PagePtr)
 			{ }
-			MetaPage(Wt::Dbo::ptr<Page> PagePtr, boost::function<void()> Handler)
+			MetaPage(boost::shared_ptr<PageData> PagePtr, boost::function<void()> Handler)
 				: PagePtr(PagePtr), HandlerFunction(Handler)
 			{ }
 
-			Wt::Dbo::ptr<Page> PagePtr;
+			boost::shared_ptr<PageData> PagePtr;
 			boost::function<void()> HandlerFunction;
 		};
 
@@ -35,9 +35,9 @@ class PagesDatabase
 		void Load() { FetchAll(); }
 		void Reload();
 
-		Wt::Dbo::ptr<Page> GetPtr(long long PageId, long long ModuleId) const;
-		Wt::Dbo::ptr<Page> HomePagePtr() const;
-		//Wt::Dbo::ptr<Page> GetPtr(const std::string &InternalPath) const;
+		boost::shared_ptr<PageData> GetPtr(long long PageId, long long ModuleId) const;
+		boost::shared_ptr<PageData> HomePagePtr() const;
+		//boost::shared_ptr<PageData> GetPtr(const std::string &InternalPath) const;
 
 		void RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler);
 

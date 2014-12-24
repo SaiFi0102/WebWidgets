@@ -31,10 +31,10 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId,
 		//Use default locale from configuration or function is called independent from Wt::WServer, use "en"
 		Locale = "en"; //Default
 		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
-		if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+		boost::shared_ptr<AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
+		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 		{
-			Locale = DefaultAccessPath->LanguagePtr.id();
+			Locale = DefaultAccessPath->LanguageCode;
 		}
 
 		//Return false if default locale does not have the string either
@@ -62,10 +62,10 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 		//Use default locale from configuration or if function is called independent from Wt::WServer, use "en"
 		Locale = "en"; //Default
 		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
-		if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+		boost::shared_ptr<AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
+		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 		{
-			Locale = DefaultAccessPath->LanguagePtr.id();
+			Locale = DefaultAccessPath->LanguageCode;
 		}
 
 		//Return false if default locale does not have the string either
@@ -84,9 +84,9 @@ bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, lo
 
 	if(app)
 	{
-		Wt::Dbo::ptr<Style> CurrentStyle = app->CurrentStyle();
+		boost::shared_ptr<StyleData> CurrentStyle = app->CurrentStyle();
 		if(!CurrentStyle
-			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorPtr().id(), result))
+			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorId(), result))
 		{
 			if(!_Server->Styles()->GetTemplateStr(templateName, moduleId, result))
 			{

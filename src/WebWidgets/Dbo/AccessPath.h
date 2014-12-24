@@ -17,15 +17,6 @@ class BaseAccessPath
 			: HasChildPaths(false)
 		{ }
 };
-class AccessPathData : public BaseAccessPath, public DataSurrogateKey
-{
-	public:
-		std::string LanguageCode;
-
-		AccessPathData(long long id)
-			: DataSurrogateKey(id)
-		{ }
-};
 class AccessPath : public BaseAccessPath
 {
 	public:
@@ -44,6 +35,21 @@ class AccessPath : public BaseAccessPath
 		{
 			return "accesspaths";
 		}
+};
+class AccessPathData : public BaseAccessPath, public DataSurrogateKey
+{
+	public:
+		std::string LanguageCode;
+		long long PageId;
+		long long PageModuleId;
+
+		AccessPathData()
+			: DataSurrogateKey(-1), PageId(-1), PageModuleId(-1)
+		{ }
+		AccessPathData(long long id)
+			: DataSurrogateKey(id), PageId(-1), PageModuleId(-1)
+		{ }
+		AccessPathData(Wt::Dbo::ptr<AccessPath> Ptr);
 };
 
 #endif

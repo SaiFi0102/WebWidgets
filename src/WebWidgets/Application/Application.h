@@ -37,8 +37,9 @@ class Application : public Wt::WApplication
 		Wt::Signal<bool> &MobileVersionChanged() { return _MobileVersionChanged; }
 
 		//Styling
-		Wt::Dbo::ptr<Style> CurrentStyle() const { return _CurrentStylePtr; }
-		void ChangeStyle(Wt::Dbo::ptr<Style> StylePtr);
+		boost::shared_ptr<StyleData> CurrentStyle() const { return _CurrentStylePtr; }
+		//void ChangeStyle(long long StyleId);
+		void ChangeStyle(const std::string &StyleName, long long AuthorId);
 		Wt::Signal<void> &StyleChanged() { return _StyleChanged; }
 		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
@@ -63,8 +64,8 @@ class Application : public Wt::WApplication
 		void InterpretPageInternalPath();
 		
 		//Styling
-		void SetStyle(Wt::Dbo::ptr<Style> StylePtr);
-		void UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr);
+		void SetStyle(boost::shared_ptr<StyleData> StylePtr);
+		void UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr);
 
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
@@ -80,12 +81,12 @@ class Application : public Wt::WApplication
 		bool _MobileVersionFromInternalPath; //Or in combination with the hostname
 		Wt::Signal<bool> _MobileVersionChanged;
 
-		Wt::Dbo::ptr<Style> _CurrentStylePtr;
+		boost::shared_ptr<StyleData> _CurrentStylePtr;
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
-		Wt::Dbo::ptr<Page> _CurrentPagePtr;
+		boost::shared_ptr<PageData> _CurrentPagePtr;
 		Wt::Signal<void> _PageChanged;
 
 		ConfigurationsCache *_Configurations;

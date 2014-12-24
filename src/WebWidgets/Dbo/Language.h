@@ -6,7 +6,7 @@
 #include <Wt/WString>
 #include <Wt/Dbo/WtSqlTraits>
 
-class LanguageData
+class BaseLanguage
 {
 	protected:
 		std::string _Code; //en, zh, ur, ISO 639-1: two-letter code
@@ -21,22 +21,22 @@ class LanguageData
 
 		std::string Code() const { return _Code; }
 
-		LanguageData(const std::string &Code = "")
+		BaseLanguage(const std::string &Code = "")
 			: _Code(Code), PluralCases(-1), Installed(false)
 		{ }
-		LanguageData(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
+		BaseLanguage(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
 			: _Code(Code), Name(Name), NativeName(NativeName), LanguageAccept(LanguageAccept), PluralExpression(PluralExpression), PluralCases(PluralCases), Installed(Installed)
 		{ }
 };
-class Language : public LanguageData
+class Language : public BaseLanguage
 {
 	public:
 		Language() { }
 		Language(const std::string &Code)
-			: LanguageData(Code)
+			: BaseLanguage(Code)
 		{ }
 		Language(const std::string &Code, const Wt::WString &Name, const Wt::WString &NativeName, const std::string &LanguageAccept, const std::string &PluralExpression, int PluralCases, bool Installed)
-			: LanguageData(Code, Name, NativeName, LanguageAccept, PluralExpression, PluralCases, Installed)
+			: BaseLanguage(Code, Name, NativeName, LanguageAccept, PluralExpression, PluralCases, Installed)
 		{ }
 
 		//hasMany
@@ -63,6 +63,15 @@ class Language : public LanguageData
 			return "languages";
 		}
 };
+class LanguageData : public BaseLanguage
+{
+	public:
+		LanguageData(Wt::Dbo::ptr<Language> Ptr)
+			: BaseLanguage(*Ptr)
+		{ }
+		LanguageData()
+		{ }
+};
 
 class BaseLanguageSingle
 {
@@ -81,20 +90,6 @@ class BaseLanguageSingle
 		bool IsEmail;
 
 		std::string Key() const { return _Key; }
-};
-class LanguageSingleData : public BaseLanguageSingle
-{
-	protected:
-		std::string _LanguageCode;
-		long long _ModuleId;
-
-	public:
-		LanguageSingleData(const std::string &Key, const std::string &LanguageCode, long long ModuleId)
-			: BaseLanguageSingle(Key), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
-		{ }
-
-		std::string LanguageCode() const { return _LanguageCode; };
-		long long ModuleId() const { return _ModuleId; };
 };
 class LanguageSingle : public BaseLanguageSingle
 {
@@ -124,6 +119,27 @@ class LanguageSingle : public BaseLanguageSingle
 			return "languagesingles";
 		}
 };
+class LanguageSingleData : public BaseLanguageSingle, public DataSurrogateKey
+{
+	protected:
+		std::string _LanguageCode;
+		long long _ModuleId;
+
+	public:
+		LanguageSingleData()
+			: DataSurrogateKey(-1), _ModuleId(-1), BaseLanguageSingle("")
+		{ }
+		LanguageSingleData(Wt::Dbo::ptr<LanguageSingle> Ptr)
+			: BaseLanguageSingle(*Ptr), _LanguageCode(Ptr->LanguagePtr().id()),
+			_ModuleId(Ptr->ModulePtr().id()), DataSurrogateKey(Ptr.id())
+		{ }
+		LanguageSingleData(long long id, const std::string &Key, const std::string &LanguageCode, long long ModuleId)
+			: DataSurrogateKey(id), BaseLanguageSingle(Key), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
+		{ }
+
+		std::string LanguageCode() const { return _LanguageCode; };
+		long long ModuleId() const { return _ModuleId; };
+};
 
 class BaseLanguagePlural
 {
@@ -143,20 +159,6 @@ class BaseLanguagePlural
 
 		std::string Key() const { return _Key; };
 		int Case() const { return _Case; };
-};
-class LanguagePluralData : public BaseLanguagePlural
-{
-	protected:
-		std::string _LanguageCode;
-		long long _ModuleId;
-
-	public:
-		LanguagePluralData(const std::string &Key, int Case, const std::string &LanguageCode, long long ModuleId)
-			: BaseLanguagePlural(Key, Case), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
-		{ }
-
-		std::string LanguageCode() const { return _LanguageCode; };
-		long long ModuleId() const { return _ModuleId; };
 };
 class LanguagePlural : public BaseLanguagePlural
 {
@@ -185,6 +187,27 @@ class LanguagePlural : public BaseLanguagePlural
 		{
 			return "languageplurals";
 		}
+};
+class LanguagePluralData : public BaseLanguagePlural, public DataSurrogateKey
+{
+	protected:
+		std::string _LanguageCode;
+		long long _ModuleId;
+
+	public:
+		LanguagePluralData()
+			: DataSurrogateKey(-1), _ModuleId(-1), BaseLanguagePlural("", -1)
+		{ }
+		LanguagePluralData(Wt::Dbo::ptr<LanguagePlural> Ptr)
+			: BaseLanguagePlural(*Ptr), _LanguageCode(Ptr->LanguagePtr().id()),
+			_ModuleId(Ptr->ModulePtr().id()), DataSurrogateKey(Ptr.id())
+		{ }
+		LanguagePluralData(long long id, const std::string &Key, int Case, const std::string &LanguageCode, long long ModuleId)
+			: DataSurrogateKey(id), BaseLanguagePlural(Key, Case), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
+		{ }
+
+		std::string LanguageCode() const { return _LanguageCode; };
+		long long ModuleId() const { return _ModuleId; };
 };
 
 #include "Dbo/AccessPath.h"

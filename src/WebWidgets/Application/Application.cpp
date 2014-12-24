@@ -38,11 +38,11 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Set Default and Client's environment locale
 	_ClientLocale = env.locale();
-	Wt::Dbo::ptr<AccessPath> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	boost::shared_ptr<AccessPathData> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	Wt::WLocale ConfigDefaultLocale;
-	if(DefaultLanguageAccessPath && DefaultLanguageAccessPath->LanguagePtr)
+	if(DefaultLanguageAccessPath && !DefaultLanguageAccessPath->LanguageCode.empty())
 	{
-		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageAccessPath->LanguagePtr.id());
+		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageAccessPath->LanguageCode);
 	}
 	else
 	{
@@ -51,16 +51,16 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Check if user is using an Hostname AccessPath before checking LanguageAccept for Language
 	std::string _hostname = env.hostName();
-	Wt::Dbo::ptr<AccessPath> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
+	boost::shared_ptr<AccessPathData> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
 	if(HostnameAccessPath) //Use hostname as received
 	{
-		if(HostnameAccessPath->LanguagePtr)
+		if(!HostnameAccessPath->LanguageCode.empty())
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguageCode));
 			_LanguageFromHostname = true;
 		}
 		long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
-		if(MobileAccessPathId != -1 && HostnameAccessPath.id() == MobileAccessPathId)
+		if(MobileAccessPathId != -1 && HostnameAccessPath->id() == MobileAccessPathId)
 		{
 			_MobileVersionFromHostname = true;
 		}
@@ -71,7 +71,7 @@ Application::Application(const Wt::WEnvironment &env)
 		HostnameAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(_hostname, "");
 		if(HostnameAccessPath)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguageCode));
 			_LanguageFromHostname = true;
 		}
 	}
@@ -128,7 +128,7 @@ Application::Application(const Wt::WEnvironment &env)
 	//Style CSS Stylesheet
 	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
 	long long DefaultStyleAuthor = Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-	ChangeStyle(Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor));
+	ChangeStyle(DefaultStyleName, DefaultStyleAuthor);
 
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
@@ -192,28 +192,29 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 	}
 }
 
-void Application::ChangeStyle(Wt::Dbo::ptr<Style> StylePtr)
+void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 {
-	if(!StylePtr || StylePtr.isTransient() || _CurrentStylePtr.id() == StylePtr.id())
+	WServer *Server = WServer::instance();
+	boost::shared_ptr<StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
+	if(!StylePtr || !_CurrentStylePtr || _CurrentStylePtr->id() == StylePtr->id())
 	{
 		return;
 	}
-	SetStyle(StylePtr);
 
+	SetStyle(StylePtr);
 	refresh(); //To reload styletemplates
-	triggerUpdate();
 }
 
-void Application::SetStyle(Wt::Dbo::ptr<Style> StylePtr)
+void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
 {
-	typedef std::list< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleList;
+	typedef std::list< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
 
 	//Remove CSS rules
 	WServer *Server = WServer::instance();
 	styleSheet().clear();
 
 	//Add CSS rules for new style
-	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr->Name(), StylePtr->AuthorPtr().id());
+	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr->Name(), StylePtr->AuthorId());
 	for(StyleCssRuleList::const_iterator itr = CssRules.begin();
 		itr != CssRules.end();
 		++itr)
@@ -238,7 +239,7 @@ void Application::RefreshStyleStrings()
 	WServer *Server = WServer::instance();
 
 	//Style CssStyleSheet
-	Wt::Dbo::ptr<Style> NewStylePtr = Server->Styles()->GetStylePtr(CurrentStyle()->Name(), CurrentStyle()->AuthorPtr().id());
+	boost::shared_ptr<StyleData> NewStylePtr = Server->Styles()->GetStylePtr(CurrentStyle()->Name(), CurrentStyle()->AuthorId());
 	if(!NewStylePtr)
 	{
 		//Default style is taken from server's active configuration instead of cached configuration because it is possible
@@ -250,7 +251,7 @@ void Application::RefreshStyleStrings()
 	SetStyle(NewStylePtr);
 
 	//Template CssStyleSheets, remove all rules and add new
-	typedef std::list< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleList;
+	typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
 	for(TemplateStyleSheetMap::iterator itr = _TemplateStyleSheets.begin();
 		itr != _TemplateStyleSheets.end();
 		++itr)
@@ -276,9 +277,9 @@ void Application::RefreshPageStrings()
 	//triggerUpdate();
 }
 
-void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
+void Application::UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr)
 {
-	typedef std::list< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleList;
+	typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
 
 	//Ignore if its an empty ptr
 	if(!TemplatePtr)
@@ -287,7 +288,7 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	}
 
 	//Ignore if the stylesheet is already loaded
-	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id()));
+	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr->Name(), TemplatePtr->ModuleId()));
 	if(itr != _TemplateStyleSheets.end())
 	{
 		return;
@@ -298,7 +299,7 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	Wt::WCssStyleSheet TemplateStyleSheet;
 	
 	//Ignore if there are no CSS rules for this template
-	TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(TemplatePtr->Name(), TemplatePtr->ModulePtr().id());
+	TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(TemplatePtr->Name(), TemplatePtr->ModuleId());
 	if(CssRules.empty())
 	{
 		return;
@@ -313,8 +314,8 @@ void Application::UseTemplateStyleSheet(Wt::Dbo::ptr<Template> TemplatePtr)
 	}
 
 	//Add to template style sheets map and application to be loaded
-	_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id())] = TemplateStyleSheet;
-	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModulePtr().id())]);
+	_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModuleId())] = TemplateStyleSheet;
+	useStyleSheet(_TemplateStyleSheets[std::make_pair(TemplatePtr->Name(), TemplatePtr->ModuleId())]);
 }
 
 void Application::HandleWtInternalPathChanged()
@@ -380,7 +381,7 @@ bool Application::IRIPMobileVersion(const std::string &HostName, const std::stri
 	if(MobileAccessPathId != -1)
 	{
 		//Check all possible mobile access paths
-		Wt::Dbo::ptr<AccessPath> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
+		boost::shared_ptr<AccessPathData> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
 		if(!MobileCheckAccessPath)
 		{
 			if(HostName.substr(0, 4) == "www.")
@@ -394,7 +395,7 @@ bool Application::IRIPMobileVersion(const std::string &HostName, const std::stri
 		}
 
 		//Check if the path is a mobile access path
-		if(MobileCheckAccessPath.id() == MobileAccessPathId)
+		if(MobileCheckAccessPath && MobileCheckAccessPath->id() == MobileAccessPathId)
 		{
 			//Emit if MobileVersion just got enabled
 			if(IsMobileVersion() == false)
@@ -450,7 +451,7 @@ void Application::IRIPAlwaysShow()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	boost::shared_ptr<AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -469,9 +470,9 @@ void Application::IRIPAlwaysShow()
 	//Check if LanguageAccessPath was found and set locale accordingly
 	if(LanguageAccessPath) //Found
 	{
-		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
 		}
 		if(_ReservedInternalPath != "/")
 		{
@@ -532,7 +533,7 @@ void Application::IRIPAlwaysShowHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	boost::shared_ptr<AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -551,9 +552,9 @@ void Application::IRIPAlwaysShowHideDef()
 	//Check if LanguageAccessPath was found and set locale accordingly
 	if(LanguageAccessPath) //Found
 	{
-		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
 		}
 		//Remove default language from internal path if its there
 		if(locale().name() == _SessionDefaultLocale.name())
@@ -608,7 +609,7 @@ void Application::IRIPNoRestrictionHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	boost::shared_ptr<AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -627,9 +628,9 @@ void Application::IRIPNoRestrictionHideDef()
 	//Check if LanguageAccessPath was found and set locale accordingly
 	if(LanguageAccessPath) //Found
 	{
-		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
 		}
 		//Remove default language automatically from internal path if locale is default language
 		if(locale().name() == _SessionDefaultLocale.name())
@@ -682,7 +683,7 @@ void Application::IRIPNoRestriction()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> LanguageAccessPath;
+	boost::shared_ptr<AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -701,9 +702,9 @@ void Application::IRIPNoRestriction()
 	//Check if LanguageAccessPath was found and set locale accordingly
 	if(LanguageAccessPath) //Found
 	{
-		if(locale().name() != LanguageAccessPath->LanguagePtr.id())
+		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguagePtr.id()));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
 		}
 		if(_ReservedInternalPath != "/")
 		{
@@ -725,7 +726,7 @@ void Application::InterpretPageInternalPath()
 	Tokenizer Tokens(InternalPath, Sep);
 
 	//Check if internal path includes page access path and set PageAccessPath ptr
-	Wt::Dbo::ptr<AccessPath> PageAccessPath, ParentAccessPath;
+	boost::shared_ptr<AccessPathData> PageAccessPath, ParentAccessPath;
 
 	for(Tokenizer::iterator Itr = Tokens.begin();
 		Itr != Tokens.end();
@@ -773,22 +774,28 @@ void Application::InterpretPageInternalPath()
 	if(PageAccessPath)
 	{
 		//Set PagePtr and call its handler if the page has changed
-		Wt::Dbo::ptr<Page> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PagePtr->id(), PageAccessPath->PagePtr->ModulePtr().id());
-		if(!PagePtr)
+		boost::shared_ptr<PageData> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PageId, PageAccessPath->PageModuleId);
+		if(PagePtr)
 		{
-			return;
+			if(PagePtr != _CurrentPagePtr)
+			{
+				_CurrentPagePtr = PagePtr;
+				Server->Pages()->CallPageHandler(_CurrentPagePtr->id(), _CurrentPagePtr->ModuleId());
+			}
 		}
-		if(PagePtr != _CurrentPagePtr)
+		else
 		{
-			_CurrentPagePtr = PagePtr;
-			Server->Pages()->CallPageHandler(_CurrentPagePtr->id(), _CurrentPagePtr->ModulePtr().id());
+			//log("info") << "Page(ID:" << PageAccessPath->id() << ") found in access path(ID: " <<  << ")"
+			_CurrentPagePtr = boost::shared_ptr<PageData>();
+			//Server->Pages()->Call404PageHandler();
+			setInternalPathValid(false);
 		}
 	}
 	else
 	{
-		_CurrentPagePtr = Wt::Dbo::ptr<Page>();
+		_CurrentPagePtr = boost::shared_ptr<PageData>();
+		//Server->Pages()->Call404PageHandler();
 		setInternalPathValid(false);
-		//TODO Show 404 page
 	}
 }
 
@@ -871,16 +878,17 @@ void Application::CreateTestUI()
 	cs->clicked().connect(boost::bind<void>([this, Server](){
 		if(!_CurrentStylePtr)
 		{
-			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
+			ChangeStyle("Default", 1);
 		}
 		else if(_CurrentStylePtr->Name() == "Default")
 		{
-			ChangeStyle(Server->Styles()->GetStylePtr("test", 1));
+			ChangeStyle("test", 1);
 		}
 		else
 		{
-			ChangeStyle(Server->Styles()->GetStylePtr("Default", 1));
+			ChangeStyle("Default", 1);
 		}
+		triggerUpdate();
 	}));
 	new Wt::WBreak(root());
 	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());

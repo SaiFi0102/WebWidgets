@@ -41,8 +41,6 @@ void LanguagesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
-		DboSession.disconnectAll();
-
 		Wt::Dbo::Transaction transaction(DboSession);
 		LanguageCollections LanguageCollection = DboSession.find<Language>().where("\"Installed\" = 1");
 
@@ -56,14 +54,14 @@ void LanguagesDatabase::FetchAll()
 			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("\"Language_Code\" = ?").bind((*itr)->Code());
 
 			//Insert language ptr
-			LanguageContainer.get<0>().insert(*itr);
+			LanguageContainer.get<0>().insert(boost::shared_ptr<LanguageData>(new LanguageData(*itr)));
 
 			//All single strings of this language
 			for(LanguageSingleCollections::const_iterator i = LanguageSingleCollection.begin();
 				i != LanguageSingleCollection.end();
 				++i)
 			{
-				LanguageSingleContainer.get<0>().insert(*i);
+				LanguageSingleContainer.get<0>().insert(boost::shared_ptr<LanguageSingleData>(new LanguageSingleData(*i)));
 			}
 
 			//All plural strings of this language
@@ -71,7 +69,7 @@ void LanguagesDatabase::FetchAll()
 				i != LanguagePluralCollection.end();
 				++i)
 			{
-				LanguagePluralContainer.get<0>().insert(*i);
+				LanguagePluralContainer.get<0>().insert(boost::shared_ptr<LanguagePluralData>(new LanguagePluralData(*i)));
 			}
 		}
 
@@ -115,46 +113,46 @@ void LanguagesDatabase::MapClasses()
 	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
-Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
+boost::shared_ptr<LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
 {
 	READ_LOCK;
 	LanguageByCode::const_iterator itr = LanguageContainer.get<0>().find(Code);
 	if(itr == LanguageContainer.get<0>().end())
 	{
-		return Wt::Dbo::ptr<Language>();
+		return boost::shared_ptr<LanguageData>();
 	}
 	return *itr;
 }
 
-Wt::Dbo::ptr<Language> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
+boost::shared_ptr<LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
 {
 	READ_LOCK;
 	LanguageByLanguageAccept::const_iterator itr = LanguageContainer.get<1>().find(LanguageAccept);
 	if(itr == LanguageContainer.get<1>().end())
 	{
-		return Wt::Dbo::ptr<Language>();
+		return boost::shared_ptr<LanguageData>();
 	}
 	return *itr;
 }
 
-Wt::Dbo::ptr<LanguageSingle> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
+boost::shared_ptr<LanguageSingleData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
 	READ_LOCK;
 	LanguageSingleType::const_iterator itr = LanguageSingleContainer.get<0>().find(boost::make_tuple(Code, Key, ModuleId));
 	if(itr == LanguageSingleContainer.get<0>().end())
 	{
-		return Wt::Dbo::ptr<LanguageSingle>();
+		return boost::shared_ptr<LanguageSingleData>();
 	}
 	return *itr;
 }
 
-Wt::Dbo::ptr<LanguagePlural> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
+boost::shared_ptr<LanguagePluralData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
 	READ_LOCK;
 	LanguagePluralType::const_iterator itr = LanguagePluralContainer.get<0>().find(boost::make_tuple(Code, Key, Case, ModuleId));
 	if(itr == LanguagePluralContainer.get<0>().end())
 	{
-		return Wt::Dbo::ptr<LanguagePlural>();
+		return boost::shared_ptr<LanguagePluralData>();
 	}
 	return *itr;
 }
@@ -174,7 +172,7 @@ bool LanguagesDatabase::LanguageAcceptExists(const std::string &LanguageAccept) 
 
 bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string &Result) const
 {
-	Wt::Dbo::ptr<Language> LanguagePtr = GetLanguagePtrFromCode(Code);
+	boost::shared_ptr<LanguageData> LanguagePtr = GetLanguagePtrFromCode(Code);
 	if(!LanguagePtr)
 	{
 		return false;
@@ -185,7 +183,7 @@ bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string
 
 bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const
 {
-	Wt::Dbo::ptr<LanguageSingle> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
+	boost::shared_ptr<LanguageSingleData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
 	if(!LanguageSinglePtr)
 	{
 		return false;
@@ -196,7 +194,7 @@ bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::stri
 
 bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const
 {
-	Wt::Dbo::ptr<LanguagePlural> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
+	boost::shared_ptr<LanguagePluralData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
 	if(!LanguagePluralPtr)
 	{
 		return false;
@@ -214,11 +212,11 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	Wt::Dbo::ptr<AccessPath> DefaultAccessPath = _Server.AccessPaths()->GetPtr(_Server.Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	boost::shared_ptr<AccessPathData> DefaultAccessPath = _Server.AccessPaths()->GetPtr(_Server.Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	std::string DefaultLanguage = "en";
-	if(DefaultAccessPath && DefaultAccessPath->LanguagePtr)
+	if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 	{
-		DefaultLanguage = DefaultAccessPath->LanguagePtr.id();
+		DefaultLanguage = DefaultAccessPath->LanguageCode;
 	}
 
 	std::string DecimalPointCharacter = ".";

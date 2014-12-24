@@ -15,15 +15,15 @@ class AccessPathsDatabase
 		struct AccessPath_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
+			result_type operator()(const boost::shared_ptr<AccessPathData> &AccessPathPtr) const
 			{
-				return AccessPathPtr.id();
+				return AccessPathPtr->id();
 			}
 		};
 		struct AccessPath_key_HostName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
+			result_type operator()(const boost::shared_ptr<AccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->HostName;
 			}
@@ -31,7 +31,7 @@ class AccessPathsDatabase
 		struct AccessPath_key_InternalPath
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
+			result_type operator()(const boost::shared_ptr<AccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->InternalPath;
 			}
@@ -39,9 +39,9 @@ class AccessPathsDatabase
 		struct AccessPath_key_LanguageCode
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<AccessPath> &AccessPathPtr) const
+			result_type operator()(const boost::shared_ptr<AccessPathData> &AccessPathPtr) const
 			{
-				return AccessPathPtr->LanguagePtr.id();
+				return AccessPathPtr->LanguageCode;
 			}
 		};
 		struct ById{};
@@ -49,7 +49,7 @@ class AccessPathsDatabase
 		struct ByLanguageHostname{};
 
 		typedef boost::multi_index_container<
-			Wt::Dbo::ptr<AccessPath>,
+			boost::shared_ptr<AccessPathData>,
 
 			boost::multi_index::indexed_by<
 				//Index by access path id
@@ -61,7 +61,7 @@ class AccessPathsDatabase
 				boost::multi_index::ordered_unique<
 					boost::multi_index::tag<ByURL>,
 					boost::multi_index::composite_key<
-						Wt::Dbo::ptr<AccessPath>,
+						boost::shared_ptr<AccessPathData>,
 						AccessPath_key_HostName,
 						AccessPath_key_InternalPath
 					>
@@ -70,7 +70,7 @@ class AccessPathsDatabase
 				boost::multi_index::ordered_non_unique<
 					boost::multi_index::tag<ByLanguageHostname>,
 					boost::multi_index::composite_key<
-						Wt::Dbo::ptr<AccessPath>,
+						boost::shared_ptr<AccessPathData>,
 						AccessPath_key_LanguageCode,
 						AccessPath_key_HostName
 					>
@@ -88,13 +88,13 @@ class AccessPathsDatabase
 		void Load() { FetchAll(); }
 		void Reload() { FetchAll(); }
 
-		Wt::Dbo::ptr<AccessPath> GetPtr(long long Id) const;
-		Wt::Dbo::ptr<AccessPath> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
-		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(long long Id) const;
-		Wt::Dbo::ptr<AccessPath> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(long long Id) const;
-		Wt::Dbo::ptr<AccessPath> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		Wt::Dbo::ptr<AccessPath> HomePageAccessPathPtr() const;
+		boost::shared_ptr<AccessPathData> GetPtr(long long Id) const;
+		boost::shared_ptr<AccessPathData> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<AccessPathData> LanguageAccessPathPtr(long long Id) const;
+		boost::shared_ptr<AccessPathData> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<AccessPathData> PageAccessPathPtr(long long Id) const;
+		boost::shared_ptr<AccessPathData> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<AccessPathData> HomePageAccessPathPtr() const;
 
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;

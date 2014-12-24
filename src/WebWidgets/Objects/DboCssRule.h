@@ -7,15 +7,15 @@
 class DboCssRule : public Wt::WCssRule
 {
 	public:
-		DboCssRule(Wt::Dbo::ptr<StyleCssRule> CssRulePtr, Wt::WObject *parent = 0);
-		DboCssRule(Wt::Dbo::ptr<TemplateCssRule> CssRulePtr, Wt::WObject *parent = 0);
+		DboCssRule(boost::shared_ptr<StyleCssRuleData> CssRulePtr, Wt::WObject *parent = 0);
+		DboCssRule(boost::shared_ptr<TemplateCssRuleData> CssRulePtr, Wt::WObject *parent = 0);
 
 		virtual std::string selector() const;
 		virtual std::string declarations();
 
 	protected:
-		Wt::Dbo::ptr<StyleCssRule> StyleCssRulePtr;
-		Wt::Dbo::ptr<TemplateCssRule> TemplateCssRulePtr;
+		boost::shared_ptr<StyleCssRuleData> StyleCssRulePtr;
+		boost::shared_ptr<TemplateCssRuleData> TemplateCssRulePtr;
 		bool IsTemplate;
 };
 

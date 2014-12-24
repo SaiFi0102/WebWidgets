@@ -10,13 +10,13 @@ class WServer;
 class ConfigurationsDatabase
 {
 	protected:
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationBool> > BoolMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationDouble> > DoubleMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationEnum> > EnumMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationFloat> > FloatMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationInt> > IntMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationLongInt> > LongIntMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, Wt::Dbo::ptr<ConfigurationString> > StringMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationBoolData> > BoolMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationDoubleData> > DoubleMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationEnumData> > EnumMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationFloatData> > FloatMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationIntData> > IntMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationLongIntData> > LongIntMaps;
+		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationStringData> > StringMaps;
 
 	public:
 		ConfigurationsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
@@ -25,13 +25,13 @@ class ConfigurationsDatabase
 		void Load() { FetchAll(); }
 		void Reload() { FetchAll(); }
 
-		Wt::Dbo::ptr<ConfigurationBool> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationDouble> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationEnum> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationFloat> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationInt> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationLongInt> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<ConfigurationString> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
 
 		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
 		double GetDouble(const std::string &Name, long long ModuleId, double Default) const;

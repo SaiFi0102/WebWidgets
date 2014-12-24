@@ -15,20 +15,6 @@ class BasePage : public DataSurrogateKey
 		std::string	DefaultInternalPath;
 		std::string	Title;
 };
-class PageData : public BasePage
-{
-	protected:
-		long long _ModuleId;
-
-	public:
-		long long AccessPathId;
-
-		PageData(long long id, long long ModuleId)
-			: BasePage(id), _ModuleId(ModuleId), AccessPathId(-1)
-		{ }
-
-		long long ModuleId() const { return _ModuleId; }
-};
 class Page : public BasePage
 {
 	protected:
@@ -68,6 +54,24 @@ class Page : public BasePage
 
 	private:
 		friend class PagesDatabase;
+};
+class PageData : public BasePage
+{
+	protected:
+		long long _ModuleId;
+
+	public:
+		PageData()
+			: BasePage(-1), _ModuleId(-1)
+		{ }
+		PageData(Wt::Dbo::ptr<Page> Ptr)
+			: BasePage(*Ptr), _ModuleId(Ptr->ModulePtr().id())
+		{ }
+		PageData(long long id, long long ModuleId)
+			: BasePage(id), _ModuleId(ModuleId)
+		{ }
+
+		long long ModuleId() const { return _ModuleId; }
 };
 
 #include "Dbo/AccessPath.h"

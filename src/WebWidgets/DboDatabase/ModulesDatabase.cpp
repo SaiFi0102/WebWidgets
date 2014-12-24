@@ -56,8 +56,6 @@ void ModulesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
-		//DboSession.disconnectAll(); //no need since we do not reload modules
-
 		Wt::Dbo::Transaction transaction(DboSession);
 		ModuleCollections ModuleCollection = DboSession.find<Module>();
 	
@@ -66,7 +64,7 @@ void ModulesDatabase::FetchAll()
 			itr != ModuleCollection.end();
 			++itr)
 		{
-			ModuleMap[itr->id()] = *itr;
+			ModuleMap[itr->id()] = boost::shared_ptr<ModuleData>(new ModuleData(*itr));
 		}
 
 		transaction.commit();
@@ -82,13 +80,13 @@ void ModulesDatabase::FetchAll()
 	LoadDuration = PTEnd - PTStart;
 }
 
-Wt::Dbo::ptr<Module> ModulesDatabase::GetPtr(long long Id) const
+boost::shared_ptr<ModuleData> ModulesDatabase::GetPtr(long long Id) const
 {
 	READ_LOCK;
 	ModuleMaps::const_iterator itr = ModuleMap.find(Id);
 	if(itr == ModuleMap.end())
 	{
-		return Wt::Dbo::ptr<Module>();
+		return boost::shared_ptr<ModuleData>();
 	}
 	return itr->second;
 }

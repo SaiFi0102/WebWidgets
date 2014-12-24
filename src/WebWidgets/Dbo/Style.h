@@ -21,18 +21,6 @@ class BaseStyle
 
 		std::string Name() const { return _Name; }
 };
-class StyleData : public BaseStyle
-{
-	protected:
-		long long _AuthorId;
-
-	public:
-		StyleData(const std::string &Name, long long AuthorId)
-			: BaseStyle(Name), _AuthorId(AuthorId)
-		{ }
-
-		long long AuthorId() const { return _AuthorId; }
-};
 class Style : public BaseStyle
 {
 	protected:
@@ -65,21 +53,30 @@ class Style : public BaseStyle
 			return "styles";
 		}
 };
+class StyleData : public BaseStyle, public DataSurrogateKey
+{
+	protected:
+		long long _AuthorId;
+
+	public:
+		StyleData()
+			: DataSurrogateKey(-1), _AuthorId(-1)
+		{ }
+		StyleData(Wt::Dbo::ptr<Style> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseStyle(*Ptr), _AuthorId(Ptr->AuthorPtr().id())
+		{ }
+		StyleData(long long id, const std::string &Name, long long AuthorId)
+			: DataSurrogateKey(id), BaseStyle(Name), _AuthorId(AuthorId)
+		{ }
+
+		long long AuthorId() const { return _AuthorId; }
+};
 
 class BaseStyleCssRule
 {
 	public:
 		std::string Selector;
 		std::string Declarations;
-};
-class StyleCssRuleData : public BaseStyleCssRule
-{
-	public:
-		long long StyleId;
-
-		StyleCssRuleData()
-			: StyleId(-1)
-		{ }
 };
 class StyleCssRule : public BaseStyleCssRule
 {
@@ -97,21 +94,24 @@ class StyleCssRule : public BaseStyleCssRule
 			return "stylecssrules";
 		}
 };
+class StyleCssRuleData : public BaseStyleCssRule, public DataSurrogateKey
+{
+	public:
+		long long StyleId;
+
+		StyleCssRuleData(long long id = -1)
+			: DataSurrogateKey(id), StyleId(-1)
+		{ }
+		StyleCssRuleData(Wt::Dbo::ptr<StyleCssRule> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseStyleCssRule(*Ptr), StyleId(Ptr->StylePtr.id())
+		{ }
+};
 
 class BaseTemplateCssRule
 {
 	public:
 		std::string Selector;
 		std::string Declarations;
-};
-class TemplateCssRuleData : public BaseTemplateCssRule
-{
-	public:
-		long long TemplateId;
-
-		TemplateCssRuleData()
-			: TemplateId(-1)
-		{ }
 };
 class TemplateCssRule : public BaseTemplateCssRule
 {
@@ -129,6 +129,18 @@ class TemplateCssRule : public BaseTemplateCssRule
 			return "templatecssrules";
 		}
 };
+class TemplateCssRuleData : public BaseTemplateCssRule, public DataSurrogateKey
+{
+	public:
+		long long TemplateId;
+
+		TemplateCssRuleData(Wt::Dbo::ptr<TemplateCssRule> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseTemplateCssRule(*Ptr), TemplateId(Ptr->TemplatePtr.id())
+		{ }
+		TemplateCssRuleData(long long id = -1)
+			: DataSurrogateKey(id), TemplateId(-1)
+		{ }
+};
 
 class BaseTemplate
 {
@@ -144,18 +156,6 @@ class BaseTemplate
 		boost::optional<std::string> TemplateStr;
 
 		std::string Name() const { return _Name; }
-};
-class TemplateData : public BaseTemplate
-{
-	protected:
-		long long _ModuleId;
-
-	public:
-		TemplateData(long long ModuleId)
-			: _ModuleId(ModuleId)
-		{ }
-
-		long long ModuleId() const { return _ModuleId; }
 };
 class Template : public BaseTemplate
 {
@@ -188,25 +188,29 @@ class Template : public BaseTemplate
 			return "templates";
 		}
 };
+class TemplateData : public BaseTemplate, public DataSurrogateKey
+{
+	protected:
+		long long _ModuleId;
+
+	public:
+		TemplateData()
+			: DataSurrogateKey(-1), _ModuleId(-1)
+		{ }
+		TemplateData(Wt::Dbo::ptr<Template> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseTemplate(*Ptr), _ModuleId(Ptr->ModulePtr().id())
+		{ }
+		TemplateData(long long id, long long ModuleId = -1)
+			: DataSurrogateKey(id), _ModuleId(ModuleId)
+		{ }
+
+		long long ModuleId() const { return _ModuleId; }
+};
 
 class BaseStyleTemplate
 {
 	public:
 		std::string TemplateStr;
-};
-class StyleTemplateData : public BaseStyleTemplate
-{
-	protected:
-		long long _DerivingTemplateId;
-		long long _StyleId;
-
-	public:
-		StyleTemplateData(long long StyleId, long long DerivingTemplateId)
-			: _DerivingTemplateId(DerivingTemplateId), _StyleId(StyleId)
-		{ }
-
-		long long DerivingTemplateId() const { return _DerivingTemplateId; }
-		long long StyleId() const { return _StyleId; }
 };
 class StyleTemplate : public BaseStyleTemplate
 {
@@ -233,6 +237,35 @@ class StyleTemplate : public BaseStyleTemplate
 		{
 			return "styletemplates";
 		}
+};
+class StyleTemplateData : public BaseStyleTemplate, public DataSurrogateKey
+{
+	protected:
+		long long _DerivingTemplateId;
+		long long _StyleId;
+
+	public:
+		std::string TemplateName;
+		long long ModuleId;
+		std::string StyleName;
+		long long AuthorId;
+
+		StyleTemplateData()
+			: DataSurrogateKey(-1), _DerivingTemplateId(-1), _StyleId(-1), ModuleId(-1), AuthorId(-1)
+		{ }
+		StyleTemplateData(Wt::Dbo::ptr<StyleTemplate> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseStyleTemplate(*Ptr),
+			_DerivingTemplateId(Ptr->DerivingTemplatePtr().id()), _StyleId(Ptr->StylePtr().id()),
+			TemplateName(Ptr->DerivingTemplatePtr()->Name()), ModuleId(Ptr->DerivingTemplatePtr()->ModulePtr().id()),
+			StyleName(Ptr->StylePtr()->Name()), AuthorId(Ptr->StylePtr()->AuthorPtr().id())
+		{ }
+		StyleTemplateData(long long id, long long StyleId, long long DerivingTemplateId)
+			: DataSurrogateKey(id), _DerivingTemplateId(DerivingTemplateId), _StyleId(StyleId),
+			ModuleId(-1), AuthorId(-1)
+		{ }
+
+		long long DerivingTemplateId() const { return _DerivingTemplateId; }
+		long long StyleId() const { return _StyleId; }
 };
 
 #endif

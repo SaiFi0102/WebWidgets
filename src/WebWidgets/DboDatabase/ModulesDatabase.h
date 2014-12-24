@@ -27,12 +27,12 @@ class ModulesDatabase
 
 		void Load();
 
-		Wt::Dbo::ptr<Module> GetPtr(long long Id) const;
+		boost::shared_ptr<ModuleData> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 
 	protected:
-		typedef boost::unordered_map< long long, Wt::Dbo::ptr<Module> > ModuleMaps;
+		typedef boost::unordered_map< long long, boost::shared_ptr<ModuleData> > ModuleMaps;
 
 		void MapClasses();
 		void FetchAll();

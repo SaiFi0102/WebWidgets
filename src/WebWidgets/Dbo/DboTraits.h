@@ -55,12 +55,6 @@ typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleCollection
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleTemplate> > StyleTemplateCollections;
 
-template<class T>
-class RawDboPtr : public boost::shared_ptr<T>
-{
-
-};
-
 template<>
 struct Wt::Dbo::dbo_traits<Author> : public Wt::Dbo::dbo_default_traits
 {
@@ -76,7 +70,7 @@ struct Wt::Dbo::dbo_traits<Module> : public Wt::Dbo::dbo_default_traits
 template<>
 struct Wt::Dbo::dbo_traits<ConfigurationBool> : public Wt::Dbo::dbo_default_traits
 {
-	typedef Wt::Dbo::ptr<Configuration> IdType;
+	typedef Wt::Dbo::ptr<::Configuration> IdType;
 	static IdType invalidId() { return IdType(); }
 	static const char *surrogateIdField() { return 0; }
 };
@@ -84,7 +78,7 @@ struct Wt::Dbo::dbo_traits<ConfigurationBool> : public Wt::Dbo::dbo_default_trai
 template<>
 struct Wt::Dbo::dbo_traits<ConfigurationDouble> : public Wt::Dbo::dbo_default_traits
 {
-	typedef Wt::Dbo::ptr<Configuration> IdType;
+	typedef Wt::Dbo::ptr<::Configuration> IdType;
 	static IdType invalidId() { return IdType(); }
 	static const char *surrogateIdField() { return 0; }
 };

@@ -19,21 +19,6 @@ class BaseModule
 		long long _id;
 };
 
-class ModuleData : public BaseModule
-{
-	public:
-		Wt::Dbo::dbo_traits<Author> AuthorId;
-
-		ModuleData(long long id)
-			: BaseModule(id)
-		{ }
-
-		long long id() const
-		{
-			return _id;
-		}
-};
-
 class Module : public BaseModule
 {
 	public:
@@ -70,6 +55,27 @@ class Module : public BaseModule
 		{
 			return "modules";
 		}
+};
+
+class ModuleData : public BaseModule
+{
+public:
+	long long AuthorId;
+
+	ModuleData()
+		: BaseModule(-1), AuthorId(-1)
+	{ }
+	ModuleData(Wt::Dbo::ptr<Module> Ptr)
+		: BaseModule(*Ptr), AuthorId(Ptr->AuthorPtr.id())
+	{ }
+	ModuleData(long long id)
+		: BaseModule(id), AuthorId(-1)
+	{ }
+
+	long long id() const
+	{
+		return _id;
+	}
 };
 
 #include "Dbo/Configuration.h"

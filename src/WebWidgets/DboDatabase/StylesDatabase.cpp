@@ -46,8 +46,6 @@ void StylesDatabase::FetchAll()
 	//Strong transaction like exception safety
 	try
 	{
-		DboSession.disconnectAll();
-
 		Wt::Dbo::Transaction transaction(DboSession);
 		StyleCollections StyleCollection = DboSession.find<Style>();
 		TemplateCollections TemplateCollection = DboSession.find<Template>();
@@ -60,7 +58,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleCollection.end();
 			++itr)
 		{
-			StyleMap[std::make_pair((*itr)->Name(), (*itr)->AuthorPtr().id())] = *itr;
+			StyleMap[std::make_pair((*itr)->Name(), (*itr)->AuthorPtr().id())] = boost::shared_ptr<StyleData>(new StyleData(*itr));
 		}
 
 		//Templates
@@ -68,7 +66,7 @@ void StylesDatabase::FetchAll()
 			itr != TemplateCollection.end();
 			++itr)
 		{
-			TemplateMap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = *itr;
+			TemplateMap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = boost::shared_ptr<TemplateData>(new TemplateData(*itr));
 		}
 
 		//StyleTemplates
@@ -76,7 +74,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleTemplateCollection.end();
 			++itr)
 		{
-			StyleTemplateContainer.get<0>().insert(*itr);
+			StyleTemplateContainer.get<0>().insert(boost::shared_ptr<StyleTemplateData>(new StyleTemplateData(*itr)));
 		}
 
 		//StyleCssRules
@@ -84,7 +82,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleCssRuleCollection.end();
 			++itr)
 		{
-			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].push_back(*itr);
+			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].push_back(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
 		}
 
 		//TemplateCssRules
@@ -92,7 +90,7 @@ void StylesDatabase::FetchAll()
 			itr != TemplateCssRuleCollection.end();
 			++itr)
 		{
-			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].push_back(*itr);
+			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].push_back(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
 		}
 
 		transaction.commit();
@@ -137,44 +135,44 @@ void StylesDatabase::MapClasses()
 	DboSession.mapClass<AccessPath>(AccessPath::TableName());
 }
 
-Wt::Dbo::ptr<Style> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
+boost::shared_ptr<StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
 {
 	READ_LOCK;
 	StyleMaps::const_iterator itr = StyleMap.find(std::make_pair(Name, AuthorId));
 	if(itr == StyleMap.end())
 	{
-		return Wt::Dbo::ptr<Style>();
+		return boost::shared_ptr<StyleData>();
 	}
 	return itr->second;
 }
 
 
-Wt::Dbo::ptr<Template> StylesDatabase::GetTemplatePtr(const std::string &Name, long long ModuleId) const
+boost::shared_ptr<TemplateData> StylesDatabase::GetTemplatePtr(const std::string &Name, long long ModuleId) const
 {
 	READ_LOCK;
 	TemplateMaps::const_iterator itr = TemplateMap.find(std::make_pair(Name, ModuleId));
 	if(itr == TemplateMap.end())
 	{
-		return Wt::Dbo::ptr<Template>();
+		return boost::shared_ptr<TemplateData>();
 	}
 	return itr->second;
 }
 
 
-Wt::Dbo::ptr<StyleTemplate> StylesDatabase::GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
+boost::shared_ptr<StyleTemplateData> StylesDatabase::GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
 {
 	READ_LOCK;
 	StyleTemplateContainers::nth_index<0>::type::const_iterator itr = StyleTemplateContainer.get<0>().find(boost::make_tuple(TemplateName, ModuleId, StyleName, StyleAuthorId));
 	if(itr == StyleTemplateContainer.get<0>().end())
 	{
-		return Wt::Dbo::ptr<StyleTemplate>();
+		return boost::shared_ptr<StyleTemplateData>();
 	}
 	return *itr;
 }
 
 bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const
 {
-	Wt::Dbo::ptr<Template> TemplatePtr = GetTemplatePtr(Name, ModuleId);
+	boost::shared_ptr<TemplateData> TemplatePtr = GetTemplatePtr(Name, ModuleId);
 	if(!TemplatePtr)
 	{
 		_Server.log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
@@ -191,7 +189,7 @@ bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId,
 
 bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const
 {
-	Wt::Dbo::ptr<StyleTemplate> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
+	boost::shared_ptr<StyleTemplateData> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
 		//_Server.log("warn") << "StyleTemplatePtr not found in StylesDatabase in GetStyleTemplateStr(...). TemplateName: " << TemplateName << ", ModuleId: " << ModuleId << ", StyleName: " << StyleName << ", StyleAuthorId: " << StyleAuthorId;

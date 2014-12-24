@@ -1,17 +1,22 @@
 #include "Objects/DboCssRule.h"
 
-DboCssRule::DboCssRule(Wt::Dbo::ptr<StyleCssRule> CssRulePtr, Wt::WObject *parent)
+DboCssRule::DboCssRule(boost::shared_ptr<StyleCssRuleData> CssRulePtr, Wt::WObject *parent)
 	: StyleCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(false)
 {
-	if(!CssRulePtr || CssRulePtr.isTransient())
+	if(!CssRulePtr)
 	{
-		throw std::runtime_error("DboCssRule constructor called with an empty or transient CssRulePtr");
+		throw std::runtime_error("DboCssRule constructor called with an empty CssRulePtr");
 	}
 }
 
-DboCssRule::DboCssRule(Wt::Dbo::ptr<TemplateCssRule> CssRulePtr, Wt::WObject *parent)
+DboCssRule::DboCssRule(boost::shared_ptr<TemplateCssRuleData> CssRulePtr, Wt::WObject *parent)
 	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(true)
-{ }
+{
+	if(!CssRulePtr)
+	{
+		throw std::runtime_error("DboCssRule constructor called with an empty CssRulePtr");
+	}
+}
 
 std::string DboCssRule::selector() const
 {

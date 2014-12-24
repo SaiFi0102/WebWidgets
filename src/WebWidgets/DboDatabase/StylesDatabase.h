@@ -16,44 +16,44 @@ class StylesDatabase
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
+			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
-				return StyleTemplatePtr->DerivingTemplatePtr()->Name();
+				return StyleTemplatePtr->TemplateName;
 			}
 		};
 		struct StyleTemplate_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
+			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
-				return StyleTemplatePtr->DerivingTemplatePtr()->ModulePtr().id();
+				return StyleTemplatePtr->ModuleId;
 			}
 		};
 		struct StyleTemplate_key_StyleName
 		{
 			typedef std::string result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
+			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
-				return StyleTemplatePtr->StylePtr()->Name();
+				return StyleTemplatePtr->StyleName;
 			}
 		};
 		struct StyleTemplate_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const Wt::Dbo::ptr<StyleTemplate> &StyleTemplatePtr) const
+			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
-				return StyleTemplatePtr->StylePtr()->AuthorPtr().id();
+				return StyleTemplatePtr->AuthorId;
 			}
 		};
 
 		typedef boost::multi_index_container<
-			Wt::Dbo::ptr<StyleTemplate>,
+			boost::shared_ptr<StyleTemplateData>,
 
 			boost::multi_index::indexed_by<
 				//Index by Page Id and Module Id
 				boost::multi_index::hashed_unique<
 					boost::multi_index::composite_key<
-						Wt::Dbo::ptr<StyleTemplate>,
+						boost::shared_ptr<StyleTemplateData>,
 						StyleTemplate_key_TemplateName,
 						StyleTemplate_key_ModuleId,
 						StyleTemplate_key_StyleName,
@@ -63,11 +63,11 @@ class StylesDatabase
 			>
 		> StyleTemplateContainers;
 
-		typedef std::list< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleList;
-		typedef std::list< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleList;
+		typedef std::list< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
+		typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
 
-		typedef boost::unordered_map< std::pair<std::string, long long>, Wt::Dbo::ptr<Style> > StyleMaps;
-		typedef boost::unordered_map< std::pair<std::string, long long>, Wt::Dbo::ptr<Template> > TemplateMaps;
+		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<StyleData> > StyleMaps;
+		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<TemplateData> > TemplateMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, StyleCssRuleList > StyleCssRuleMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, TemplateCssRuleList > TemplateCssRuleMaps;
 
@@ -78,9 +78,9 @@ class StylesDatabase
 		void Load() { FetchAll(); }
 		void Reload();
 
-		Wt::Dbo::ptr<Style> GetStylePtr(const std::string &Name, long long AuthorId) const;
-		Wt::Dbo::ptr<Template> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
-		Wt::Dbo::ptr<StyleTemplate> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		boost::shared_ptr<StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
+		boost::shared_ptr<TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 
 		bool GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const;
 		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;

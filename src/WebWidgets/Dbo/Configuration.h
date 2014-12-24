@@ -100,13 +100,6 @@ class BaseConfigurationBool
 		bool DefaultValue;
 		boost::optional<bool> RecommendedValue;
 };
-class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
-{
-	public:
-		ConfigurationBoolData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
-};
 class ConfigurationBool : public BaseConfigurationBool
 {
 	public:
@@ -124,6 +117,19 @@ class ConfigurationBool : public BaseConfigurationBool
 			return "configurationbools";
 		}
 };
+class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
+{
+	public:
+		ConfigurationBoolData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationBoolData(Wt::Dbo::ptr<ConfigurationBool> Ptr)
+			: BaseConfigurationBool(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationBoolData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
+};
 
 //ConfigurationDouble DBO Class
 class BaseConfigurationDouble
@@ -134,13 +140,6 @@ class BaseConfigurationDouble
 		boost::optional<double> RecommendedValue;
 		boost::optional<double> MinValue;
 		boost::optional<double> MaxValue;
-};
-class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
-{
-	public:
-		ConfigurationDoubleData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
 };
 class ConfigurationDouble : public BaseConfigurationDouble
 {
@@ -160,6 +159,19 @@ class ConfigurationDouble : public BaseConfigurationDouble
 		{
 			return "configurationdoubles";
 		}
+};
+class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
+{
+	public:
+		ConfigurationDoubleData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationDoubleData(Wt::Dbo::ptr<ConfigurationDouble> Ptr)
+			: BaseConfigurationDouble(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationDoubleData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
 };
 
 class ConfigurationEnumValue
@@ -193,13 +205,6 @@ class BaseConfigurationEnum
 		int DefaultValue;
 		boost::optional<int> RecommendedValue;
 };
-class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
-{
-	public:
-		ConfigurationEnumData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
-};
 class ConfigurationEnum : public BaseConfigurationEnum
 {
 	public:
@@ -220,6 +225,19 @@ class ConfigurationEnum : public BaseConfigurationEnum
 			return "configurationenums";
 		}
 };
+class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
+{
+	public:
+		ConfigurationEnumData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationEnumData(Wt::Dbo::ptr<ConfigurationEnum> Ptr)
+			: BaseConfigurationEnum(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationEnumData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
+};
 
 //ConfigurationFloat DBO Class
 class BaseConfigurationFloat
@@ -230,13 +248,6 @@ class BaseConfigurationFloat
 		boost::optional<float> RecommendedValue;
 		boost::optional<float> MinValue;
 		boost::optional<float> MaxValue;
-};
-class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
-{
-	public:
-		ConfigurationFloatData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
 };
 class ConfigurationFloat : public BaseConfigurationFloat
 {
@@ -257,6 +268,19 @@ class ConfigurationFloat : public BaseConfigurationFloat
 			return "configurationfloats";
 		}
 };
+class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
+{
+	public:
+		ConfigurationFloatData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationFloatData(Wt::Dbo::ptr<ConfigurationFloat> Ptr)
+			: BaseConfigurationFloat(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationFloatData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
+};
 
 //ConfigurationInt DBO Class
 class BaseConfigurationInt
@@ -267,13 +291,6 @@ class BaseConfigurationInt
 		boost::optional<int> RecommendedValue;
 		boost::optional<int> MinValue;
 		boost::optional<int> MaxValue;
-};
-class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
-{
-	public:
-		ConfigurationIntData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
 };
 class ConfigurationInt : public BaseConfigurationInt
 {
@@ -294,6 +311,19 @@ class ConfigurationInt : public BaseConfigurationInt
 			return "configurationints";
 		}
 };
+class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
+{
+	public:
+		ConfigurationIntData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationIntData(Wt::Dbo::ptr<ConfigurationInt> Ptr)
+			: BaseConfigurationInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationIntData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
+};
 
 //ConfigurationLongInt DBO Class
 class BaseConfigurationLongInt
@@ -304,13 +334,6 @@ class BaseConfigurationLongInt
 		boost::optional<long long> RecommendedValue;
 		boost::optional<long long> MinValue;
 		boost::optional<long long> MaxValue;
-};
-class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
-{
-	public:
-		ConfigurationLongIntData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
-		{}
 };
 class ConfigurationLongInt : public BaseConfigurationLongInt
 {
@@ -331,6 +354,19 @@ class ConfigurationLongInt : public BaseConfigurationLongInt
 			return "configurationlongints";
 		}
 };
+class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
+{
+	public:
+		ConfigurationLongIntData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationLongIntData(Wt::Dbo::ptr<ConfigurationLongInt> Ptr)
+			: BaseConfigurationLongInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationLongIntData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
+};
 
 //ConfigurationString DBO Class
 class BaseConfigurationString
@@ -342,13 +378,6 @@ class BaseConfigurationString
 		boost::optional<std::string> ExampleValue;
 		boost::optional<int> MinLength;
 		boost::optional<int> MaxLength;
-};
-class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey
-{
-public:
-	ConfigurationStringData(const std::string &Name, long long ModuleId)
-		: ConfigurationDataKey(Name, ModuleId)
-	{}
 };
 class ConfigurationString : public BaseConfigurationString
 {
@@ -369,6 +398,19 @@ class ConfigurationString : public BaseConfigurationString
 		{
 			return "configurationstrings";
 		}
+};
+class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey
+{
+	public:
+		ConfigurationStringData()
+			: ConfigurationDataKey("", -1)
+		{ }
+		ConfigurationStringData(Wt::Dbo::ptr<ConfigurationString> Ptr)
+			: BaseConfigurationString(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
+		{ }
+		ConfigurationStringData(const std::string &Name, long long ModuleId)
+			: ConfigurationDataKey(Name, ModuleId)
+		{ }
 };
 
 #endif
