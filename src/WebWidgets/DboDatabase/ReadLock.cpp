@@ -1,31 +1,15 @@
 #include "DboDatabase/ReadLock.h"
-#include "DboDatabase/ConfigurationsDatabase.h"
-#include "DboDatabase/AccessPathsDatabase.h"
-#include "DboDatabase/LanguagesDatabase.h"
-#include "DboDatabase/PagesDatabase.h"
-#include "DboDatabase/StylesDatabase.h"
+#include "DboDatabase/AbstractDboDatabase.h"
+#include "DboDatabase/DboDatabaseManager.h"
 
-ReadLock::ReadLock(ConfigurationsDatabase *Database)
+ReadLock::ReadLock(AbstractDboDatabase *Database)
 	: lock(Database->mutex)
 { }
 
-ReadLock::ReadLock(AccessPathsDatabase *Database)
-	: lock(Database->mutex)
-{ }
-
-ReadLock::ReadLock(LanguagesDatabase *Database)
-	: lock(Database->mutex)
-{ }
-
-ReadLock::ReadLock(PagesDatabase *Database)
-	: lock(Database->mutex)
-{ }
-
-ReadLock::ReadLock(StylesDatabase *Database)
-	: lock(Database->mutex)
-{ }
-
-void ReadLock::Release()
+void ReadLock::Unlock()
 {
-	lock.release();
+	if(lock.owns_lock())
+	{
+		lock.unlock();
+	}
 }

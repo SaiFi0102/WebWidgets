@@ -1,16 +1,14 @@
 #ifndef STYLES_DATABASE_H
 #define STYLES_DATABASE_H
 
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Style.h"
-#include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 
-class WServer;
-
-class StylesDatabase
+class StylesDatabase : public AbstractDboDatabase
 {
 	protected:
 		struct StyleTemplate_key_TemplateName
@@ -63,8 +61,8 @@ class StylesDatabase
 			>
 		> StyleTemplateContainers;
 
-		typedef std::list< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
-		typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+		typedef std::set< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
+		typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
 
 		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<StyleData> > StyleMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<TemplateData> > TemplateMaps;
@@ -72,11 +70,7 @@ class StylesDatabase
 		typedef boost::unordered_map< std::pair<std::string, long long>, TemplateCssRuleList > TemplateCssRuleMaps;
 
 	public:
-		StylesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		StylesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load() { FetchAll(); }
-		void Reload();
+		StylesDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
 		boost::shared_ptr<TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
@@ -95,9 +89,14 @@ class StylesDatabase
 		std::size_t CountStyleCssRules() const;
 		std::size_t CountTemplateCssRules() const;
 
+		virtual std::string Name() const { return "StylesDatabase"; }
+
 	protected:
-		void MapClasses();
-		void FetchAll();
+		virtual void Load(Wt::Dbo::Session &DboSession);
+		virtual void Reload(Wt::Dbo::Session &DboSession);
+		void FetchAll(Wt::Dbo::Session &DboSession);
+
+		virtual bool IsVital() const { return true; }
 
 		StyleMaps StyleMap;
 		TemplateMaps TemplateMap;
@@ -105,13 +104,7 @@ class StylesDatabase
 		StyleCssRuleMaps StyleCssRuleMap;
 		TemplateCssRuleMaps TemplateCssRuleMap;
 
-		mutable boost::shared_mutex mutex;
 		boost::posix_time::time_duration LoadDuration;
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
-
-	private:
-		friend class ReadLock;
 };
 
 #endif

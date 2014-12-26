@@ -1,13 +1,11 @@
 #ifndef MODULES_DATABASE_H
 #define MODULES_DATABASE_H
 
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Module.h"
-#include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 
-class WServer;
-
-class ModulesDatabase
+class ModulesDatabase : public AbstractDboDatabase
 {
 	public:
 		enum BuiltInModules
@@ -22,26 +20,24 @@ class ModulesDatabase
 			Navigation = 8
 		};
 
-		ModulesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		ModulesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load();
+		ModulesDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<ModuleData> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 
+		virtual std::string Name() const { return "ModulesDatabase"; }
+
 	protected:
 		typedef boost::unordered_map< long long, boost::shared_ptr<ModuleData> > ModuleMaps;
 
-		void MapClasses();
-		void FetchAll();
+		void FetchAll(Wt::Dbo::Session &DboSession);
+		virtual void Load(Wt::Dbo::Session &DboSession);
+
+		virtual bool IsVital() const { return true; }
 
 		ModuleMaps ModuleMap;
 		boost::posix_time::time_duration LoadDuration;
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
-		mutable boost::shared_mutex mutex;
 };
 
 #endif

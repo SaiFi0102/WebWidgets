@@ -7,10 +7,10 @@ int main(int argc, char **argv)
 	/* *************************************************************************
 	 * *************************  Start Web Server *****************************
 	 * *************************************************************************/
-	WServer Server = WServer(argv[0], "wt_config.xml");
 	try
 	{
 		//Initialize Server
+		WServer Server = WServer(argv[0], "wt_config.xml");
 		Server.Initialize();
 
 		//Configuration
@@ -23,15 +23,17 @@ int main(int argc, char **argv)
 			//And wait till a shutdown signal is given
 			int sig = WServer::waitForShutdown(argv[0]);
 			Server.stop();
-			Server.log("info") << "Shutdown (Signal = " << sig << ")";
+			Wt::log("info") << "Shutdown (Signal = " << sig << ")";
 		}
 	}
 	catch(Wt::WServer::Exception &e)
 	{
-		Server.log("fatal") << "Error starting the server: " << e.what();
+		Wt::log("fatal") << "Error starting the server: " << e.what();
+		exit(EXIT_FAILURE);
 	}
 	catch(std::exception &e)
 	{
-		Server.log("fatal") << "Server exception error: " << e.what();
+		Wt::log("fatal") << "Server exception error: " << e.what();
+		exit(EXIT_FAILURE);
 	}
 }

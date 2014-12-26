@@ -20,6 +20,7 @@ class LanguagesDatabase;
 class StylesDatabase;
 class PagesDatabase;
 class AccessPathsDatabase;
+class DboDatabaseManager;
 
 typedef std::vector<const Wt::Auth::OAuthService *> OAuthServiceMap;
 
@@ -29,6 +30,7 @@ class WServer : public Wt::WServer
 		WServer(const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
 		~WServer();
 		
+		DboDatabaseManager *DatabaseManager() const { return _DboManager; }
 		ModulesDatabase *Modules() const { return _Modules; }
 		ConfigurationsDatabase *Configurations() const { return _Configurations; }
 		LanguagesDatabase *Languages() const { return _Languages; }
@@ -40,11 +42,8 @@ class WServer : public Wt::WServer
 		const Wt::Auth::PasswordService &GetPasswordService() const { return PasswordService; }
 		const OAuthServiceMap &GetOAuthServices() const { OAuthServices; }
 
-		Wt::WLogEntry log(const std::string &type) const;
 		boost::posix_time::ptime StartPTime() const { return PTStart; }
 		bool Start();
-		void NewApp(Application *App);
-		void AppDeleted(Application *App);
 
 		void RefreshLocaleStrings();
 		void RefreshStyleStrings();
@@ -53,8 +52,6 @@ class WServer : public Wt::WServer
 		static WServer *instance() { return dynamic_cast<WServer*>(Wt::WServer::instance()); }
 
 	protected:
-		typedef std::set<Application *> ApplicationSet;
-
 		void ConfigureAuth();
 		void CreateWtXmlConfiguration();
 		void Initialize();
@@ -62,14 +59,13 @@ class WServer : public Wt::WServer
 		Wt::Dbo::SqlConnectionPool *SQLPool;
 
 		DboInstaller *_Installer;
+		DboDatabaseManager *_DboManager;
 		ModulesDatabase *_Modules;
 		ConfigurationsDatabase *_Configurations;
 		LanguagesDatabase *_Languages;
 		StylesDatabase *_Styles;
 		PagesDatabase *_Pages;
 		AccessPathsDatabase *_AccessPaths;
-
-		ApplicationSet _Applications;
 
 		Wt::rapidxml::xml_document<> XmlDoc;
 		boost::posix_time::ptime PTBeforeLoad;
@@ -80,7 +76,6 @@ class WServer : public Wt::WServer
 		OAuthServiceMap OAuthServices;
 
 	private:
-		boost::recursive_mutex mutex;
 		friend int main(int argc, char** argv);
 };
 

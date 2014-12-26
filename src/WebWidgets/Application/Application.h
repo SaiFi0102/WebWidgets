@@ -44,9 +44,9 @@ class Application : public Wt::WApplication
 		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
 		//Database reload handlers
-		void RefreshLocaleStrings();
-		void RefreshStyleStrings();
-		void RefreshPageStrings();
+		static void RefreshLocaleStrings();
+		static void RefreshStyleStrings();
+		static void RefreshPageStrings();
 
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;

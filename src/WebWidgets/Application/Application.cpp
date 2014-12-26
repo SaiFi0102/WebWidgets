@@ -17,6 +17,7 @@
 #include <Wt/WAnchor>
 #include <Wt/WPushButton>
 #include <Wt/WTemplate>
+#include <Wt/WResource>
 #include <WebUtils.h>
 
 Application::Application(const Wt::WEnvironment &env)
@@ -31,7 +32,7 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Cache configurations
 	WServer *Server = WServer::instance();
-	_Configurations = new ConfigurationsCache(Server->Configurations(), this); //Local copy of configuration ptrs
+	_Configurations = new ConfigurationsCache(Server->Configurations()); //Local copy of configuration ptrs
 
 	//Use database backend localized strings instead of WMessageResourceBundle
 	setLocalizedStrings(new DboLocalizedStrings(Server));
@@ -128,7 +129,8 @@ Application::Application(const Wt::WEnvironment &env)
 	//Style CSS Stylesheet
 	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
 	long long DefaultStyleAuthor = Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-	ChangeStyle(DefaultStyleName, DefaultStyleAuthor);
+	boost::shared_ptr<StyleData> StylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
+	SetStyle(StylePtr);
 
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
@@ -136,8 +138,6 @@ Application::Application(const Wt::WEnvironment &env)
 	//TEST UI//
 	CreateTestUI();
 
-	//Update Server's active application's mapping
-	Server->NewApp(this);
 
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
@@ -147,12 +147,12 @@ Application::Application(const Wt::WEnvironment &env)
 	new Wt::WText(std::string("; ")
 		+ boost::lexical_cast<std::string>((InitEndTime - StartTime).total_microseconds())
 		+ " µs", root());
+	new Wt::WBreak(root());
 }
 
 Application::~Application()
 {
-	WServer *Server = WServer::instance();
-	Server->AppDeleted(this);
+	delete _Configurations;
 }
 
 void Application::setLocale(const Wt::WLocale &locale)
@@ -196,7 +196,11 @@ void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 {
 	WServer *Server = WServer::instance();
 	boost::shared_ptr<StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
-	if(!StylePtr || !_CurrentStylePtr || _CurrentStylePtr->id() == StylePtr->id())
+	if(!StylePtr)
+	{
+		return;
+	}
+	if(_CurrentStylePtr && _CurrentStylePtr->id() == StylePtr->id())
 	{
 		return;
 	}
@@ -207,19 +211,27 @@ void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 
 void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
 {
-	typedef std::list< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
+	typedef std::set< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
 
 	//Remove CSS rules
-	WServer *Server = WServer::instance();
 	styleSheet().clear();
 
+	//No style
+	if(!StylePtr)
+	{
+		_CurrentStylePtr = 0;
+		_StyleChanged.emit();
+		return;
+	}
+
 	//Add CSS rules for new style
+	WServer *Server = WServer::instance();
 	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr->Name(), StylePtr->AuthorId());
 	for(StyleCssRuleList::const_iterator itr = CssRules.begin();
 		itr != CssRules.end();
 		++itr)
 	{
-		DboCssRule *Rule = new DboCssRule(*itr);
+		DboCssRule *Rule = new DboCssRule(*itr, this);
 		styleSheet().addRule(Rule);
 	}
 
@@ -229,31 +241,46 @@ void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
 
 void Application::RefreshLocaleStrings()
 {
-	refresh();
-	triggerUpdate();
+	Application *app = Application::instance();
+	if(!app)
+	{
+		return;
+	}
+	app->refresh();
+	app->triggerUpdate();
 }
 
 void Application::RefreshStyleStrings()
 {
+	Application *app = Application::instance();
+	if(!app)
+	{
+		return;
+	}
+
 	//Refresh Templates, Style WCssStyleSheet, Template WCssStyleSheets
 	WServer *Server = WServer::instance();
 
 	//Style CssStyleSheet
-	boost::shared_ptr<StyleData> NewStylePtr = Server->Styles()->GetStylePtr(CurrentStyle()->Name(), CurrentStyle()->AuthorId());
-	if(!NewStylePtr)
+	boost::shared_ptr<StyleData> NewStylePtr;
+	if(app->CurrentStyle())
 	{
-		//Default style is taken from server's active configuration instead of cached configuration because it is possible
-		//for the default style to get changed from the configuration and that old default style being changed/deleted
-		std::string DefaultStyleName = Server->Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
-		long long DefaultStyleAuthor = Server->Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-		NewStylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
+		NewStylePtr = Server->Styles()->GetStylePtr(app->CurrentStyle()->Name(), app->CurrentStyle()->AuthorId());
+		if(!NewStylePtr)
+		{
+			//Default style is taken from server's active configuration instead of cached configuration because it is possible
+			//for the default style to get changed from the configuration and that old default style being changed/deleted
+			std::string DefaultStyleName = Server->Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
+			long long DefaultStyleAuthor = Server->Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
+			NewStylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
+		}
 	}
-	SetStyle(NewStylePtr);
+	app->SetStyle(NewStylePtr);
 
 	//Template CssStyleSheets, remove all rules and add new
-	typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
-	for(TemplateStyleSheetMap::iterator itr = _TemplateStyleSheets.begin();
-		itr != _TemplateStyleSheets.end();
+	typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+	for(TemplateStyleSheetMap::iterator itr = app->_TemplateStyleSheets.begin();
+		itr != app->_TemplateStyleSheets.end();
 		++itr)
 	{
 		itr->second.clear();
@@ -262,24 +289,29 @@ void Application::RefreshStyleStrings()
 			it != CssRules.end();
 			++it)
 		{
-			itr->second.addRule(new DboCssRule(*it));
+			itr->second.addRule(new DboCssRule(*it, app));
 		}
 	}
 
 	//Send changes
-	refresh();
-	triggerUpdate();
+	app->refresh();
+	app->triggerUpdate();
 }
 
 void Application::RefreshPageStrings()
 {
-	//...
+	//Application *app = Application::instance();
+	//if(!app)
+	//{
+	//	return;
+	//}
+
 	//triggerUpdate();
 }
 
 void Application::UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr)
 {
-	typedef std::list< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+	typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
 
 	//Ignore if its an empty ptr
 	if(!TemplatePtr)
@@ -309,7 +341,7 @@ void Application::UseTemplateStyleSheet(boost::shared_ptr<TemplateData> Template
 		itr != CssRules.end();
 		++itr)
 	{
-		DboCssRule *Rule = new DboCssRule(*itr);
+		DboCssRule *Rule = new DboCssRule(*itr, this);
 		TemplateStyleSheet.addRule(Rule);
 	}
 
@@ -864,7 +896,7 @@ void Application::CreateTestUI()
 		new Wt::WText(std::string("[Server Config; Before Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WText(std::string("[Cache Config; Before Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WBreak(root());
-		Server->Configurations()->Reload();
+		Server->DatabaseManager()->Reload();
 		new Wt::WText(std::string("[Server Config; AFTER Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WText(std::string("[Cache Config; AFTER Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WBreak(root());
@@ -872,7 +904,7 @@ void Application::CreateTestUI()
 
 	Wt::WPushButton *rs = new Wt::WPushButton("Reload Styles", root());
 	rs->clicked().connect(boost::bind<void>([Server](){
-		Server->Styles()->Reload();
+		Server->DatabaseManager()->Reload();
 	}));
 	Wt::WPushButton *cs = new Wt::WPushButton("Change Style", root());
 	cs->clicked().connect(boost::bind<void>([this, Server](){
@@ -882,7 +914,7 @@ void Application::CreateTestUI()
 		}
 		else if(_CurrentStylePtr->Name() == "Default")
 		{
-			ChangeStyle("test", 1);
+			ChangeStyle("Test", 1);
 		}
 		else
 		{
@@ -893,7 +925,7 @@ void Application::CreateTestUI()
 	new Wt::WBreak(root());
 	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());
 	rl->clicked().connect(boost::bind<void>([Server](){
-		Server->Languages()->Reload();
+		Server->DatabaseManager()->Reload();
 	}));
 	new Wt::WBreak(root());
 	new Wt::WText(Wt::WString::tr("Wt.Auth.email"), root());

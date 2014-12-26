@@ -4,23 +4,13 @@
 #include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
+#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
-AccessPathsDatabase::AccessPathsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnectionPool(SQLPool);
-	MapClasses();
-}
+AccessPathsDatabase::AccessPathsDatabase(DboDatabaseManager *Manager)
+: AbstractDboDatabase(Manager)
+{ }
 
-AccessPathsDatabase::AccessPathsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnection(SQLConnection);
-	MapClasses();
-}
-
-void AccessPathsDatabase::MapClasses()
+void AccessPathsDatabase::Load(Wt::Dbo::Session &DboSession)
 {
 	DboSession.mapClass<Author>(Author::TableName());
 	DboSession.mapClass<Module>(Module::TableName());
@@ -43,9 +33,11 @@ void AccessPathsDatabase::MapClasses()
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
 	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+
+	FetchAll(DboSession);
 }
 
-void AccessPathsDatabase::FetchAll()
+void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	WRITE_LOCK;
 
@@ -102,6 +94,10 @@ void AccessPathsDatabase::FetchAll()
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
+
+	lock.unlock();
+	Wt::log("info") << Name() << ": " << CountAccessPaths() << " Access Path entires successfully loaded in "
+		<< GetLoadDurationinMS() << " ms";
 }
 
 boost::shared_ptr<AccessPathData> AccessPathsDatabase::GetPtr(long long Id) const
@@ -229,7 +225,7 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 		itr = AccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName.substr(4)));
 	}
 	if(itr == enditr
-		&& (!LanguageFromHostname || _Server.Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
+		&& (!LanguageFromHostname || Server()->Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false)))
 	{
 		itr = AccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, ""));
 	}
@@ -242,5 +238,5 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 
 boost::shared_ptr<AccessPathData> AccessPathsDatabase::HomePageAccessPathPtr() const
 {
-	return PageAccessPathPtr(_Server.Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
+	return PageAccessPathPtr(Server()->Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
 }

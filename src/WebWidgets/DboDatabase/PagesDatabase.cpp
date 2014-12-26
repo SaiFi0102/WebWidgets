@@ -3,48 +3,13 @@
 #include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
+#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
-PagesDatabase::PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnectionPool(SQLPool);
-	MapClasses();
-}
+PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
+	: AbstractDboDatabase(Manager)
+{ }
 
-PagesDatabase::PagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnection(SQLConnection);
-	MapClasses();
-}
-
-void PagesDatabase::MapClasses()
-{
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
-}
-
-void PagesDatabase::FetchAll()
+void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	WRITE_LOCK;
 
@@ -80,6 +45,9 @@ void PagesDatabase::FetchAll()
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
+
+	lock.unlock();
+	Wt::log("info") << Name() << ": " << CountPages() << " Page entires successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
 boost::shared_ptr<PageData> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
@@ -95,7 +63,7 @@ boost::shared_ptr<PageData> PagesDatabase::GetPtr(long long PageId, long long Mo
 
 boost::shared_ptr<PageData> PagesDatabase::HomePagePtr() const
 {
-	boost::shared_ptr<AccessPathData> HomePageAccessPath = _Server.AccessPaths()->HomePageAccessPathPtr();
+	boost::shared_ptr<AccessPathData> HomePageAccessPath = Server()->AccessPaths()->HomePageAccessPathPtr();
 	if(!HomePageAccessPath)
 	{
 		return boost::shared_ptr<PageData>();
@@ -105,7 +73,7 @@ boost::shared_ptr<PageData> PagesDatabase::HomePagePtr() const
 
 /*boost::shared_ptr<PageData> PagesDatabase::GetPtr(const std::string &InternalPath) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager);
 	PageByInternalPath::iterator itr = PageContainer.get<ByInternalPath>().find(InternalPath);
 	if(itr == PageContainer.get<ByInternalPath>().end())
 	{
@@ -148,8 +116,34 @@ long long PagesDatabase::GetLoadDurationinMS() const
 	return LoadDuration.total_milliseconds();
 }
 
-void PagesDatabase::Reload()
+void PagesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	FetchAll();
-	_Server.RefreshPageStrings();
+	DboSession.mapClass<Author>(Author::TableName());
+	DboSession.mapClass<Module>(Module::TableName());
+	DboSession.mapClass<Configuration>(Configuration::TableName());
+	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
+	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
+	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
+	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
+	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
+	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
+	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
+	DboSession.mapClass<Language>(Language::TableName());
+	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
+	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
+	DboSession.mapClass<Page>(Page::TableName());
+	DboSession.mapClass<Template>(Template::TableName());
+	DboSession.mapClass<Style>(Style::TableName());
+	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
+	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
+	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+
+	FetchAll(DboSession);
+}
+void PagesDatabase::Reload(Wt::Dbo::Session &DboSession)
+{
+	FetchAll(DboSession);
+	Server()->RefreshPageStrings();
 }

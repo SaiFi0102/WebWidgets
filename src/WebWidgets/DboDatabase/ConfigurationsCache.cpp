@@ -3,8 +3,8 @@
 #include "DboDatabase/ReadLock.h"
 #include "Application/Application.h"
 
-ConfigurationsCache::ConfigurationsCache(ConfigurationsDatabase *Database, Application *App)
-	: _Database(Database), _App(App)
+ConfigurationsCache::ConfigurationsCache(ConfigurationsDatabase *Database)
+	: _Database(Database)
 {
 	ReadLock lock(_Database);
 	BoolMap = BoolMaps(Database->BoolMap);
@@ -92,7 +92,7 @@ bool ConfigurationsCache::GetBool(const std::string &Name, long long ModuleId, b
 	boost::shared_ptr<ConfigurationBoolData> BoolPtr = GetBoolPtr(Name, ModuleId);
 	if(!BoolPtr)
 	{
-		_App->log("warn") << "BoolPtr not found in ConfigurationsCache in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "BoolPtr not found in ConfigurationsCache in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return BoolPtr->Value;
@@ -104,7 +104,7 @@ double ConfigurationsCache::GetDouble(const std::string &Name, long long ModuleI
 	boost::shared_ptr<ConfigurationDoubleData> DoublePtr = GetDoublePtr(Name, ModuleId);
 	if(!DoublePtr)
 	{
-		_App->log("warn") << "DoublePtr not found in ConfigurationsCache in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "DoublePtr not found in ConfigurationsCache in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return DoublePtr->Value;
@@ -116,7 +116,7 @@ int ConfigurationsCache::GetEnum(const std::string &Name, long long ModuleId, in
 	boost::shared_ptr<ConfigurationEnumData> EnumPtr = GetEnumPtr(Name, ModuleId);
 	if(!EnumPtr)
 	{
-		_App->log("warn") << "EnumPtr not found in ConfigurationsCache in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "EnumPtr not found in ConfigurationsCache in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return EnumPtr->Value;
@@ -128,7 +128,7 @@ float ConfigurationsCache::GetFloat(const std::string &Name, long long ModuleId,
 	boost::shared_ptr<ConfigurationFloatData> FloatPtr = GetFloatPtr(Name, ModuleId);
 	if(!FloatPtr)
 	{
-		_App->log("warn") << "FloatPtr not found in ConfigurationsCache in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "FloatPtr not found in ConfigurationsCache in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return FloatPtr->Value;
@@ -140,7 +140,7 @@ int ConfigurationsCache::GetInt(const std::string &Name, long long ModuleId, int
 	boost::shared_ptr<ConfigurationIntData> IntPtr = GetIntPtr(Name, ModuleId);
 	if(!IntPtr)
 	{
-		_App->log("warn") << "IntPtr not found in ConfigurationsCache in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "IntPtr not found in ConfigurationsCache in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return IntPtr->Value;
@@ -152,7 +152,7 @@ long long ConfigurationsCache::GetLongInt(const std::string &Name, long long Mod
 	boost::shared_ptr<ConfigurationLongIntData> LongIntPtr = GetLongIntPtr(Name, ModuleId);
 	if(!LongIntPtr)
 	{
-		_App->log("warn") << "LongIntPtr not found in ConfigurationsCache in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "LongIntPtr not found in ConfigurationsCache in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return LongIntPtr->Value;
@@ -164,7 +164,7 @@ std::string ConfigurationsCache::GetStr(const std::string &Name, long long Modul
 	boost::shared_ptr<ConfigurationStringData> StringPtr = GetStringPtr(Name, ModuleId);
 	if(!StringPtr)
 	{
-		_App->log("warn") << "StringPtr not found in ConfigurationsCache in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "StringPtr not found in ConfigurationsCache in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	if(!StringPtr->Value.is_initialized())

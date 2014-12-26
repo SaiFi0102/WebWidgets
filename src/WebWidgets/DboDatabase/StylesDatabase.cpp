@@ -5,22 +5,13 @@
 #include "Application/Application.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
+#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
-StylesDatabase::StylesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnectionPool(SQLPool);
-	MapClasses();
-}
-StylesDatabase::StylesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnection(SQLConnection);
-	MapClasses();
-}
+StylesDatabase::StylesDatabase(DboDatabaseManager *Manager)
+	: AbstractDboDatabase(Manager)
+{ }
 
-void StylesDatabase::FetchAll()
+void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	WRITE_LOCK;
 
@@ -82,7 +73,7 @@ void StylesDatabase::FetchAll()
 			itr != StyleCssRuleCollection.end();
 			++itr)
 		{
-			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].push_back(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
+			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].insert(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
 		}
 
 		//TemplateCssRules
@@ -90,7 +81,7 @@ void StylesDatabase::FetchAll()
 			itr != TemplateCssRuleCollection.end();
 			++itr)
 		{
-			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].push_back(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
+			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
 		}
 
 		transaction.commit();
@@ -108,31 +99,11 @@ void StylesDatabase::FetchAll()
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
-}
 
-void StylesDatabase::MapClasses()
-{
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	lock.unlock();
+	Wt::log("info") << Name() << ": " << CountStyles() << " Styles, " << CountTemplates() << " Templates, "
+		<< CountStyleTemplates() << " Styled Templates, " << CountStyleCssRules() << " Style CSS Rules and "
+		<< CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
 boost::shared_ptr<StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
@@ -175,7 +146,7 @@ bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId,
 	boost::shared_ptr<TemplateData> TemplatePtr = GetTemplatePtr(Name, ModuleId);
 	if(!TemplatePtr)
 	{
-		_Server.log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
+		Wt::log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
 		return false;
 	}
 	if(!TemplatePtr->TemplateStr.is_initialized())
@@ -192,7 +163,7 @@ bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long l
 	boost::shared_ptr<StyleTemplateData> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
-		//_Server.log("warn") << "StyleTemplatePtr not found in StylesDatabase in GetStyleTemplateStr(...). TemplateName: " << TemplateName << ", ModuleId: " << ModuleId << ", StyleName: " << StyleName << ", StyleAuthorId: " << StyleAuthorId;
+		//Wt::log("warn") << "StyleTemplatePtr not found in StylesDatabase in GetStyleTemplateStr(...). TemplateName: " << TemplateName << ", ModuleId: " << ModuleId << ", StyleName: " << StyleName << ", StyleAuthorId: " << StyleAuthorId;
 		return false;
 	}
 	result = StyleTemplatePtr->TemplateStr;
@@ -340,8 +311,34 @@ std::size_t StylesDatabase::CountTemplateCssRules() const
 	return TemplateCssRuleMap.size();
 }
 
-void StylesDatabase::Reload()
+void StylesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	FetchAll();
-	_Server.RefreshStyleStrings();
+	DboSession.mapClass<Author>(Author::TableName());
+	DboSession.mapClass<Module>(Module::TableName());
+	DboSession.mapClass<Configuration>(Configuration::TableName());
+	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
+	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
+	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
+	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
+	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
+	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
+	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
+	DboSession.mapClass<Language>(Language::TableName());
+	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
+	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
+	DboSession.mapClass<Page>(Page::TableName());
+	DboSession.mapClass<Template>(Template::TableName());
+	DboSession.mapClass<Style>(Style::TableName());
+	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
+	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
+	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+
+	FetchAll(DboSession);
+}
+void StylesDatabase::Reload(Wt::Dbo::Session &DboSession)
+{
+	FetchAll(DboSession);
+	Server()->RefreshStyleStrings();
 }

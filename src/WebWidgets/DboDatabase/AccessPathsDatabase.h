@@ -1,17 +1,15 @@
 #ifndef ACCESSPATH_DATABASE_H
 #define ACCESSPATH_DATABASE_H
 
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/AccessPath.h"
-#include <boost/thread.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/ordered_index.hpp>
 
-class WServer;
-
-class AccessPathsDatabase
+class AccessPathsDatabase : public AbstractDboDatabase
 {
-	private:
+	protected:
 		struct AccessPath_key_id
 		{
 			typedef long long result_type;
@@ -82,11 +80,7 @@ class AccessPathsDatabase
 		typedef AccessPathContainers::index<ByLanguageHostname>::type AccessPathByLanguageHostname;
 
 	public:
-		AccessPathsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		AccessPathsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load() { FetchAll(); }
-		void Reload() { FetchAll(); }
+		AccessPathsDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<AccessPathData> GetPtr(long long Id) const;
 		boost::shared_ptr<AccessPathData> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
@@ -105,19 +99,20 @@ class AccessPathsDatabase
 		std::size_t CountAccessPaths() const;
 		long long GetLoadDurationinMS() const;
 
+		virtual std::string Name() const { return "AccessPathsDatabase"; }
+
 	protected:
-		void MapClasses();
-		void FetchAll();
+		virtual void Load(Wt::Dbo::Session &DboSession);
+		virtual void Reload(Wt::Dbo::Session &DboSession) { FetchAll(DboSession); }
+		void FetchAll(Wt::Dbo::Session &DboSession);
 
 		AccessPathContainers AccessPathContainer;
 		boost::posix_time::time_duration LoadDuration;
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
-		mutable boost::shared_mutex mutex;
+
+		virtual bool IsVital() const { return true; }
 
 	private:
 		friend class Application;
-		friend class ReadLock;
 };
 
 #endif

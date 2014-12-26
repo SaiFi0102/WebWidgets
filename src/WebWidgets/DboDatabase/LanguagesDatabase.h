@@ -1,18 +1,16 @@
 #ifndef LANGUAGES_DATABASE_H
 #define LANGUAGES_DATABASE_H
 
-#include <Wt/WLocale>
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Language.h"
-#include <boost/thread.hpp>
+#include <Wt/WLocale>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 
-class WServer;
-
-class LanguagesDatabase
+class LanguagesDatabase : public AbstractDboDatabase
 {
-	private:
+	protected:
 		//Language container key extractors
 		struct Language_key_Code
 		{
@@ -135,11 +133,7 @@ class LanguagesDatabase
 		typedef LanguagePluralContainers::nth_index<0>::type LanguagePluralType;
 		
 	public:
-		LanguagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		LanguagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load() { FetchAll(); }
-		void Reload();
+		LanguagesDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<LanguageData> GetLanguagePtrFromCode(const std::string &Code) const;
 		boost::shared_ptr<LanguageData> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
@@ -163,20 +157,19 @@ class LanguagesDatabase
 		std::size_t CountPlural() const;
 		std::size_t CountLanguages() const;
 
-	protected:
-		void MapClasses();
-		void FetchAll();
+		virtual std::string Name() const { return "LanguagesDatabase"; }
 
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
+	protected:
+		virtual void Load(Wt::Dbo::Session &DboSession);
+		virtual void Reload(Wt::Dbo::Session &DboSession);
+		void FetchAll(Wt::Dbo::Session &DboSession);
+
+		virtual bool IsVital() const { return true; }
+
 		LanguageContainers LanguageContainer;
 		LanguageSingleContainers LanguageSingleContainer;
 		LanguagePluralContainers LanguagePluralContainer;
 		boost::posix_time::time_duration LoadDuration;
-		mutable boost::shared_mutex mutex;
-
-	private:
-		friend class ReadLock;
 };
 
 #endif

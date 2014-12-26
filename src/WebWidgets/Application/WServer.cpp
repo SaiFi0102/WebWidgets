@@ -26,8 +26,8 @@
 
 WServer::WServer(const std::string &wtApplicationPath, const std::string &wtConfigurationFile)
 	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService),
-	SQLPool(0), _AccessPaths(0), _Configurations(0), _Installer(0),
-	_Languages(0), _Modules(0), _Pages(0), _Styles(0)
+	SQLPool(0), _AccessPaths(0), _Configurations(0), _DboManager(0),
+	_Installer(0), _Languages(0), _Modules(0), _Pages(0), _Styles(0)
 { }
 void WServer::Initialize()
 {
@@ -39,10 +39,10 @@ void WServer::Initialize()
 	 * *************************************************************************/
 	try
 	{
-		log("info") << "Connecting to database";
+		log("info") << "Connecting to database backend";
 
 		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		SQLConnection->setProperty("show-queries", "true");
+		//SQLConnection->setProperty("show-queries", "true");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
 		log("success") << "Successfully connected to database";
@@ -54,7 +54,7 @@ void WServer::Initialize()
 	}
 	catch(std::exception &e)
 	{
-		log("fatal") << "Error while connecting to database: " << e.what();
+		log("fatal") << "Error connecting to database: " << e.what();
 		throw e;
 	}
 
@@ -63,16 +63,17 @@ void WServer::Initialize()
 	 * *************************************************************************/
 	try
 	{
-		_Modules = new ModulesDatabase(*SQLPool, *this);
-		_Configurations = new ConfigurationsDatabase(*SQLPool, *this);
-		_Languages = new LanguagesDatabase(*SQLPool, *this);
-		_Styles = new StylesDatabase(*SQLPool, *this);
-		_Pages = new PagesDatabase(*SQLPool, *this);
-		_AccessPaths = new AccessPathsDatabase(*SQLPool, *this);
+		_DboManager = new DboDatabaseManager(this, SQLPool);
+		_Modules = new ModulesDatabase(_DboManager);
+		_Configurations = new ConfigurationsDatabase(_DboManager);
+		_Languages = new LanguagesDatabase(_DboManager);
+		_Styles = new StylesDatabase(_DboManager);
+		_Pages = new PagesDatabase(_DboManager);
+		_AccessPaths = new AccessPathsDatabase(_DboManager);
 	}
 	catch(std::exception &e)
 	{
-		log("fatal") << "Error while initializing databases: " << e.what();
+		log("fatal") << "Error initializing databases: " << e.what();
 		throw e;
 	}
 
@@ -90,13 +91,11 @@ void WServer::Initialize()
 		}
 		catch(Wt::Dbo::Exception &e)
 		{
-			log("fatal") << "Database error dropping tables: " <<  e.what();
-			//throw e;
+			log("error") << "Database error dropping tables: " <<  e.what();
 		}
 		catch(std::exception &e)
 		{
-			log("fatal") << "Error while dropping tables: " << e.what();
-			//throw e;
+			log("error") << "Error dropping tables: " << e.what();
 		}
 
 		//Create
@@ -111,7 +110,7 @@ void WServer::Initialize()
 		}
 		catch(std::exception &e)
 		{
-			log("fatal") << "Error while creating tables: " << e.what();
+			log("fatal") << "Error creating tables: " << e.what();
 			throw e;
 		}
 
@@ -127,134 +126,27 @@ void WServer::Initialize()
 		}
 		catch(std::exception &e)
 		{
-			log("fatal") << "Error while inserting default data: " << e.what();
+			log("fatal") << "Error inserting default data: " << e.what();
 			throw e;
 		}
 	}
 
 	/* *************************************************************************
-	 * ******************************  Modules  ********************************
+	 * *************************  Load DboDatabases  ***************************
 	 * *************************************************************************/
-	//Fetch
 	try
 	{
-		log("info") << "Loading modules from database";
-		_Modules->Load();
-		log("success") << "Modules: " << _Modules->CountModules() << " entries successfully loaded in " << _Modules->GetLoadDurationinMS() << " ms";
+		log("info") << "Loading DboDatabaseManager";
+		_DboManager->Load();
 	}
 	catch(Wt::Dbo::Exception &e)
 	{
-		log("fatal") << "Database error loading modules from database: " << e.what();
+		log("fatal") << "Database error loading DboDatabaseManager: " << e.what();
 		throw e;
 	}
 	catch(std::exception &e)
 	{
-		log("fatal") << "Error while loading modules from database: " << e.what();
-		throw e;
-	}
-
-	/* *************************************************************************
-	 * ***************************  Configurations  ****************************
-	 * *************************************************************************/
-	//Fetch
-	try
-	{
-		log("info") << "Loading configurations from database";
-		_Configurations->Load();
-		log("success") << "Configurations: " << _Configurations->CountConfigurations() << " entries successfully loaded in " << _Configurations->GetLoadDurationinMS() << " ms";
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading configurations from database: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while loading configurations from database: " << e.what();
-		throw e;
-	}
-
-	/* *************************************************************************
-	 * *****************************  Languages  *******************************
-	 * *************************************************************************/
-	//Fetch
-	try
-	{
-		log("info") << "Loading languages from database";
-		_Languages->Load();
-		log("success") << "Languages: " << _Languages->CountSingle() << " Single and " << _Languages->CountPlural() << " Plural entries from " << _Languages->CountLanguages() << " Languages successfully loaded in " << _Languages->GetLoadDurationinMS() << " ms";
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading languages from database: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while loading languages from database: " << e.what();
-		throw e;
-	}
-
-	/* *************************************************************************
-	 * ******************************  Styles  *********************************
-	 * *************************************************************************/
-	//Fetch
-	try
-	{
-		log("info") << "Loading styles/templates from database";
-		_Styles->Load();
-		log("success") << "Styles: " << _Styles->CountStyles() << " Styles, " << _Styles->CountTemplates() << " Templates, " << _Styles->CountStyleTemplates() << " Styled Templates, " << _Styles->CountStyleCssRules() << " Style CSS Rules and " << _Styles->CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << _Styles->GetLoadDurationinMS() << " ms";
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading styles/templates from database: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while loading styles/templates from database: " << e.what();
-		throw e;
-	}
-
-	/* *************************************************************************
-	 * *******************************  Pages  *********************************
-	 * *************************************************************************/
-	//Fetch
-	try
-	{
-		log("info") << "Loading pages from database";
-		_Pages->Load();
-		log("success") << "Pages: " << _Pages->CountPages() << " Page entires successfully loaded in " << _Pages->GetLoadDurationinMS() << " ms";
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading pages from database: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while loading pages from database: " << e.what();
-		throw e;
-	}
-
-	/* *************************************************************************
-	 * ****************************  Access Paths  *****************************
-	 * *************************************************************************/
-	//Fetch
-	try
-	{
-		log("info") << "Loading access paths from database";
-		_AccessPaths->Load();
-		log("success") << "AccessPaths: " << _AccessPaths->CountAccessPaths() << " Access Path entires successfully loaded in " << _AccessPaths->GetLoadDurationinMS() << " ms";
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading access paths from database: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error while loading access paths from database: " << e.what();
+		log("fatal") << "Error loading DboDatabaseManager: " << e.what();
 		throw e;
 	}
 
@@ -278,17 +170,6 @@ void WServer::Initialize()
 
 	//Configure authorization module
 	ConfigureAuth();
-}
-
-Wt::WLogEntry WServer::log(const std::string &type) const
-{
-	Wt::WApplication *app = Wt::WApplication::instance();
-
-	if(app)
-	{
-		return app->log(type);
-	}
-	return Wt::WServer::log(type);
 }
 
 bool WServer::Start()
@@ -517,90 +398,21 @@ WServer::~WServer()
 	}
 
 	delete _Installer;
-	delete _AccessPaths;
-	delete _Pages;
-	delete _Styles;
-	delete _Languages;
-	delete _Configurations;
-	delete _Modules;
-	delete SQLPool; //Also deletes SQLConnection(s)
-}
-
-void WServer::NewApp(Application *App)
-{
-	if(!App)
-	{
-		return;
-	}
-
-	boost::recursive_mutex::scoped_lock lock(mutex);
-	_Applications.insert(App);
-}
-
-void WServer::AppDeleted(Application *App)
-{
-	if(!App)
-	{
-		return;
-	}
-
-	boost::recursive_mutex::scoped_lock lock(mutex);
-	_Applications.erase(App);
+	delete _DboManager; //Also deletes DboDatabases
+	delete SQLPool; //Also deletes SQLConnections
 }
 
 void WServer::RefreshLocaleStrings()
 {
-	boost::recursive_mutex::scoped_lock lock(mutex);
-	Wt::WApplication *App = Wt::WApplication::instance();
-	for(ApplicationSet::const_iterator itr = _Applications.begin();
-		itr != _Applications.end();
-		++itr)
-	{
-		if(*itr == App)
-		{
-			(*itr)->RefreshLocaleStrings();
-		}
-		else
-		{
-			post((*itr)->sessionId(), boost::bind(&Application::RefreshLocaleStrings, *itr));
-		}
-	}
+	postAll(boost::bind(&Application::RefreshLocaleStrings));
 }
 
 void WServer::RefreshStyleStrings()
 {
-	boost::recursive_mutex::scoped_lock lock(mutex);
-	Wt::WApplication *App = Wt::WApplication::instance();
-	for(ApplicationSet::const_iterator itr = _Applications.begin();
-		itr != _Applications.end();
-		++itr)
-	{
-		if(*itr == App)
-		{
-			(*itr)->RefreshStyleStrings();
-		}
-		else
-		{
-			post((*itr)->sessionId(), boost::bind(&Application::RefreshStyleStrings, *itr));
-		}
-	}
+	postAll(boost::bind(&Application::RefreshStyleStrings));
 }
 
 void WServer::RefreshPageStrings()
 {
-	boost::recursive_mutex::scoped_lock lock(mutex);
-	Wt::WApplication *App = Wt::WApplication::instance();
-	for(ApplicationSet::const_iterator itr = _Applications.begin();
-		itr != _Applications.end();
-		++itr)
-	{
-		if(*itr == App)
-		{
-			(*itr)->RefreshPageStrings();
-		}
-		else
-		{
-			post((*itr)->sessionId(), boost::bind(&Application::RefreshPageStrings, *itr));
-		}
-	}
+	postAll(boost::bind(&Application::RefreshPageStrings));
 }

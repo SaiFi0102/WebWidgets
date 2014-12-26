@@ -1,16 +1,15 @@
 #ifndef PAGES_DATABASE_H
 #define PAGES_DATABASE_H
 
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Page.h"
-#include <boost/thread.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/unordered_map.hpp>
+#include <boost/function.hpp>
 
-class WServer;
-
-class PagesDatabase
+class PagesDatabase : public AbstractDboDatabase
 {
 	private:
 		struct MetaPage
@@ -29,11 +28,7 @@ class PagesDatabase
 		typedef boost::unordered_map<std::pair<long long, long long>, MetaPage> PageMaps;
 
 	public:
-		PagesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		PagesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load() { FetchAll(); }
-		void Reload();
+		PagesDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<PageData> GetPtr(long long PageId, long long ModuleId) const;
 		boost::shared_ptr<PageData> HomePagePtr() const;
@@ -44,20 +39,21 @@ class PagesDatabase
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
 
+		virtual std::string Name() const { return "PagesDatabase"; }
+
 	protected:
-		void MapClasses();
-		void FetchAll();
+		virtual void Load(Wt::Dbo::Session &DboSession);
+		virtual void Reload(Wt::Dbo::Session &DboSession);
+		void FetchAll(Wt::Dbo::Session &DboSession);
+
+		virtual bool IsVital() const { return true; }
 
 		bool CallPageHandler(long long PageId, long long ModuleId);
 
 		PageMaps PageMap;
 		boost::posix_time::time_duration LoadDuration;
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
-		mutable boost::shared_mutex mutex;
 
 	private:
-		friend class ReadLock;
 		friend class Application;
 };
 

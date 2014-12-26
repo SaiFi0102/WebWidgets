@@ -19,7 +19,7 @@ class ConfigurationsCache
 		typedef ConfigurationsDatabase::StringMaps StringMaps;
 
 	public:
-		ConfigurationsCache(ConfigurationsDatabase *Database, Application *App);
+		ConfigurationsCache(ConfigurationsDatabase *Database);
 
 		boost::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
 		boost::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
@@ -49,7 +49,6 @@ class ConfigurationsCache
 		StringMaps StringMap;
 
 		ConfigurationsDatabase *_Database;
-		Application *_App;
 };
 
 #endif

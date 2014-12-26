@@ -4,21 +4,14 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_types.hpp>
 
-class ConfigurationsDatabase;
-class AccessPathsDatabase;
-class LanguagesDatabase;
-class PagesDatabase;
-class StylesDatabase;
+class AbstractDboDatabase;
+class DboDatabaseManager;
 
 class ReadLock
 {
 	public:
-		ReadLock(ConfigurationsDatabase *Database);
-		ReadLock(AccessPathsDatabase *Database);
-		ReadLock(LanguagesDatabase *Database);
-		ReadLock(PagesDatabase *Database);
-		ReadLock(StylesDatabase *Database);
-		void Release();
+		ReadLock(AbstractDboDatabase *Database);
+		void Unlock();
 
 	protected:
 		boost::shared_lock<boost::shared_mutex> lock;

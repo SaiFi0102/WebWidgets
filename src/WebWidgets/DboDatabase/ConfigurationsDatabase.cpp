@@ -2,23 +2,13 @@
 #include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
+#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
-ConfigurationsDatabase::ConfigurationsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server)
-	: Count(0), _Server(Server)
-{
-	MapClasses();
-	DboSession.setConnectionPool(SQLPool);
-}
+ConfigurationsDatabase::ConfigurationsDatabase(DboDatabaseManager *Manager)
+: AbstractDboDatabase(Manager)
+{ }
 
-ConfigurationsDatabase::ConfigurationsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server)
-	: Count(0), _Server(Server)
-{
-	MapClasses();
-	DboSession.setConnection(SQLConnection);
-}
-
-void ConfigurationsDatabase::FetchAll()
+void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	WRITE_LOCK;
 
@@ -146,31 +136,9 @@ void ConfigurationsDatabase::FetchAll()
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
-}
 
-void ConfigurationsDatabase::MapClasses()
-{
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	lock.unlock();
+	Wt::log("info") << Name() << ": " << CountConfigurations() << " entries successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
 boost::shared_ptr<ConfigurationBoolData> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
@@ -256,7 +224,7 @@ bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId
 	boost::shared_ptr<ConfigurationBoolData> BoolPtr = GetBoolPtr(Name, ModuleId);
 	if(!BoolPtr)
 	{
-		_Server.log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return BoolPtr->Value;
@@ -268,7 +236,7 @@ double ConfigurationsDatabase::GetDouble(const std::string &Name, long long Modu
 	boost::shared_ptr<ConfigurationDoubleData> DoublePtr = GetDoublePtr(Name, ModuleId);
 	if(!DoublePtr)
 	{
-		_Server.log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return DoublePtr->Value;
@@ -280,7 +248,7 @@ int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId,
 	boost::shared_ptr<ConfigurationEnumData> EnumPtr = GetEnumPtr(Name, ModuleId);
 	if(!EnumPtr)
 	{
-		_Server.log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return EnumPtr->Value;
@@ -292,7 +260,7 @@ float ConfigurationsDatabase::GetFloat(const std::string &Name, long long Module
 	boost::shared_ptr<ConfigurationFloatData> FloatPtr = GetFloatPtr(Name, ModuleId);
 	if(!FloatPtr)
 	{
-		_Server.log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return FloatPtr->Value;
@@ -304,7 +272,7 @@ int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, 
 	boost::shared_ptr<ConfigurationIntData> IntPtr = GetIntPtr(Name, ModuleId);
 	if(!IntPtr)
 	{
-		_Server.log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return IntPtr->Value;
@@ -316,7 +284,7 @@ long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long 
 	boost::shared_ptr<ConfigurationLongIntData> LongIntPtr = GetLongIntPtr(Name, ModuleId);
 	if(!LongIntPtr)
 	{
-		_Server.log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	return LongIntPtr->Value;
@@ -328,7 +296,7 @@ std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long Mo
 	boost::shared_ptr<ConfigurationStringData> StringPtr = GetStringPtr(Name, ModuleId);
 	if(!StringPtr)
 	{
-		_Server.log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
+		Wt::log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
 	if(!StringPtr->Value.is_initialized())
@@ -348,4 +316,31 @@ std::size_t ConfigurationsDatabase::CountConfigurations() const
 {
 	READ_LOCK;
 	return Count;
+}
+
+void ConfigurationsDatabase::Load(Wt::Dbo::Session &DboSession)
+{
+	DboSession.mapClass<Author>(Author::TableName());
+	DboSession.mapClass<Module>(Module::TableName());
+	DboSession.mapClass<Configuration>(Configuration::TableName());
+	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
+	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
+	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
+	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
+	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
+	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
+	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
+	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
+	DboSession.mapClass<Language>(Language::TableName());
+	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
+	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
+	DboSession.mapClass<Page>(Page::TableName());
+	DboSession.mapClass<Template>(Template::TableName());
+	DboSession.mapClass<Style>(Style::TableName());
+	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
+	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
+	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
+	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+
+	FetchAll(DboSession);
 }

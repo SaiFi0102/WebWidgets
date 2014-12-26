@@ -1,23 +1,15 @@
 #include "DboDatabase/ModulesDatabase.h"
+#include "Application/WServer.h"
+#include <boost/thread/lock_guard.hpp>
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::lock_guard<boost::shared_mutex> lock(mutex)
+#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
-ModulesDatabase::ModulesDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnectionPool(SQLPool);
-	MapClasses();
-}
+ModulesDatabase::ModulesDatabase(DboDatabaseManager *Manager)
+	: AbstractDboDatabase(Manager)
+{ }
 
-ModulesDatabase::ModulesDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server)
-	: _Server(Server)
-{
-	DboSession.setConnection(SQLConnection);
-	MapClasses();
-}
-
-void ModulesDatabase::MapClasses()
+void ModulesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
 	DboSession.mapClass<Author>(Author::TableName());
 	DboSession.mapClass<Module>(Module::TableName());
@@ -40,9 +32,11 @@ void ModulesDatabase::MapClasses()
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
 	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+
+	FetchAll(DboSession);
 }
 
-void ModulesDatabase::FetchAll()
+void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	WRITE_LOCK;
 
@@ -78,6 +72,9 @@ void ModulesDatabase::FetchAll()
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
+
+	lock.unlock();
+	Wt::log("info") << Name() << ": " << CountModules() << " entries successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
 boost::shared_ptr<ModuleData> ModulesDatabase::GetPtr(long long Id) const
@@ -100,12 +97,4 @@ long long ModulesDatabase::GetLoadDurationinMS() const
 {
 	READ_LOCK;
 	return LoadDuration.total_milliseconds();
-}
-
-void ModulesDatabase::Load()
-{
-	if(ModuleMap.empty())
-	{
-		FetchAll();
-	}
 }

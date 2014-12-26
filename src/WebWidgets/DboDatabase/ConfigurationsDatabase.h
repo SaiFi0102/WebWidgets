@@ -1,13 +1,11 @@
 #ifndef CONFIGURATIONS_DATABASE_H
 #define CONFIGURATIONS_DATABASE_H
 
+#include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Configuration.h"
-#include <boost/thread.hpp>
 #include <boost/unordered_map.hpp>
 
-class WServer;
-
-class ConfigurationsDatabase
+class ConfigurationsDatabase : public AbstractDboDatabase
 {
 	protected:
 		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationBoolData> > BoolMaps;
@@ -19,11 +17,7 @@ class ConfigurationsDatabase
 		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationStringData> > StringMaps;
 
 	public:
-		ConfigurationsDatabase(Wt::Dbo::SqlConnectionPool &SQLPool, WServer &Server);
-		ConfigurationsDatabase(Wt::Dbo::SqlConnection &SQLConnection, WServer &Server);
-
-		void Load() { FetchAll(); }
-		void Reload() { FetchAll(); }
+		ConfigurationsDatabase(DboDatabaseManager *Manager);
 
 		boost::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
 		boost::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
@@ -44,9 +38,14 @@ class ConfigurationsDatabase
 		long long GetLoadDurationinMS() const;
 		std::size_t CountConfigurations() const;
 
+		virtual std::string Name() const { return "ConfigurationsDatabase"; }
+
 	protected:
-		void MapClasses();
-		void FetchAll();
+		virtual void Load(Wt::Dbo::Session &DboSession);
+		virtual void Reload(Wt::Dbo::Session &DboSession) { FetchAll(DboSession); }
+		void FetchAll(Wt::Dbo::Session &DboSession);
+
+		virtual bool IsVital() const { return true; }
 
 		BoolMaps BoolMap;
 		DoubleMaps DoubleMap;
@@ -56,14 +55,10 @@ class ConfigurationsDatabase
 		LongIntMaps LongIntMap;
 		StringMaps StringMap;
 
-		Wt::Dbo::Session DboSession;
-		WServer &_Server;
 		boost::posix_time::time_duration LoadDuration;
 		std::size_t Count;
-		mutable boost::shared_mutex mutex;
 
 	private:
-		friend class ReadLock;
 		friend class ConfigurationsCache;
 };
 
