@@ -69,8 +69,6 @@ class LanguageData : public BaseLanguage
 		LanguageData(Wt::Dbo::ptr<Language> Ptr)
 			: BaseLanguage(*Ptr)
 		{ }
-		LanguageData()
-		{ }
 };
 
 class BaseLanguageSingle
@@ -126,15 +124,9 @@ class LanguageSingleData : public BaseLanguageSingle, public DataSurrogateKey
 		long long _ModuleId;
 
 	public:
-		LanguageSingleData()
-			: DataSurrogateKey(-1), _ModuleId(-1), BaseLanguageSingle("")
-		{ }
 		LanguageSingleData(Wt::Dbo::ptr<LanguageSingle> Ptr)
 			: BaseLanguageSingle(*Ptr), _LanguageCode(Ptr->LanguagePtr().id()),
 			_ModuleId(Ptr->ModulePtr().id()), DataSurrogateKey(Ptr.id())
-		{ }
-		LanguageSingleData(long long id, const std::string &Key, const std::string &LanguageCode, long long ModuleId)
-			: DataSurrogateKey(id), BaseLanguageSingle(Key), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
 		{ }
 
 		std::string LanguageCode() const { return _LanguageCode; };
@@ -195,15 +187,9 @@ class LanguagePluralData : public BaseLanguagePlural, public DataSurrogateKey
 		long long _ModuleId;
 
 	public:
-		LanguagePluralData()
-			: DataSurrogateKey(-1), _ModuleId(-1), BaseLanguagePlural("", -1)
-		{ }
 		LanguagePluralData(Wt::Dbo::ptr<LanguagePlural> Ptr)
 			: BaseLanguagePlural(*Ptr), _LanguageCode(Ptr->LanguagePtr().id()),
 			_ModuleId(Ptr->ModulePtr().id()), DataSurrogateKey(Ptr.id())
-		{ }
-		LanguagePluralData(long long id, const std::string &Key, int Case, const std::string &LanguageCode, long long ModuleId)
-			: DataSurrogateKey(id), BaseLanguagePlural(Key, Case), _LanguageCode(LanguageCode), _ModuleId(ModuleId)
 		{ }
 
 		std::string LanguageCode() const { return _LanguageCode; };

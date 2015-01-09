@@ -30,7 +30,7 @@ class Module : public BaseModule
 
 		Wt::Dbo::ptr<Author> AuthorPtr;
 
-		Module() {};
+		Module() { };
 
 		Module(long long id)
 			: BaseModule(id)
@@ -62,14 +62,8 @@ class ModuleData : public BaseModule
 public:
 	long long AuthorId;
 
-	ModuleData()
-		: BaseModule(-1), AuthorId(-1)
-	{ }
 	ModuleData(Wt::Dbo::ptr<Module> Ptr)
 		: BaseModule(*Ptr), AuthorId(Ptr->AuthorPtr.id())
-	{ }
-	ModuleData(long long id)
-		: BaseModule(id), AuthorId(-1)
 	{ }
 
 	long long id() const

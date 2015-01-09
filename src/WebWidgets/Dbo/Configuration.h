@@ -120,14 +120,8 @@ class ConfigurationBool : public BaseConfigurationBool
 class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
 {
 	public:
-		ConfigurationBoolData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationBoolData(Wt::Dbo::ptr<ConfigurationBool> Ptr)
 			: BaseConfigurationBool(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationBoolData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -163,14 +157,8 @@ class ConfigurationDouble : public BaseConfigurationDouble
 class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
 {
 	public:
-		ConfigurationDoubleData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationDoubleData(Wt::Dbo::ptr<ConfigurationDouble> Ptr)
 			: BaseConfigurationDouble(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationDoubleData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -228,14 +216,8 @@ class ConfigurationEnum : public BaseConfigurationEnum
 class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
 {
 	public:
-		ConfigurationEnumData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationEnumData(Wt::Dbo::ptr<ConfigurationEnum> Ptr)
 			: BaseConfigurationEnum(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationEnumData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -271,14 +253,8 @@ class ConfigurationFloat : public BaseConfigurationFloat
 class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
 {
 	public:
-		ConfigurationFloatData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationFloatData(Wt::Dbo::ptr<ConfigurationFloat> Ptr)
 			: BaseConfigurationFloat(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationFloatData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -314,14 +290,8 @@ class ConfigurationInt : public BaseConfigurationInt
 class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
 {
 	public:
-		ConfigurationIntData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationIntData(Wt::Dbo::ptr<ConfigurationInt> Ptr)
 			: BaseConfigurationInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationIntData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -357,14 +327,8 @@ class ConfigurationLongInt : public BaseConfigurationLongInt
 class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
 {
 	public:
-		ConfigurationLongIntData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationLongIntData(Wt::Dbo::ptr<ConfigurationLongInt> Ptr)
 			: BaseConfigurationLongInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationLongIntData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 
@@ -402,14 +366,8 @@ class ConfigurationString : public BaseConfigurationString
 class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey
 {
 	public:
-		ConfigurationStringData()
-			: ConfigurationDataKey("", -1)
-		{ }
 		ConfigurationStringData(Wt::Dbo::ptr<ConfigurationString> Ptr)
 			: BaseConfigurationString(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-		ConfigurationStringData(const std::string &Name, long long ModuleId)
-			: ConfigurationDataKey(Name, ModuleId)
 		{ }
 };
 

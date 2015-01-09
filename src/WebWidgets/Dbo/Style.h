@@ -59,14 +59,8 @@ class StyleData : public BaseStyle, public DataSurrogateKey
 		long long _AuthorId;
 
 	public:
-		StyleData()
-			: DataSurrogateKey(-1), _AuthorId(-1)
-		{ }
 		StyleData(Wt::Dbo::ptr<Style> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseStyle(*Ptr), _AuthorId(Ptr->AuthorPtr().id())
-		{ }
-		StyleData(long long id, const std::string &Name, long long AuthorId)
-			: DataSurrogateKey(id), BaseStyle(Name), _AuthorId(AuthorId)
 		{ }
 
 		long long AuthorId() const { return _AuthorId; }
@@ -99,9 +93,6 @@ class StyleCssRuleData : public BaseStyleCssRule, public DataSurrogateKey
 	public:
 		long long StyleId;
 
-		StyleCssRuleData(long long id = -1)
-			: DataSurrogateKey(id), StyleId(-1)
-		{ }
 		StyleCssRuleData(Wt::Dbo::ptr<StyleCssRule> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseStyleCssRule(*Ptr), StyleId(Ptr->StylePtr.id())
 		{ }
@@ -136,9 +127,6 @@ class TemplateCssRuleData : public BaseTemplateCssRule, public DataSurrogateKey
 
 		TemplateCssRuleData(Wt::Dbo::ptr<TemplateCssRule> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseTemplateCssRule(*Ptr), TemplateId(Ptr->TemplatePtr.id())
-		{ }
-		TemplateCssRuleData(long long id = -1)
-			: DataSurrogateKey(id), TemplateId(-1)
 		{ }
 };
 
@@ -194,14 +182,8 @@ class TemplateData : public BaseTemplate, public DataSurrogateKey
 		long long _ModuleId;
 
 	public:
-		TemplateData()
-			: DataSurrogateKey(-1), _ModuleId(-1)
-		{ }
 		TemplateData(Wt::Dbo::ptr<Template> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseTemplate(*Ptr), _ModuleId(Ptr->ModulePtr().id())
-		{ }
-		TemplateData(long long id, long long ModuleId = -1)
-			: DataSurrogateKey(id), _ModuleId(ModuleId)
 		{ }
 
 		long long ModuleId() const { return _ModuleId; }
@@ -250,18 +232,14 @@ class StyleTemplateData : public BaseStyleTemplate, public DataSurrogateKey
 		std::string StyleName;
 		long long AuthorId;
 
-		StyleTemplateData()
-			: DataSurrogateKey(-1), _DerivingTemplateId(-1), _StyleId(-1), ModuleId(-1), AuthorId(-1)
-		{ }
 		StyleTemplateData(Wt::Dbo::ptr<StyleTemplate> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseStyleTemplate(*Ptr),
-			_DerivingTemplateId(Ptr->DerivingTemplatePtr().id()), _StyleId(Ptr->StylePtr().id()),
-			TemplateName(Ptr->DerivingTemplatePtr()->Name()), ModuleId(Ptr->DerivingTemplatePtr()->ModulePtr().id()),
+			: DataSurrogateKey(Ptr.id()),
+			BaseStyleTemplate(*Ptr),
+			_DerivingTemplateId(Ptr->DerivingTemplatePtr().id()),
+			_StyleId(Ptr->StylePtr().id()),
+			TemplateName(Ptr->DerivingTemplatePtr()->Name()),
+			ModuleId(Ptr->DerivingTemplatePtr()->ModulePtr().id()),
 			StyleName(Ptr->StylePtr()->Name()), AuthorId(Ptr->StylePtr()->AuthorPtr().id())
-		{ }
-		StyleTemplateData(long long id, long long StyleId, long long DerivingTemplateId)
-			: DataSurrogateKey(id), _DerivingTemplateId(DerivingTemplateId), _StyleId(StyleId),
-			ModuleId(-1), AuthorId(-1)
 		{ }
 
 		long long DerivingTemplateId() const { return _DerivingTemplateId; }

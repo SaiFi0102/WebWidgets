@@ -61,14 +61,8 @@ class PageData : public BasePage
 		long long _ModuleId;
 
 	public:
-		PageData()
-			: BasePage(-1), _ModuleId(-1)
-		{ }
 		PageData(Wt::Dbo::ptr<Page> Ptr)
 			: BasePage(*Ptr), _ModuleId(Ptr->ModulePtr().id())
-		{ }
-		PageData(long long id, long long ModuleId)
-			: BasePage(id), _ModuleId(ModuleId)
 		{ }
 
 		long long ModuleId() const { return _ModuleId; }

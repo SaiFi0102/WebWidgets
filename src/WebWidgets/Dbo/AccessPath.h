@@ -43,12 +43,6 @@ class AccessPathData : public BaseAccessPath, public DataSurrogateKey
 		long long PageId;
 		long long PageModuleId;
 
-		AccessPathData()
-			: DataSurrogateKey(-1), PageId(-1), PageModuleId(-1)
-		{ }
-		AccessPathData(long long id)
-			: DataSurrogateKey(id), PageId(-1), PageModuleId(-1)
-		{ }
 		AccessPathData(Wt::Dbo::ptr<AccessPath> Ptr);
 };
 
