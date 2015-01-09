@@ -245,7 +245,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeSessMgmt->append_node(NodeTracking);
 
 	//<session-management> child element <reload-is-new-session>
-	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "reload-is-new-session", "false"));
+	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "reload-is-new-session", "true"));
 
 	//<session-management> child element <timeout>
 	int ConfSessionTimeout = _Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);
@@ -274,7 +274,19 @@ void WServer::CreateWtXmlConfiguration()
 	NodeConnectorIsapi->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "max-memory-request-size", "128")); //TODO Gotta understand this first
 
 	//<debug> element
-	NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "debug", "false"));
+	switch(_Configurations->GetEnum("JavascriptDebug", ModulesDatabase::Server, 1))
+	{
+		default:
+		case 1:
+			NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "debug", "false"));
+		break;
+		case 2:
+			NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "debug", "true"));
+		break;
+		case 3:
+			NodeAppSett->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "debug", "naked"));
+		break;
+	}
 
 	//<log-file> element
 	std::string LogFileStr = _Configurations->GetStr("LogDirectory", ModulesDatabase::Logging) + "/server.log";

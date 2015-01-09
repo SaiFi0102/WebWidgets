@@ -37,24 +37,24 @@ void DboInstaller::InsertConfigurations()
 
 	//JavascriptDebug
 	Wt::Dbo::ptr<Configuration> JavascriptDebug = DboSession.add(new Configuration("JavascriptDebug", O.ServerModule, Configuration::Enum));
-	JavascriptDebug.modify()->Title = "Debug javascript mode";
-	JavascriptDebug.modify()->Details = "Enable this only if you are a developer and to debug javascript.";
-	JavascriptDebug.modify()->ExpertWarning = "Only change this if you are a developer and are trying to debug javascript of the website.";
+	JavascriptDebug.modify()->Title = "JavaScript debug mode";
+	JavascriptDebug.modify()->Details = "Enable this only if you are a developer and debugging JavaScript.";
+	JavascriptDebug.modify()->ExpertWarning = "Only change this if you are a developer and debugging javascript on the website.";
 	JavascriptDebug.modify()->RestartRequired = true;
 
 	Wt::Dbo::ptr<ConfigurationEnum> JavascriptDebugVal = DboSession.add(new ConfigurationEnum());
 	Wt::Dbo::ptr<ConfigurationEnumValue> JavascriptDebugValOff = DboSession.add(new ConfigurationEnumValue());
 	JavascriptDebugValOff.modify()->Value = 1;
 	JavascriptDebugValOff.modify()->Title = "Off";
-	JavascriptDebugValOff.modify()->Details = "JavaScript errors are caught and a simple error message is printed to indicate that something is terribly wrong.";
+	JavascriptDebugValOff.modify()->Details = "JavaScript errors are caught, logged on server-side and a simple error message is printed to indicate that something is terribly wrong.";
 	Wt::Dbo::ptr<ConfigurationEnumValue> JavascriptDebugValOn1 = DboSession.add(new ConfigurationEnumValue());
 	JavascriptDebugValOn1.modify()->Value = 2;
-	JavascriptDebugValOn1.modify()->Title = "On but caught";
-	JavascriptDebugValOn1.modify()->Details = "JavaScript errors are caught but also a stack trace is printed, useful for diagnosing a problem in production.";
+	JavascriptDebugValOn1.modify()->Title = "Log and rethrow";
+	JavascriptDebugValOn1.modify()->Details = "JavaScript errors are caught, logged on server-side and rethrown. This is useful for diagnosing a problem and debugging.";
 	Wt::Dbo::ptr<ConfigurationEnumValue> JavascriptDebugValOn2 = DboSession.add(new ConfigurationEnumValue());
 	JavascriptDebugValOn2.modify()->Value = 3;
-	JavascriptDebugValOn2.modify()->Title = "On";
-	JavascriptDebugValOn2.modify()->Details = "JavaScript errors are not caught but the browser built-in debug options are used.";
+	JavascriptDebugValOn2.modify()->Title = "Naked";
+	JavascriptDebugValOn2.modify()->Details = "JavaScript errors are not caught nor logged and the browser handles the error. This is useful if logging the error server-side is causing problems.";
 
 	JavascriptDebugVal.modify()->EnumValueCollection.insert(JavascriptDebugValOff);
 	JavascriptDebugVal.modify()->EnumValueCollection.insert(JavascriptDebugValOn1);
@@ -80,7 +80,7 @@ void DboInstaller::InsertConfigurations()
 	//ReverseProxy
 	Wt::Dbo::ptr<Configuration> ReverseProxy = DboSession.add(new Configuration("ReverseProxy", O.ServerModule, Configuration::Bool));
 	ReverseProxy.modify()->Title = "Behind reverse proxy";
-	ReverseProxy.modify()->Details = "Enable this if the server is behind a reverse proxy. If you do not know what this means then disable it.";
+	ReverseProxy.modify()->Details = "Enable this if the server is behind a reverse proxy.";
 	ReverseProxy.modify()->RestartRequired = true;
 	Wt::Dbo::ptr<ConfigurationBool> ReverseProxyVal = DboSession.add(new ConfigurationBool());
 	ReverseProxyVal.modify()->Value = false;
