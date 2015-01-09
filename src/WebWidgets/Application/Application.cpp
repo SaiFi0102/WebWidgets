@@ -24,8 +24,9 @@ Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
 	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), _PageChanged(this), //Signals
-	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization related bools
-	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI related bools
+	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization
+	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false), //Mobile UI
+	_InvalidChildPath(false) //Paging
 {
 	//Enable server push
 	enableUpdates();
@@ -138,7 +139,6 @@ Application::Application(const Wt::WEnvironment &env)
 	//TEST UI//
 	CreateTestUI();
 
-
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
 	new Wt::WText(std::string("Application initialization duration: ")
@@ -172,7 +172,7 @@ std::string Application::InternalPathAfterReservedNextPart(const std::string &af
 
 std::string Application::InternalPathAfterReserved() const
 {
-	return internalSubPath(_ReservedInternalPath);
+	return std::string("/") + internalSubPath(_ReservedInternalPath);
 }
 
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
@@ -237,6 +237,18 @@ void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
 
 	_CurrentStylePtr = StylePtr;
 	_StyleChanged.emit();
+}
+
+void Application::SetPage(boost::shared_ptr<PageData> PagePtr, bool InvalidChildPath)
+{
+	_CurrentPagePtr = PagePtr;
+	_InvalidChildPath = InvalidChildPath;
+
+	if(!_CurrentPagePtr)
+	{
+		setInternalPathValid(false);
+	}
+	_PageChanged.emit();
 }
 
 void Application::RefreshLocaleStrings()
@@ -758,7 +770,8 @@ void Application::InterpretPageInternalPath()
 	Tokenizer Tokens(InternalPath, Sep);
 
 	//Check if internal path includes page access path and set PageAccessPath ptr
-	boost::shared_ptr<AccessPathData> PageAccessPath, ParentAccessPath;
+	boost::shared_ptr<AccessPathData> PageAccessPath, UseAccessPath;
+	bool InvalidChildPath = false;
 
 	for(Tokenizer::iterator Itr = Tokens.begin();
 		Itr != Tokens.end();
@@ -774,25 +787,23 @@ void Application::InterpretPageInternalPath()
 		{
 			PageAccessPath = Server->AccessPaths()->PageAccessPathPtr("", *Itr);
 		}
-		if(!PageAccessPath && InternalPath == "/") //If still not found use the default homepage if user is on homepage
-		{
-			PageAccessPath = Server->AccessPaths()->HomePageAccessPathPtr();
-		}
 
 		//Stop iteration if
-		if(ParentAccessPath)
+		if(UseAccessPath) //Parent access path
 		{
 			if(PageAccessPath)
 			{
-// 				if(ParentAccessPath != PageAccessPath->ParentPage)
+// 				if(UseAccessPath->id() != PageAccessPath->ParentPageId)
 // 				{
-// 					//Set invalid child path status
+// 					InvalidChildPath = true;
 // 					break;
 // 				}
 			}
-			else if(!ParentAccessPath->HasChildPaths)
+			else if(!UseAccessPath->HasChildPaths
+				//&& UseAccessPath->id() != Server->AccessPaths()->HomePageAccessPathPtr()->id()
+				)
 			{
-				//set invalid child path status
+				InvalidChildPath = true;
 				break;
 			}
 		}
@@ -800,34 +811,31 @@ void Application::InterpretPageInternalPath()
 		{
 			break;
 		}
+
+		if(PageAccessPath)
+		{
+			UseAccessPath = PageAccessPath;
+		}
 	}
 
+	//If still not found use the default homepage if user is on homepage
+	if(!UseAccessPath && InternalPath == "/")
+	{
+		UseAccessPath = Server->AccessPaths()->HomePageAccessPathPtr();
+	}
 
-	if(PageAccessPath)
+	if(UseAccessPath)
 	{
 		//Set PagePtr and call its handler if the page has changed
-		boost::shared_ptr<PageData> PagePtr = Server->Pages()->GetPtr(PageAccessPath->PageId, PageAccessPath->PageModuleId);
-		if(PagePtr)
+		boost::shared_ptr<PageData> PagePtr = Server->Pages()->GetPtr(UseAccessPath->PageId, UseAccessPath->PageModuleId);
+		if(PagePtr != _CurrentPagePtr || InvalidChildPath != _InvalidChildPath)
 		{
-			if(PagePtr != _CurrentPagePtr)
-			{
-				_CurrentPagePtr = PagePtr;
-				Server->Pages()->CallPageHandler(_CurrentPagePtr->id(), _CurrentPagePtr->ModuleId());
-			}
-		}
-		else
-		{
-			//log("info") << "Page(ID:" << PageAccessPath->id() << ") found in access path(ID: " <<  << ")"
-			_CurrentPagePtr = boost::shared_ptr<PageData>();
-			//Server->Pages()->Call404PageHandler();
-			setInternalPathValid(false);
+			SetPage(PagePtr, InvalidChildPath);
 		}
 	}
 	else
 	{
-		_CurrentPagePtr = boost::shared_ptr<PageData>();
-		//Server->Pages()->Call404PageHandler();
-		setInternalPathValid(false);
+		SetPage(boost::shared_ptr<PageData>(), false);
 	}
 }
 
@@ -871,6 +879,19 @@ void Application::CreateTestUI()
 	MobileVersionChanged().connect(boost::bind<void>([mvt](bool MobileVersion){
 		mvt->setText(MobileVersion ? "On" : "Off");
 	}, _1));
+	new Wt::WBreak(root());
+	(new Wt::WText(std::string("Current Page: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto cpt = new Wt::WText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"), root());
+	new Wt::WBreak(root());
+	(new Wt::WText(std::string("Invalid Child Path: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
+	auto icpt = new Wt::WText(std::string(_InvalidChildPath ? "TRUE" : "false"), root());
+	if(_InvalidChildPath) icpt->decorationStyle().setForegroundColor(Wt::WColor("red"));
+	PageChanged().connect(boost::bind<void>([this, cpt, icpt](){
+		cpt->setText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"));
+		icpt->setText(std::string(_InvalidChildPath ? "TRUE" : "false"));
+		icpt->decorationStyle().setForegroundColor(Wt::WColor(_InvalidChildPath ? "red" : "inherit"));
+	}));
+
 	new Wt::WBreak(root());
 	new Wt::WAnchor(Wt::WLink(Wt::WLink::InternalPath, "/testing"), "Test Link", root());
 	new Wt::WBreak(root());

@@ -43,6 +43,10 @@ class Application : public Wt::WApplication
 		Wt::Signal<void> &StyleChanged() { return _StyleChanged; }
 		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
+		//Paging
+		boost::shared_ptr<PageData> CurrentPage() const { return _CurrentPagePtr; }
+		Wt::Signal<void> &PageChanged() { return _PageChanged; }
+
 		//Database reload handlers
 		static void RefreshLocaleStrings();
 		static void RefreshStyleStrings();
@@ -67,6 +71,9 @@ class Application : public Wt::WApplication
 		void SetStyle(boost::shared_ptr<StyleData> StylePtr);
 		void UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr);
 
+		//Paging
+		void SetPage(boost::shared_ptr<PageData> PagePtr, bool InvalidChildPath);
+
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
 		bool _LanguageFromHostname; //And independent of internal path
@@ -88,6 +95,7 @@ class Application : public Wt::WApplication
 
 		boost::shared_ptr<PageData> _CurrentPagePtr;
 		Wt::Signal<void> _PageChanged;
+		bool _InvalidChildPath;
 
 		ConfigurationsCache *_Configurations;
 
