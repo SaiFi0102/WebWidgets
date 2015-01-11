@@ -82,13 +82,13 @@ class AccessPathsDatabase : public AbstractDboDatabase
 	public:
 		AccessPathsDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<AccessPathData> GetPtr(long long Id) const;
-		boost::shared_ptr<AccessPathData> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
-		boost::shared_ptr<AccessPathData> LanguageAccessPathPtr(long long Id) const;
-		boost::shared_ptr<AccessPathData> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		boost::shared_ptr<AccessPathData> PageAccessPathPtr(long long Id) const;
-		boost::shared_ptr<AccessPathData> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		boost::shared_ptr<AccessPathData> HomePageAccessPathPtr() const;
+		boost::shared_ptr<const AccessPathData> GetPtr(long long Id) const;
+		boost::shared_ptr<const AccessPathData> GetPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<const AccessPathData> LanguageAccessPathPtr(long long Id) const;
+		boost::shared_ptr<const AccessPathData> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<const AccessPathData> PageAccessPathPtr(long long Id) const;
+		boost::shared_ptr<const AccessPathData> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		boost::shared_ptr<const AccessPathData> HomePageAccessPathPtr() const;
 
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 		bool AccessPathExists(long long Id) const;

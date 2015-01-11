@@ -37,14 +37,14 @@ class Application : public Wt::WApplication
 		Wt::Signal<bool> &MobileVersionChanged() { return _MobileVersionChanged; }
 
 		//Styling
-		boost::shared_ptr<StyleData> CurrentStyle() const { return _CurrentStylePtr; }
+		boost::shared_ptr<const StyleData> CurrentStyle() const { return _CurrentStylePtr; }
 		//void ChangeStyle(long long StyleId);
 		void ChangeStyle(const std::string &StyleName, long long AuthorId);
 		Wt::Signal<void> &StyleChanged() { return _StyleChanged; }
 		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
 		//Paging
-		boost::shared_ptr<PageData> CurrentPage() const { return _CurrentPagePtr; }
+		boost::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
 		Wt::Signal<void> &PageChanged() { return _PageChanged; }
 
 		//Database reload handlers
@@ -68,11 +68,11 @@ class Application : public Wt::WApplication
 		void InterpretPageInternalPath();
 		
 		//Styling
-		void SetStyle(boost::shared_ptr<StyleData> StylePtr);
-		void UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr);
+		void SetStyle(boost::shared_ptr<const StyleData> StylePtr);
+		void UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr);
 
 		//Paging
-		void SetPage(boost::shared_ptr<PageData> PagePtr, bool InvalidChildPath);
+		void SetPage(boost::shared_ptr<const PageData> PagePtr, bool InvalidChildPath);
 
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
@@ -88,12 +88,12 @@ class Application : public Wt::WApplication
 		bool _MobileVersionFromInternalPath; //Or in combination with the hostname
 		Wt::Signal<bool> _MobileVersionChanged;
 
-		boost::shared_ptr<StyleData> _CurrentStylePtr;
+		boost::shared_ptr<const StyleData> _CurrentStylePtr;
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
-		boost::shared_ptr<PageData> _CurrentPagePtr;
+		boost::shared_ptr<const PageData> _CurrentPagePtr;
 		Wt::Signal<void> _PageChanged;
 		bool _InvalidChildPath;
 

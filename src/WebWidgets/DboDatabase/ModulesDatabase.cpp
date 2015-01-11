@@ -77,13 +77,13 @@ void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	Wt::log("info") << Name() << ": " << CountModules() << " entries successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
-boost::shared_ptr<ModuleData> ModulesDatabase::GetPtr(long long Id) const
+boost::shared_ptr<const ModuleData> ModulesDatabase::GetPtr(long long Id) const
 {
 	READ_LOCK;
 	ModuleMaps::const_iterator itr = ModuleMap.find(Id);
 	if(itr == ModuleMap.end())
 	{
-		return boost::shared_ptr<ModuleData>();
+		return boost::shared_ptr<const ModuleData>();
 	}
 	return itr->second;
 }

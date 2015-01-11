@@ -61,8 +61,8 @@ class StylesDatabase : public AbstractDboDatabase
 			>
 		> StyleTemplateContainers;
 
-		typedef std::set< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
-		typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+		typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleList;
+		typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 
 		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<StyleData> > StyleMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<TemplateData> > TemplateMaps;
@@ -72,9 +72,9 @@ class StylesDatabase : public AbstractDboDatabase
 	public:
 		StylesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
-		boost::shared_ptr<TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		boost::shared_ptr<const StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
+		boost::shared_ptr<const TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 
 		bool GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const;
 		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;

@@ -22,7 +22,7 @@ class ModulesDatabase : public AbstractDboDatabase
 
 		ModulesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<ModuleData> GetPtr(long long Id) const;
+		boost::shared_ptr<const ModuleData> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 

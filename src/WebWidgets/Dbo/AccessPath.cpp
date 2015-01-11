@@ -6,12 +6,10 @@ AccessPathData::AccessPathData(Wt::Dbo::ptr<AccessPath> Ptr)
 {
 	if(Ptr->PagePtr)
 	{
-		PageId = Ptr->PagePtr.id(),
-		PageModuleId = Ptr->PagePtr->ModulePtr().id();
+		PageId = Ptr->PagePtr.id();
 	}
 	else
 	{
 		PageId = -1;
-		PageModuleId = -1;
 	}
 }

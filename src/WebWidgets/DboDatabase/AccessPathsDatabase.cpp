@@ -100,82 +100,82 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		<< GetLoadDurationinMS() << " ms";
 }
 
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::GetPtr(long long Id) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::GetPtr(long long Id) const
 {
 	READ_LOCK;
 	AccessPathById::const_iterator itr = AccessPathContainer.get<ById>().find(Id);
 	if(itr == AccessPathContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::GetPtr(const std::string &HostName, const std::string &InternalPath) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::GetPtr(const std::string &HostName, const std::string &InternalPath) const
 {
 	READ_LOCK;
 	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
 	if(itr == AccessPathContainer.get<ByURL>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(long long Id) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(long long Id) const
 {
 	READ_LOCK;
 	AccessPathById::const_iterator itr = AccessPathContainer.get<ById>().find(Id);
 	if(itr == AccessPathContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	if((*itr)->LanguageCode.empty())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
 {
 	READ_LOCK;
 	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
 	if(itr == AccessPathContainer.get<ByURL>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	if((*itr)->LanguageCode.empty())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
 {
 	READ_LOCK;
 	AccessPathById::const_iterator itr = AccessPathContainer.get<ById>().find(Id);
 	if(itr == AccessPathContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	if((*itr)->PageId == -1)
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
 {
 	READ_LOCK;
 	AccessPathByURL::const_iterator itr = AccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
 	if (itr == AccessPathContainer.get<ByURL>().end())
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	if((*itr)->PageId == -1)
 	{
-		return boost::shared_ptr<AccessPathData>();
+		return boost::shared_ptr<const AccessPathData>();
 	}
 	return *itr;
 }
@@ -195,12 +195,12 @@ bool AccessPathsDatabase::AccessPathExists(const std::string &HostName, const st
 
 bool AccessPathsDatabase::LanguageAccessPathExists(long long Id) const
 {
-	boost::shared_ptr<AccessPathData> Ptr = GetPtr(Id);
+	boost::shared_ptr<const AccessPathData> Ptr = GetPtr(Id);
 	return Ptr ? !Ptr->LanguageCode.empty() : false;
 }
 bool AccessPathsDatabase::LanguageAccessPathExists(const std::string &HostName, const std::string &InternalPath) const
 {
-	boost::shared_ptr<AccessPathData> Ptr = GetPtr(HostName, InternalPath);
+	boost::shared_ptr<const AccessPathData> Ptr = GetPtr(HostName, InternalPath);
 	return Ptr ? !Ptr->LanguageCode.empty() : false;
 }
 
@@ -236,7 +236,7 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 	return std::string("/") + (*itr)->InternalPath;
 }
 
-boost::shared_ptr<AccessPathData> AccessPathsDatabase::HomePageAccessPathPtr() const
+boost::shared_ptr<const AccessPathData> AccessPathsDatabase::HomePageAccessPathPtr() const
 {
 	return PageAccessPathPtr(Server()->Configurations()->GetLongInt("HomePageAccessPathId", ModulesDatabase::Navigation, 3));
 }

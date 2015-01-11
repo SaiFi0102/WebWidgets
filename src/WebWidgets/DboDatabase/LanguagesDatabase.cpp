@@ -81,46 +81,46 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	Wt::log("info") << Name() << ": " << CountSingle() << " Single and " << CountPlural() << " Plural entries from " << CountLanguages() << " Languages successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
-boost::shared_ptr<LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
+boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
 {
 	READ_LOCK;
 	LanguageByCode::const_iterator itr = LanguageContainer.get<0>().find(Code);
 	if(itr == LanguageContainer.get<0>().end())
 	{
-		return boost::shared_ptr<LanguageData>();
+		return boost::shared_ptr<const LanguageData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
+boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
 {
 	READ_LOCK;
 	LanguageByLanguageAccept::const_iterator itr = LanguageContainer.get<1>().find(LanguageAccept);
 	if(itr == LanguageContainer.get<1>().end())
 	{
-		return boost::shared_ptr<LanguageData>();
+		return boost::shared_ptr<const LanguageData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<LanguageSingleData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
+boost::shared_ptr<const LanguageSingleData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
 	READ_LOCK;
 	LanguageSingleType::const_iterator itr = LanguageSingleContainer.get<0>().find(boost::make_tuple(Code, Key, ModuleId));
 	if(itr == LanguageSingleContainer.get<0>().end())
 	{
-		return boost::shared_ptr<LanguageSingleData>();
+		return boost::shared_ptr<const LanguageSingleData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<LanguagePluralData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
+boost::shared_ptr<const LanguagePluralData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
 	READ_LOCK;
 	LanguagePluralType::const_iterator itr = LanguagePluralContainer.get<0>().find(boost::make_tuple(Code, Key, Case, ModuleId));
 	if(itr == LanguagePluralContainer.get<0>().end())
 	{
-		return boost::shared_ptr<LanguagePluralData>();
+		return boost::shared_ptr<const LanguagePluralData>();
 	}
 	return *itr;
 }
@@ -140,7 +140,7 @@ bool LanguagesDatabase::LanguageAcceptExists(const std::string &LanguageAccept) 
 
 bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string &Result) const
 {
-	boost::shared_ptr<LanguageData> LanguagePtr = GetLanguagePtrFromCode(Code);
+	boost::shared_ptr<const LanguageData> LanguagePtr = GetLanguagePtrFromCode(Code);
 	if(!LanguagePtr)
 	{
 		return false;
@@ -151,7 +151,7 @@ bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string
 
 bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const
 {
-	boost::shared_ptr<LanguageSingleData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
+	boost::shared_ptr<const LanguageSingleData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
 	if(!LanguageSinglePtr)
 	{
 		return false;
@@ -162,7 +162,7 @@ bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::stri
 
 bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const
 {
-	boost::shared_ptr<LanguagePluralData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
+	boost::shared_ptr<const LanguagePluralData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
 	if(!LanguagePluralPtr)
 	{
 		return false;
@@ -180,7 +180,7 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 		return Locale;
 	}
 
-	boost::shared_ptr<AccessPathData> DefaultAccessPath = Server()->AccessPaths()->GetPtr(Server()->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	boost::shared_ptr<const AccessPathData> DefaultAccessPath = Server()->AccessPaths()->GetPtr(Server()->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	std::string DefaultLanguage = "en";
 	if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 	{

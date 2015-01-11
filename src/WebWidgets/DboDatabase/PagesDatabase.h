@@ -6,12 +6,11 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
-#include <boost/unordered_map.hpp>
 #include <boost/function.hpp>
 
 class PagesDatabase : public AbstractDboDatabase
 {
-	private:
+	protected:
 		struct MetaPage
 		{
 			MetaPage(boost::shared_ptr<PageData> PagePtr = boost::shared_ptr<PageData>())
@@ -25,16 +24,63 @@ class PagesDatabase : public AbstractDboDatabase
 			boost::function<void()> HandlerFunction;
 		};
 
-		typedef boost::unordered_map<std::pair<long long, long long>, MetaPage> PageMaps;
+		struct Page_key_id
+		{
+			typedef long long result_type;
+			result_type operator()(const MetaPage &Page) const
+			{
+				return Page.PagePtr->id();
+			}
+		};
+		struct Page_key_Name
+		{
+			typedef std::string result_type;
+			result_type operator()(const MetaPage &Page) const
+			{
+				return Page.PagePtr->Name();
+			}
+		};
+		struct Page_key_ModuleId
+		{
+			typedef long long result_type;
+			result_type operator()(const MetaPage &Page) const
+			{
+				return Page.PagePtr->ModuleId();
+			}
+		};
+		struct ById{};
+		struct ByKey{};
+
+		typedef boost::multi_index_container<
+			MetaPage,
+
+			boost::multi_index::indexed_by<
+				//Index by page id
+				boost::multi_index::hashed_unique<
+					boost::multi_index::tag<ById>,
+					Page_key_id
+				>,
+				//Index by Name and Module Id
+				boost::multi_index::hashed_unique<
+					boost::multi_index::tag<ByKey>,
+					boost::multi_index::composite_key<
+						MetaPage,
+						Page_key_Name,
+						Page_key_ModuleId
+					>
+				>
+			>
+		> PageContainers;
+
+		typedef PageContainers::index<ById>::type PageById;
+		typedef PageContainers::index<ByKey>::type PageByKey;
 
 	public:
 		PagesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<PageData> GetPtr(long long PageId, long long ModuleId) const;
-		boost::shared_ptr<PageData> HomePagePtr() const;
-		//boost::shared_ptr<PageData> GetPtr(const std::string &InternalPath) const;
-
-		void RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler);
+		boost::shared_ptr<const PageData> GetPtr(long long PageId) const;
+		boost::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
+		boost::shared_ptr<const PageData> HomePagePtr() const;
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
@@ -48,13 +94,8 @@ class PagesDatabase : public AbstractDboDatabase
 
 		virtual bool IsVital() const { return true; }
 
-		bool CallPageHandler(long long PageId, long long ModuleId);
-
-		PageMaps PageMap;
+		PageContainers PageContainer;
 		boost::posix_time::time_duration LoadDuration;
-
-	private:
-		friend class Application;
 };
 
 #endif

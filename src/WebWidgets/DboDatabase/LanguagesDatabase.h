@@ -135,10 +135,10 @@ class LanguagesDatabase : public AbstractDboDatabase
 	public:
 		LanguagesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<LanguageData> GetLanguagePtrFromCode(const std::string &Code) const;
-		boost::shared_ptr<LanguageData> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
-		boost::shared_ptr<LanguageSingleData> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
-		boost::shared_ptr<LanguagePluralData> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
+		boost::shared_ptr<const LanguageData> GetLanguagePtrFromCode(const std::string &Code) const;
+		boost::shared_ptr<const LanguageData> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
+		boost::shared_ptr<const LanguageSingleData> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
+		boost::shared_ptr<const LanguagePluralData> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
 
 		bool LanguageCodeExists(const std::string &Code) const;
 		bool LanguageAcceptExists(const std::string &LanguageAccept) const;

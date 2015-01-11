@@ -17,8 +17,8 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
 	//Copy into temporary objects and reset the original
-	PageMaps pagemap;
-	pagemap.swap(PageMap);
+	PageContainers pagecontainer;
+	pagecontainer.swap(PageContainer);
 
 	//Strong transaction like exception safety
 	try
@@ -31,14 +31,14 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 			itr != PageCollection.end();
 			++itr)
 		{
-			PageMap[std::make_pair((*itr)->id(), (*itr)->ModulePtr().id())] = MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)));
+			PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
 		}
 
 		transaction.commit();
 	}
 	catch(...)
 	{
-		PageMap.swap(pagemap);
+		PageContainer.swap(pagecontainer);
 		throw;
 	}
 
@@ -50,65 +50,42 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	Wt::log("info") << Name() << ": " << CountPages() << " Page entires successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
-boost::shared_ptr<PageData> PagesDatabase::GetPtr(long long PageId, long long ModuleId) const
+boost::shared_ptr<const PageData> PagesDatabase::GetPtr(long long PageId) const
 {
 	READ_LOCK;
-	PageMaps::const_iterator itr = PageMap.find(std::make_pair(PageId, ModuleId));
-	if(itr == PageMap.end())
+	PageById::const_iterator itr = PageContainer.get<ById>().find(PageId);
+	if(itr == PageContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<PageData>();
+		return boost::shared_ptr<const PageData>();
 	}
-	return itr->second.PagePtr;
+	return itr->PagePtr;
+}
+boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageName, long long ModuleId) const
+{
+	READ_LOCK;
+	PageByKey::const_iterator itr = PageContainer.get<ByKey>().find(boost::make_tuple(PageName, ModuleId));
+	if(itr == PageContainer.get<ByKey>().end())
+	{
+		return boost::shared_ptr<const PageData>();
+	}
+	return itr->PagePtr;
 }
 
-boost::shared_ptr<PageData> PagesDatabase::HomePagePtr() const
+boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr() const
 {
-	boost::shared_ptr<AccessPathData> HomePageAccessPath = Server()->AccessPaths()->HomePageAccessPathPtr();
+	boost::shared_ptr<const AccessPathData> HomePageAccessPath = Server()->AccessPaths()->HomePageAccessPathPtr();
 	if(!HomePageAccessPath)
 	{
-		return boost::shared_ptr<PageData>();
+		return boost::shared_ptr<const PageData>();
 	}
-	return GetPtr(HomePageAccessPath->PageId, HomePageAccessPath->PageModuleId);
+	return GetPtr(HomePageAccessPath->PageId);
 }
 
-/*boost::shared_ptr<PageData> PagesDatabase::GetPtr(const std::string &InternalPath) const
-{
-	ReadLock lock(Manager);
-	PageByInternalPath::iterator itr = PageContainer.get<ByInternalPath>().find(InternalPath);
-	if(itr == PageContainer.get<ByInternalPath>().end())
-	{
-		return boost::shared_ptr<PageData>();
-	}
-	return *itr;
-}*/
-
-void PagesDatabase::RegisterPageHandler(long long PageId, long long ModuleId, boost::function<void()> Handler)
-{
-	WRITE_LOCK;
-	PageMap[std::make_pair(PageId, ModuleId)].HandlerFunction = Handler;
-}
-
-bool PagesDatabase::CallPageHandler(long long PageId, long long ModuleId)
-{
-	READ_LOCK;
-	PageMaps::const_iterator itr = PageMap.find(std::make_pair(PageId, ModuleId));
-	if(itr == PageMap.end())
-	{
-		return false;
-	}
-	if(itr->second.HandlerFunction.empty())
-	{
-		return false;
-	}
-
-	itr->second.HandlerFunction();
-	return true;
-}
 
 std::size_t PagesDatabase::CountPages() const
 {
 	READ_LOCK;
-	return PageMap.size();
+	return PageContainer.size();
 }
 long long PagesDatabase::GetLoadDurationinMS() const
 {

@@ -39,7 +39,7 @@ class Style : public BaseStyle
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::field(a, _Name, "StyleName", 256);
+			Wt::Dbo::field(a, _Name, "StyleName", 50);
 			Wt::Dbo::belongsTo(a, _AuthorPtr, "Author", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, Description, "Description");
 			Wt::Dbo::field(a, CompatibilityVersionSeries, "CompatibilityVersionSeries");
@@ -163,7 +163,7 @@ class Template : public BaseTemplate
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::field(a, _Name, "TemplateName", 256);
+			Wt::Dbo::field(a, _Name, "TemplateName", 50);
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, Description, "Description");
 			Wt::Dbo::field(a, TemplateStr, "TemplateStr");

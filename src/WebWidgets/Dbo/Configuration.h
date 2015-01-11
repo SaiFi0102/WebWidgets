@@ -55,7 +55,7 @@ class Configuration
 		template<class Action>
 		void persist(Action &a)
 		{
-			Wt::Dbo::field(a, _Name, "Name", 256);
+			Wt::Dbo::field(a, _Name, "Name", 50);
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, _Type, "Type");
 			Wt::Dbo::field(a, Title, "Title");

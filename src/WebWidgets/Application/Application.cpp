@@ -40,7 +40,7 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Set Default and Client's environment locale
 	_ClientLocale = env.locale();
-	boost::shared_ptr<AccessPathData> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
+	boost::shared_ptr<const AccessPathData> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
 	Wt::WLocale ConfigDefaultLocale;
 	if(DefaultLanguageAccessPath && !DefaultLanguageAccessPath->LanguageCode.empty())
 	{
@@ -53,7 +53,7 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Check if user is using an Hostname AccessPath before checking LanguageAccept for Language
 	std::string _hostname = env.hostName();
-	boost::shared_ptr<AccessPathData> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
+	boost::shared_ptr<const AccessPathData> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
 	if(HostnameAccessPath) //Use hostname as received
 	{
 		if(!HostnameAccessPath->LanguageCode.empty())
@@ -130,7 +130,7 @@ Application::Application(const Wt::WEnvironment &env)
 	//Style CSS Stylesheet
 	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
 	long long DefaultStyleAuthor = Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-	boost::shared_ptr<StyleData> StylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
+	boost::shared_ptr<const StyleData> StylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
 	SetStyle(StylePtr);
 
 	//User stylesheet
@@ -195,7 +195,7 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 {
 	WServer *Server = WServer::instance();
-	boost::shared_ptr<StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
+	boost::shared_ptr<const StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
 	if(!StylePtr)
 	{
 		return;
@@ -209,9 +209,9 @@ void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 	refresh(); //To reload styletemplates
 }
 
-void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
+void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 {
-	typedef std::set< boost::shared_ptr<StyleCssRuleData> > StyleCssRuleList;
+	typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleList;
 
 	//Remove CSS rules
 	styleSheet().clear();
@@ -239,7 +239,7 @@ void Application::SetStyle(boost::shared_ptr<StyleData> StylePtr)
 	_StyleChanged.emit();
 }
 
-void Application::SetPage(boost::shared_ptr<PageData> PagePtr, bool InvalidChildPath)
+void Application::SetPage(boost::shared_ptr<const PageData> PagePtr, bool InvalidChildPath)
 {
 	_CurrentPagePtr = PagePtr;
 	_InvalidChildPath = InvalidChildPath;
@@ -274,7 +274,7 @@ void Application::RefreshStyleStrings()
 	WServer *Server = WServer::instance();
 
 	//Style CssStyleSheet
-	boost::shared_ptr<StyleData> NewStylePtr;
+	boost::shared_ptr<const StyleData> NewStylePtr;
 	if(app->CurrentStyle())
 	{
 		NewStylePtr = Server->Styles()->GetStylePtr(app->CurrentStyle()->Name(), app->CurrentStyle()->AuthorId());
@@ -290,7 +290,7 @@ void Application::RefreshStyleStrings()
 	app->SetStyle(NewStylePtr);
 
 	//Template CssStyleSheets, remove all rules and add new
-	typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+	typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 	for(TemplateStyleSheetMap::iterator itr = app->_TemplateStyleSheets.begin();
 		itr != app->_TemplateStyleSheets.end();
 		++itr)
@@ -321,9 +321,9 @@ void Application::RefreshPageStrings()
 	//triggerUpdate();
 }
 
-void Application::UseTemplateStyleSheet(boost::shared_ptr<TemplateData> TemplatePtr)
+void Application::UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr)
 {
-	typedef std::set< boost::shared_ptr<TemplateCssRuleData> > TemplateCssRuleList;
+	typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 
 	//Ignore if its an empty ptr
 	if(!TemplatePtr)
@@ -425,7 +425,7 @@ bool Application::IRIPMobileVersion(const std::string &HostName, const std::stri
 	if(MobileAccessPathId != -1)
 	{
 		//Check all possible mobile access paths
-		boost::shared_ptr<AccessPathData> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
+		boost::shared_ptr<const AccessPathData> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
 		if(!MobileCheckAccessPath)
 		{
 			if(HostName.substr(0, 4) == "www.")
@@ -495,7 +495,7 @@ void Application::IRIPAlwaysShow()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -577,7 +577,7 @@ void Application::IRIPAlwaysShowHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -653,7 +653,7 @@ void Application::IRIPNoRestrictionHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -727,7 +727,7 @@ void Application::IRIPNoRestriction()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
@@ -770,7 +770,7 @@ void Application::InterpretPageInternalPath()
 	Tokenizer Tokens(InternalPath, Sep);
 
 	//Check if internal path includes page access path and set PageAccessPath ptr
-	boost::shared_ptr<AccessPathData> PageAccessPath, UseAccessPath;
+	boost::shared_ptr<const AccessPathData> PageAccessPath, UseAccessPath;
 	bool InvalidChildPath = false;
 
 	for(Tokenizer::iterator Itr = Tokens.begin();
@@ -827,7 +827,7 @@ void Application::InterpretPageInternalPath()
 	if(UseAccessPath)
 	{
 		//Set PagePtr and call its handler if the page has changed
-		boost::shared_ptr<PageData> PagePtr = Server->Pages()->GetPtr(UseAccessPath->PageId, UseAccessPath->PageModuleId);
+		boost::shared_ptr<const PageData> PagePtr = Server->Pages()->GetPtr(UseAccessPath->PageId);
 		if(PagePtr != _CurrentPagePtr || InvalidChildPath != _InvalidChildPath)
 		{
 			SetPage(PagePtr, InvalidChildPath);
@@ -835,7 +835,7 @@ void Application::InterpretPageInternalPath()
 	}
 	else
 	{
-		SetPage(boost::shared_ptr<PageData>(), false);
+		SetPage(0, false);
 	}
 }
 

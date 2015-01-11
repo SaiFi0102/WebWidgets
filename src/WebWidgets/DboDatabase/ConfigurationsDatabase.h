@@ -19,13 +19,13 @@ class ConfigurationsDatabase : public AbstractDboDatabase
 	public:
 		ConfigurationsDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
+		boost::shared_ptr<const ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
 
 		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
 		double GetDouble(const std::string &Name, long long ModuleId, double Default) const;

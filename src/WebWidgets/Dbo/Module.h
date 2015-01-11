@@ -39,7 +39,7 @@ class Module : public BaseModule
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::id(a, _id);
-			Wt::Dbo::field(a, Name,			"Name", 256);
+			Wt::Dbo::field(a, Name,			"Name", 255);
 			Wt::Dbo::field(a, VersionSeries,"VersionSeries");
 			Wt::Dbo::field(a, VersionMajor,	"VersionMajor");
 			Wt::Dbo::field(a, VersionMinor,	"VersionMinor");

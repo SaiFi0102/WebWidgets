@@ -48,7 +48,7 @@ void DboInstaller::CreateTables()
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Configuration::TableName() + "\" (\"Name\", \"Module_id\", \"Type\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_singular\" ON \"") + LanguageSingle::TableName() + "\" (\"Language_Code\", \"Key\", \"Module_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_plural\" ON \"") + LanguagePlural::TableName() + "\" (\"Language_Code\", \"Key\", \"Case\", \"Module_id\")");
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Page::TableName() + "\" (\"id\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Page::TableName() + "\" (\"Name\", \"Module_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style\" ON \"") + Style::TableName() + "\" (\"StyleName\", \"Author_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_template\" ON \"") + Template::TableName() + "\" (\"TemplateName\", \"Module_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style_template\" ON \"") + StyleTemplate::TableName() + "\" (\"Style_id\", \"Template_id\")");
@@ -73,11 +73,11 @@ void DboInstaller::InsertRows()
 	InsertLanguages();
 
 	//Pages
-	O.LandingHomePage = DboSession.add(new Page(1, O.NavigationModule));
+	O.LandingHomePage = DboSession.add(new Page("home", O.NavigationModule));
 	O.LandingHomePage.modify()->Title = "Home";
 	O.LandingHomePage.modify()->DefaultInternalPath = "home";
 
-	O.SitemapPage = DboSession.add(new Page(2, O.NavigationModule));
+	O.SitemapPage = DboSession.add(new Page("sitemap", O.NavigationModule));
 	O.SitemapPage.modify()->Title = "Site map";
 	O.SitemapPage.modify()->DefaultInternalPath = "sitemap";
 

@@ -31,7 +31,7 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId,
 		//Use default locale from configuration or function is called independent from Wt::WServer, use "en"
 		Locale = "en"; //Default
 		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		boost::shared_ptr<AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
+		boost::shared_ptr<const AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
 		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 		{
 			Locale = DefaultAccessPath->LanguageCode;
@@ -62,7 +62,7 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 		//Use default locale from configuration or if function is called independent from Wt::WServer, use "en"
 		Locale = "en"; //Default
 		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		boost::shared_ptr<AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
+		boost::shared_ptr<const AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
 		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
 		{
 			Locale = DefaultAccessPath->LanguageCode;
@@ -84,7 +84,7 @@ bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, lo
 
 	if(app)
 	{
-		boost::shared_ptr<StyleData> CurrentStyle = app->CurrentStyle();
+		boost::shared_ptr<const StyleData> CurrentStyle = app->CurrentStyle();
 		if(!CurrentStyle
 			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorId(), result))
 		{

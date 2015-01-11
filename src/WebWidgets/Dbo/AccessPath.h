@@ -41,7 +41,6 @@ class AccessPathData : public BaseAccessPath, public DataSurrogateKey
 	public:
 		std::string LanguageCode;
 		long long PageId;
-		long long PageModuleId;
 
 		AccessPathData(Wt::Dbo::ptr<AccessPath> Ptr);
 };
