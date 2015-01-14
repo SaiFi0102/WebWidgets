@@ -189,25 +189,6 @@ void DboInstaller::InsertConfigurations()
 	LogWarnLevelVal.modify()->RecommendedValue = true;
 	LogWarnLevel.modify()->BoolPtr = LogWarnLevelVal;
 
-	//DefaultAccessPath
-	Wt::Dbo::ptr<Configuration> DefaultAccessPath = DboSession.add(new Configuration("DefaultAccessPath", O.LocalizationModule, Configuration::LongInt));
-	DefaultAccessPath.modify()->Title = "Default language access path";
-	DefaultAccessPath.modify()->Details = "The access path that links to default language.";
-	DefaultAccessPath.modify()->RestartRequired = false;
-	O.DefaultAccessPathVal = DboSession.add(new ConfigurationLongInt());
-	O.DefaultAccessPathVal.modify()->Value = 1;
-	DefaultAccessPath.modify()->LongIntPtr = O.DefaultAccessPathVal;
-
-	//HostUnspecificLanguage
-	Wt::Dbo::ptr<Configuration> HostUnspecificLanguage = DboSession.add(new Configuration("HostUnspecificLanguage", O.LocalizationModule, Configuration::Bool));
-	HostUnspecificLanguage.modify()->Title = "Set language from host unspecific access path";
-	HostUnspecificLanguage.modify()->Details = "If there are two conflicting access paths linking to different languages for example one with host name \"englishwebsite.com\" and no internal path and the other with internal path \"fr\" and no host name in that case if this is enabled then the access path without the host name would be used to set language of the user.";
-	HostUnspecificLanguage.modify()->RestartRequired = false;
-	Wt::Dbo::ptr<ConfigurationBool> HostUnspecificLanguageVal = DboSession.add(new ConfigurationBool());
-	HostUnspecificLanguageVal.modify()->Value = false;
-	HostUnspecificLanguageVal.modify()->DefaultValue = false;
-	HostUnspecificLanguage.modify()->BoolPtr = HostUnspecificLanguageVal;
-
 	//InternalPathMode
 	Wt::Dbo::ptr<Configuration> InternalPathMode = DboSession.add(new Configuration("InternalPathMode", O.LocalizationModule, Configuration::Enum));
 	InternalPathMode.modify()->Title = "Presentation of language in internal path";
@@ -335,24 +316,6 @@ void DboInstaller::InsertConfigurations()
 	GoogleClientSecretVal.modify()->ExampleValue = "a3cf1630b1ae415c7260d849efdf444d";
 	GoogleClientSecretVal.modify()->MinLength = 1;
 	GoogleClientSecret.modify()->StringPtr = GoogleClientSecretVal;
-
-	//HomePageAccessPathId
-	Wt::Dbo::ptr<Configuration> HomePageAccessPathId = DboSession.add(new Configuration("HomePageAccessPathId", O.NavigationModule, Configuration::LongInt));
-	HomePageAccessPathId.modify()->Title = "Home page access path";
-	HomePageAccessPathId.modify()->Details = "This is the page which will be treated as the default or landing page.";
-	HomePageAccessPathId.modify()->RestartRequired = false;
-	O.HomePageAccessPathIdVal = DboSession.add(new ConfigurationLongInt());
-	O.HomePageAccessPathIdVal.modify()->Value = 3;
-	HomePageAccessPathId.modify()->LongIntPtr = O.HomePageAccessPathIdVal;
-
-	//MobileAccessPathId
-	Wt::Dbo::ptr<Configuration> MobileAccessPathId = DboSession.add(new Configuration("MobileAccessPathId", O.NavigationModule, Configuration::LongInt));
-	MobileAccessPathId.modify()->Title = "Mobile version access path";
-	MobileAccessPathId.modify()->Details = "The access path from where mobile version will be accessed.";
-	MobileAccessPathId.modify()->RestartRequired = false;
-	O.MobileAccessPathIdVal = DboSession.add(new ConfigurationLongInt());
-	O.MobileAccessPathIdVal.modify()->Value = 2;
-	MobileAccessPathId.modify()->LongIntPtr = O.MobileAccessPathIdVal;
 
 	//ResourcesURL
 	Wt::Dbo::ptr<Configuration> ResourcesURL = DboSession.add(new Configuration("ResourcesURL", O.StylesModule, Configuration::String));

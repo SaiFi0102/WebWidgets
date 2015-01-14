@@ -26,10 +26,10 @@ class Configuration
 		ValueTypes _Type;
 		
 	public:
-		std::string						Title;
-		boost::optional<std::string>	Details;
-		bool							RestartRequired;
-		boost::optional<std::string>	ExpertWarning;
+		std::string Title;
+		std::string Details;
+		bool RestartRequired;
+		std::string ExpertWarning;
 
 		//hasOne relations
 		Wt::Dbo::weak_ptr<ConfigurationBool>	BoolPtr;
@@ -166,7 +166,7 @@ class ConfigurationEnumValue
 {
 	public:
 		std::string Title;
-		boost::optional<std::string> Details;
+		std::string Details;
 		int Value;
 
 		Wt::Dbo::ptr<ConfigurationEnum> EnumPtr; //belongsTo
@@ -336,10 +336,10 @@ class ConfigurationLongIntData : public BaseConfigurationLongInt, public Configu
 class BaseConfigurationString
 {
 	public:
-		boost::optional<std::string> Value;
-		boost::optional<std::string> DefaultValue;
-		boost::optional<std::string> RecommendedValue;
-		boost::optional<std::string> ExampleValue;
+		std::string Value;
+		std::string DefaultValue;
+		std::string RecommendedValue;
+		std::string ExampleValue;
 		boost::optional<int> MinLength;
 		boost::optional<int> MaxLength;
 };

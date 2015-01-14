@@ -1,7 +1,6 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
-#include "DboDatabase/ConfigurationsDatabase.h"
 #include "Application/WServer.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
@@ -78,6 +77,11 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	LoadDuration = boost::posix_time::time_duration(PTEnd - PTStart);
 
 	lock.unlock();
+
+	if(!LanguageCodeExists("en"))
+	{
+		Wt::log("warn") << Name() << ": English language was not found or installed";
+	}
 	Wt::log("info") << Name() << ": " << CountSingle() << " Single and " << CountPlural() << " Plural entries from " << CountLanguages() << " Languages successfully loaded in " << GetLoadDurationinMS() << " ms";
 }
 
@@ -123,6 +127,24 @@ boost::shared_ptr<const LanguagePluralData> LanguagesDatabase::GetPluralPtr(cons
 		return boost::shared_ptr<const LanguagePluralData>();
 	}
 	return *itr;
+}
+
+std::string LanguagesDatabase::DefaultLanguageCode(const std::string &HostName) const
+{
+	READ_LOCK;
+	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
+	if(AccessHostNamePtr)
+	{
+		if(!AccessHostNamePtr->LanguageCode.empty())
+		{
+			return AccessHostNamePtr->LanguageCode;
+		}
+		else
+		{
+			return "en";
+		}
+	}
+	return "en";
 }
 
 bool LanguagesDatabase::LanguageCodeExists(const std::string &Code) const
@@ -171,25 +193,16 @@ bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::stri
 	return true;
 }
 
-Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
+Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code, const std::string &HostName) const
 {
 	READ_LOCK;
+
 	Wt::WLocale Locale(Code);
-	if(!LanguageCodeExists(Code))
-	{
-		return Locale;
-	}
-
-	boost::shared_ptr<const AccessPathData> DefaultAccessPath = Server()->AccessPaths()->GetPtr(Server()->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
-	std::string DefaultLanguage = "en";
-	if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
-	{
-		DefaultLanguage = DefaultAccessPath->LanguageCode;
-	}
-
+	std::string DefaultLanguage = DefaultLanguageCode(HostName);
 	std::string DecimalPointCharacter = ".";
 	std::string NumberThousandSeparator = ",";
 	std::string DateFormat = "MMMM dd, yyyy";
+
 	if(!GetSingleString(Code, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter))
 	{
 		GetSingleString(DefaultLanguage, "DecimalPointCharacter", ModulesDatabase::Localization, DecimalPointCharacter);
@@ -202,6 +215,7 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code) const
 	{
 		GetSingleString(DefaultLanguage, "DateFormat", ModulesDatabase::Localization, DateFormat);
 	}
+
 	Locale.setDecimalPoint(DecimalPointCharacter);
 	Locale.setGroupSeparator(NumberThousandSeparator);
 	Locale.setDateFormat(DateFormat);
@@ -251,7 +265,9 @@ void LanguagesDatabase::Load(Wt::Dbo::Session &DboSession)
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 
 	FetchAll(DboSession);
 }

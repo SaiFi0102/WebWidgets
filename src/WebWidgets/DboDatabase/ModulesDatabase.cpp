@@ -1,6 +1,5 @@
 #include "DboDatabase/ModulesDatabase.h"
-#include "Application/WServer.h"
-#include <boost/thread/lock_guard.hpp>
+#include <Wt/WLogger>
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
@@ -31,7 +30,9 @@ void ModulesDatabase::Load(Wt::Dbo::Session &DboSession)
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 
 	FetchAll(DboSession);
 }

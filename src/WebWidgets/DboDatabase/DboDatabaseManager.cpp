@@ -1,8 +1,8 @@
 #include "DboDatabase/DboDatabaseManager.h"
 #include "DboDatabase/AbstractDboDatabase.h"
-#include "Application/WServer.h"
-#include <Wt/Dbo/Exception>
 #include <boost/thread/lock_guard.hpp>
+#include <Wt/Dbo/Exception>
+#include <Wt/WLogger>
 
 DboDatabaseManager::DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnection *SQLConnection)
 : _Server(Server), _IsConnection(true), _InitiallyLoaded(false), SQLConnection(SQLConnection)

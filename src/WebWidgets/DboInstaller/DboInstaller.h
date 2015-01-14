@@ -31,15 +31,14 @@ struct InstalledObjects
 
 	//Default Style
 	Wt::Dbo::ptr<Style> DefaultStyle;
+
+	//Access Paths
+	Wt::Dbo::ptr<AccessHostName> GlobalAccessHost;
+	Wt::Dbo::ptr<LanguageAccessPath> EnglishAccessPath;
+	Wt::Dbo::ptr<PageAccessPath> HomePageAccessPath;
+	Wt::Dbo::ptr<PageAccessPath> SiteMapAccessPath;
 	
 	//Ptrs to gather IDs from after insertion
-	Wt::Dbo::ptr<AccessPath> DefaultLanguageAccessPath;
-	Wt::Dbo::ptr<AccessPath> MobileVersionAccessPath;
-	Wt::Dbo::ptr<AccessPath> HomePageAccessPath;
-
-	Wt::Dbo::ptr<ConfigurationLongInt> DefaultAccessPathVal;
-	Wt::Dbo::ptr<ConfigurationLongInt> HomePageAccessPathIdVal;
-	Wt::Dbo::ptr<ConfigurationLongInt> MobileAccessPathIdVal;
 	Wt::Dbo::ptr<ConfigurationString> DefaultStyleNameVal;
 	Wt::Dbo::ptr<ConfigurationLongInt> DefaultStyleAuthorVal;
 };

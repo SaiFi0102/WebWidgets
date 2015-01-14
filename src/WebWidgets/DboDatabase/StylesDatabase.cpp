@@ -1,8 +1,5 @@
 #include "DboDatabase/StylesDatabase.h"
-#include "Dbo/Style.h"
 #include "Application/WServer.h"
-#include <Wt/WString>
-#include "Application/Application.h"
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
@@ -149,12 +146,7 @@ bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId,
 		Wt::log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
 		return false;
 	}
-	if(!TemplatePtr->TemplateStr.is_initialized())
-	{
-		result = "";
-		return true;
-	}
-	result = *TemplatePtr->TemplateStr;
+	result = TemplatePtr->TemplateStr;
 	return true;
 }
 
@@ -333,7 +325,9 @@ void StylesDatabase::Load(Wt::Dbo::Session &DboSession)
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 
 	FetchAll(DboSession);
 }

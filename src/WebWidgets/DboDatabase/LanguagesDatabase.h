@@ -140,16 +140,18 @@ class LanguagesDatabase : public AbstractDboDatabase
 		boost::shared_ptr<const LanguageSingleData> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
 		boost::shared_ptr<const LanguagePluralData> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
 
+		std::string DefaultLanguageCode(const std::string &HostName) const;
+
 		bool LanguageCodeExists(const std::string &Code) const;
 		bool LanguageAcceptExists(const std::string &LanguageAccept) const;
 		bool GetPluralExpression(const std::string &Code, std::string &Result) const;
 		bool GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const;
 		bool GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const;
 
-		Wt::WLocale GetLocaleFromCode(const std::string &Code) const;
-		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept) const
+		Wt::WLocale GetLocaleFromCode(const std::string &Code, const std::string &HostName) const;
+		Wt::WLocale GetLocaleFromLanguageAccept(const std::string &LanguageAccept, const std::string &HostName) const
 		{
-			return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code());
+			return GetLocaleFromCode(GetLanguagePtrFromLanguageAccept(LanguageAccept)->Code(), HostName);
 		}
 
 		long long GetLoadDurationinMS() const;

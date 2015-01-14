@@ -6,7 +6,6 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
-#include <boost/function.hpp>
 
 class PagesDatabase : public AbstractDboDatabase
 {
@@ -16,12 +15,8 @@ class PagesDatabase : public AbstractDboDatabase
 			MetaPage(boost::shared_ptr<PageData> PagePtr = boost::shared_ptr<PageData>())
 				: PagePtr(PagePtr)
 			{ }
-			MetaPage(boost::shared_ptr<PageData> PagePtr, boost::function<void()> Handler)
-				: PagePtr(PagePtr), HandlerFunction(Handler)
-			{ }
 
 			boost::shared_ptr<PageData> PagePtr;
-			boost::function<void()> HandlerFunction;
 		};
 
 		struct Page_key_id
@@ -80,7 +75,7 @@ class PagesDatabase : public AbstractDboDatabase
 
 		boost::shared_ptr<const PageData> GetPtr(long long PageId) const;
 		boost::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
-		boost::shared_ptr<const PageData> HomePagePtr() const;
+		boost::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;

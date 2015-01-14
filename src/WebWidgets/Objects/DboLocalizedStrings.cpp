@@ -7,7 +7,6 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
 #include "DboDatabase/StylesDatabase.h"
-#include "Dbo/Style.h"
 #include "Application/WServer.h"
 #include "Application/Application.h"
 
@@ -28,17 +27,26 @@ bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId,
 	//If no locale is given or string not found in the locale, try to look for the string in the default locale
 	if(Locale.empty() || !_Server->Languages()->GetSingleString(Locale, key, ModuleId, result))
 	{
-		//Use default locale from configuration or function is called independent from Wt::WServer, use "en"
-		Locale = "en"; //Default
-		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		boost::shared_ptr<const AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
-		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
+		//Use default locale from configuration or else use "en"
+		Locale = _Server->AccessPaths()->AccessHostNamePtr("")->LanguageCode;
+		if(Locale.empty())
 		{
-			Locale = DefaultAccessPath->LanguageCode;
+			Locale = "en";
+		}
+		if(!_Server->Languages()->GetSingleString(Locale, key, ModuleId, result))
+		{
+			if(Locale == "en")
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return true;
 		}
 
 		//Return false if default locale does not have the string either
-		return _Server->Languages()->GetSingleString(Locale, key, ModuleId, result);
+		return _Server->Languages()->GetSingleString("en", key, ModuleId, result);
 	}
 	return true;
 }
@@ -59,18 +67,28 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 		|| !_Server->Languages()->GetPluralExpression(Locale, PluralExpression)
 		|| !_Server->Languages()->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
 	{
-		//Use default locale from configuration or if function is called independent from Wt::WServer, use "en"
-		Locale = "en"; //Default
-		long long DefaultAccessPathId = wapp ? wapp->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1) : _Server->Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1);
-		boost::shared_ptr<const AccessPathData> DefaultAccessPath = _Server->AccessPaths()->GetPtr(DefaultAccessPathId);
-		if(DefaultAccessPath && !DefaultAccessPath->LanguageCode.empty())
+		//Use default locale from configuration or else use "en"
+		Locale = _Server->AccessPaths()->AccessHostNamePtr("")->LanguageCode;
+		if(Locale.empty())
 		{
-			Locale = DefaultAccessPath->LanguageCode;
+			Locale = "en";
+		}
+		if((!_Server->Languages()->GetPluralExpression(Locale, PluralExpression)
+			|| !_Server->Languages()->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result)))
+		{
+			if(Locale == "en")
+			{
+				return false;
+			}
+		}
+		else
+		{
+			return true;
 		}
 
 		//Return false if default locale does not have the string either
-		if(!_Server->Languages()->GetPluralExpression(Locale, PluralExpression)
-			|| !_Server->Languages()->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
+		if(!_Server->Languages()->GetPluralExpression("en", PluralExpression)
+			|| !_Server->Languages()->GetPluralString("en", key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
 		{
 			return false;
 		}

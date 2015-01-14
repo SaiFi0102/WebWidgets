@@ -2,7 +2,6 @@
 #define APPLICATION_H
 
 #include <Wt/WApplication>
-//#include <Wt/Dbo/Session>
 #include <boost/unordered_map.hpp>
 #include "Dbo/Style.h"
 
@@ -21,6 +20,7 @@ class Application : public Wt::WApplication
 		ConfigurationsCache *Configurations() const { return _Configurations; }
 
 		//URL and Internal Paths
+		boost::shared_ptr<const AccessHostNameData> AccessHostName() const { return _AccessHostName; }
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
 		std::string InternalPathReserved() const { return _ReservedInternalPath; }
@@ -59,7 +59,7 @@ class Application : public Wt::WApplication
 		void HandleWtInternalPathChanged();
 
 		void InterpretReservedInternalPath();
-		bool IRIPMobileVersion(const std::string &HostName, const std::string &Path);
+		bool IRIPMobileVersion(const std::string &Path);
 		void IRIPAlwaysShow();
 		void IRIPAlwaysShowHideDef();
 		void IRIPNoRestrictionHideDef();
@@ -72,10 +72,12 @@ class Application : public Wt::WApplication
 		void UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr);
 
 		//Paging
-		void SetPage(boost::shared_ptr<const PageData> PagePtr, bool InvalidChildPath);
+		void SetPage(boost::shared_ptr<const PageData> PagePtr);
 
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
+		boost::shared_ptr<const AccessHostNameData> _AccessHostName;
+		boost::shared_ptr<const AccessHostNameData> _GlobalAccessHost;
 		bool _LanguageFromHostname; //And independent of internal path
 		bool _SkipReservedPathInterpretation; //Used to skip InterpretReservedInternalPath on internalPathChanged()
 		std::string _ReservedInternalPath;
@@ -88,6 +90,7 @@ class Application : public Wt::WApplication
 		bool _MobileVersionFromInternalPath; //Or in combination with the hostname
 		Wt::Signal<bool> _MobileVersionChanged;
 
+		boost::shared_ptr<const PageData> _HomePagePtr;
 		boost::shared_ptr<const StyleData> _CurrentStylePtr;
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
@@ -95,7 +98,6 @@ class Application : public Wt::WApplication
 
 		boost::shared_ptr<const PageData> _CurrentPagePtr;
 		Wt::Signal<void> _PageChanged;
-		bool _InvalidChildPath;
 
 		ConfigurationsCache *_Configurations;
 

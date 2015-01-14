@@ -2,10 +2,6 @@
 #define CONFIGURATIONS_CACHE_H
 
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include <boost/unordered_map.hpp>
-
-class ConfigurationsDatabase;
-class Application;
 
 class ConfigurationsCache
 {

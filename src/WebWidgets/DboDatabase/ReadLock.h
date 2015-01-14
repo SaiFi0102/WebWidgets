@@ -5,7 +5,6 @@
 #include <boost/thread/lock_types.hpp>
 
 class AbstractDboDatabase;
-class DboDatabaseManager;
 
 class ReadLock
 {

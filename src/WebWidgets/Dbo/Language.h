@@ -40,21 +40,23 @@ class Language : public BaseLanguage
 		{ }
 
 		//hasMany
-		AccessPathCollections AccessPathCollection;
+		AccessHostNameCollections AccessHostNameCollection;
+		LanguageAccessPathCollections LanguageAccessPathCollection;
 		LanguageSingleCollections LanguageSingleCollection;
 		LanguagePluralCollections LanguagePluralCollection;
 
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::id(a, _Code,				"Code", 2);
-			Wt::Dbo::field(a, Name,				"Name", 256);
-			Wt::Dbo::field(a, NativeName,		"NativeName", 256);
-			Wt::Dbo::field(a, LanguageAccept,	"LanguageAccept", 256);
+			Wt::Dbo::field(a, Name,				"Name", 255);
+			Wt::Dbo::field(a, NativeName,		"NativeName", 255);
+			Wt::Dbo::field(a, LanguageAccept,	"LanguageAccept", 255);
 			Wt::Dbo::field(a, PluralExpression,	"PluralExpression");
 			Wt::Dbo::field(a, PluralCases,		"PluralCases");
 			Wt::Dbo::field(a, Installed,		"Installed");
 
-			Wt::Dbo::hasMany(a, AccessPathCollection, Wt::Dbo::ManyToOne, "Language");
+			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "Language");
+			Wt::Dbo::hasMany(a, LanguageAccessPathCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, LanguageSingleCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, LanguagePluralCollection, Wt::Dbo::ManyToOne, "Language");
 		}
@@ -107,7 +109,7 @@ class LanguageSingle : public BaseLanguageSingle
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::belongsTo(a, _LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, _Key, "Key", 256);
+			Wt::Dbo::field(a, _Key, "Key", 50);
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, String, "String");
 			Wt::Dbo::field(a, IsEmail, "IsEmail");
@@ -170,7 +172,7 @@ class LanguagePlural : public BaseLanguagePlural
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::belongsTo(a, _LanguagePtr, "Language", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, _Key, "Key", 256);
+			Wt::Dbo::field(a, _Key, "Key", 50);
 			Wt::Dbo::field(a, _Case, "Case");
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, String, "String");

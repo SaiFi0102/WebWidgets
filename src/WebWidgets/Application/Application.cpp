@@ -20,13 +20,20 @@
 #include <Wt/WResource>
 #include <WebUtils.h>
 
+//From https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c/4654718#4654718
+bool is_number(const std::string &s)
+{
+	std::string::const_iterator it = s.begin();
+	while(it != s.end() && std::isdigit(*it)) ++it;
+	return !s.empty() && it == s.end();
+}
+
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
 	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), _PageChanged(this), //Signals
 	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization
-	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false), //Mobile UI
-	_InvalidChildPath(false) //Paging
+	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI
 {
 	//Enable server push
 	enableUpdates();
@@ -38,44 +45,28 @@ Application::Application(const Wt::WEnvironment &env)
 	//Use database backend localized strings instead of WMessageResourceBundle
 	setLocalizedStrings(new DboLocalizedStrings(Server));
 
-	//Set Default and Client's environment locale
-	_ClientLocale = env.locale();
-	boost::shared_ptr<const AccessPathData> DefaultLanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(Configurations()->GetLongInt("DefaultAccessPath", ModulesDatabase::Localization, 1));
-	Wt::WLocale ConfigDefaultLocale;
-	if(DefaultLanguageAccessPath && !DefaultLanguageAccessPath->LanguageCode.empty())
+	//Set AccessHostNames
+	std::string _hostname = env.hostName();
 	{
-		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageAccessPath->LanguageCode);
-	}
-	else
-	{
-		ConfigDefaultLocale = Server->Languages()->GetLocaleFromCode("en");
+		ReadLock AccessPathLock(Server->AccessPaths()); //So that both ptrs are from the same state
+		_GlobalAccessHost = Server->AccessPaths()->AccessHostNamePtr("");
+		_AccessHostName = Server->AccessPaths()->AccessHostOrGlobalPtr(_hostname);
 	}
 
+	//Set Default and Client's environment locale
+	ReadLock LanguagesLock(Server->Languages());
+	_ClientLocale = env.locale();
+	std::string DefaultLanguageCode = Server->Languages()->DefaultLanguageCode(_hostname);
+
 	//Check if user is using an Hostname AccessPath before checking LanguageAccept for Language
-	std::string _hostname = env.hostName();
-	boost::shared_ptr<const AccessPathData> HostnameAccessPath = Server->AccessPaths()->GetPtr(_hostname, "");
-	if(HostnameAccessPath) //Use hostname as received
+	if(_AccessHostName != _GlobalAccessHost)
 	{
-		if(!HostnameAccessPath->LanguageCode.empty())
+		if(!_AccessHostName->LanguageCode.empty())
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguageCode));
+			setLocale(Server->Languages()->GetLocaleFromCode(_AccessHostName->LanguageCode, _hostname));
 			_LanguageFromHostname = true;
 		}
-		long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
-		if(MobileAccessPathId != -1 && HostnameAccessPath->id() == MobileAccessPathId)
-		{
-			_MobileVersionFromHostname = true;
-		}
-	}
-	else if(_hostname.substr(0, 4) == "www.") //If not found, try without "www."
-	{
-		_hostname = _hostname.substr(4);
-		HostnameAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(_hostname, "");
-		if(HostnameAccessPath)
-		{
-			setLocale(Server->Languages()->GetLocaleFromCode(HostnameAccessPath->LanguageCode));
-			_LanguageFromHostname = true;
-		}
+		_MobileVersionFromHostname = _AccessHostName->MobileMode;
 	}
 	
 	//Set environment locale in Application if language was not found in access path
@@ -84,13 +75,13 @@ Application::Application(const Wt::WEnvironment &env)
 		std::string LanguageAccept = env.locale().name();
 		if(LanguageAccept.empty()) //If no language accept http header found, just set locale from default language
 		{
-			setLocale(ConfigDefaultLocale);
+			setLocale(Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname));
 		}
 		else
 		{
 			if(Server->Languages()->LanguageAcceptExists(LanguageAccept))
 			{
-				setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAccept));
+				setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAccept, _hostname));
 			}
 			else //If not break up the LanguageAccept and check with wild cards
 			{
@@ -103,15 +94,16 @@ Application::Application(const Wt::WEnvironment &env)
 
 				if(Server->Languages()->LanguageAcceptExists(LanguageAcceptLookup + "*")) //Check if LanguageAccept with wild card exist
 				{
-					setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAcceptLookup + "*"));
+					setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAcceptLookup + "*", _hostname));
 				}
 				else //else set locale from default language
 				{
-					setLocale(ConfigDefaultLocale);
+					setLocale(Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname));
 				}
 			}
 		}
 	}
+	LanguagesLock.Unlock();
 	_SessionDefaultLocale = locale();
 
 	//Internal paths
@@ -123,7 +115,18 @@ Application::Application(const Wt::WEnvironment &env)
 	//Set language from internal path
 	InterpretReservedInternalPath();
 
-	//Page change signal/slot
+	//Page change signal/slot and home page
+	if(_AccessHostName->DefaultPageId == -1)
+	{
+		if(_GlobalAccessHost->DefaultPageId != -1)
+		{
+			_HomePagePtr = Server->Pages()->GetPtr(_GlobalAccessHost->DefaultPageId);
+		}
+	}
+	else
+	{
+		_HomePagePtr = Server->Pages()->GetPtr(_AccessHostName->DefaultPageId);
+	}
 	internalPathAfterReservedChanged().connect(boost::bind(&Application::InterpretPageInternalPath, this));
 	InterpretPageInternalPath();
 
@@ -172,7 +175,7 @@ std::string Application::InternalPathAfterReservedNextPart(const std::string &af
 
 std::string Application::InternalPathAfterReserved() const
 {
-	return std::string("/") + internalSubPath(_ReservedInternalPath);
+	return Wt::Utils::prepend((internalSubPath(_ReservedInternalPath)), '/');
 }
 
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
@@ -239,10 +242,9 @@ void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 	_StyleChanged.emit();
 }
 
-void Application::SetPage(boost::shared_ptr<const PageData> PagePtr, bool InvalidChildPath)
+void Application::SetPage(boost::shared_ptr<const PageData> PagePtr)
 {
 	_CurrentPagePtr = PagePtr;
-	_InvalidChildPath = InvalidChildPath;
 
 	if(!_CurrentPagePtr)
 	{
@@ -400,6 +402,9 @@ void Application::InterpretReservedInternalPath()
 	_OldReservedInternalPath = _ReservedInternalPath;
 	_ReservedInternalPath = "/";
 
+	WServer *Server = WServer::instance();
+	ReadLock LanguagesLock(Server->Languages());
+	ReadLock AccessPathsLock(Server->AccessPaths());
 	switch(IPLM)
 	{
 		case 1:
@@ -417,51 +422,47 @@ void Application::InterpretReservedInternalPath()
 	}
 }
 
-bool Application::IRIPMobileVersion(const std::string &HostName, const std::string &Path)
+bool Application::IRIPMobileVersion(const std::string &Path)
 {
-	WServer *Server = WServer::instance();
-	long long MobileAccessPathId = Configurations()->GetLongInt("MobileAccessPathId", ModulesDatabase::Navigation, -1);
-
-	if(MobileAccessPathId != -1)
+	//If AccessHostName is not global hostname and AccessHostName mobile mode is on no need to check internal paths
+	std::string MobileInternalPath = _AccessHostName->MobileInternalPath;
+	if(_AccessHostName != _GlobalAccessHost)
 	{
-		//Check all possible mobile access paths
-		boost::shared_ptr<const AccessPathData> MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName, Path);
-		if(!MobileCheckAccessPath)
+		if(_MobileVersionFromHostname)
 		{
-			if(HostName.substr(0, 4) == "www.")
-			{
-				MobileCheckAccessPath = Server->AccessPaths()->GetPtr(HostName.substr(4), Path);
-			}
-			if(!MobileCheckAccessPath)
-			{
-				MobileCheckAccessPath = Server->AccessPaths()->GetPtr("", Path);
-			}
-		}
-
-		//Check if the path is a mobile access path
-		if(MobileCheckAccessPath && MobileCheckAccessPath->id() == MobileAccessPathId)
-		{
-			//Emit if MobileVersion just got enabled
-			if(IsMobileVersion() == false)
-			{
-				_MobileVersionChanged.emit(true);
-			}
-			_MobileVersionFromInternalPath = true;
-			_ReservedInternalPath += Path; //Add mobile access path to reserved path
-			return true;
-		}
-		else
-		{
-			//Emit if MobileVersion just got disabled
-			if(IsMobileVersion() == true && _MobileVersionFromHostname == false)
-			{
-				_MobileVersionChanged.emit(false);
-			}
-			_MobileVersionFromInternalPath = false;
 			return false;
 		}
+		if(MobileInternalPath.empty())
+		{
+			MobileInternalPath = _GlobalAccessHost->MobileInternalPath;
+		}
 	}
-	return false;
+	if(MobileInternalPath.empty())
+	{
+		return false;
+	}
+
+	if(Path == MobileInternalPath)
+	{
+		//Emit if MobileVersion just got enabled
+		_ReservedInternalPath += Path; //Add mobile access path to reserved path
+		if(IsMobileVersion() == false)
+		{
+			_MobileVersionChanged.emit(true);
+		}
+		_MobileVersionFromInternalPath = true;
+		return true;
+	}
+	else
+	{
+		//Emit if MobileVersion just got disabled
+		if(IsMobileVersion() == true)
+		{
+			_MobileVersionChanged.emit(false);
+		}
+		_MobileVersionFromInternalPath = false;
+		return false;
+	}
 }
 
 void Application::IRIPAlwaysShow()
@@ -485,7 +486,7 @@ void Application::IRIPAlwaysShow()
 	Tokenizer::iterator Itr = Tokens.begin();
 
 	//Check mobile version
-	if(IRIPMobileVersion(HostName, *Itr))
+	if(IRIPMobileVersion(*Itr))
 	{
 		++Itr;
 		if(Itr == Tokens.end())
@@ -495,17 +496,11 @@ void Application::IRIPAlwaysShow()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
-		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
-			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
-		{
-			HostName = HostName.substr(4);
-			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
-		}
-		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
-			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
+			&& !_LanguageFromHostname)
 		{
 			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
 		}
@@ -516,7 +511,7 @@ void Application::IRIPAlwaysShow()
 	{
 		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode, HostName));
 		}
 		if(_ReservedInternalPath != "/")
 		{
@@ -567,7 +562,7 @@ void Application::IRIPAlwaysShowHideDef()
 	Tokenizer::iterator Itr = Tokens.begin();
 
 	//Check mobile version
-	if(IRIPMobileVersion(HostName, *Itr))
+	if(IRIPMobileVersion(*Itr))
 	{
 		++Itr;
 		if(Itr == Tokens.end())
@@ -577,17 +572,11 @@ void Application::IRIPAlwaysShowHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
-		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
-			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
-		{
-			HostName = HostName.substr(4);
-			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
-		}
-		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
-			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
+			&& !_LanguageFromHostname)
 		{
 			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
 		}
@@ -598,7 +587,7 @@ void Application::IRIPAlwaysShowHideDef()
 	{
 		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode, HostName));
 		}
 		//Remove default language from internal path if its there
 		if(locale().name() == _SessionDefaultLocale.name())
@@ -643,7 +632,7 @@ void Application::IRIPNoRestrictionHideDef()
 	Tokenizer::iterator Itr = Tokens.begin();
 
 	//Check mobile version
-	if(IRIPMobileVersion(HostName, *Itr))
+	if(IRIPMobileVersion(*Itr))
 	{
 		++Itr;
 		if(Itr == Tokens.end())
@@ -653,17 +642,11 @@ void Application::IRIPNoRestrictionHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
-		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
-			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
-		{
-			HostName = HostName.substr(4);
-			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
-		}
-		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
-			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
+			&& !_LanguageFromHostname)
 		{
 			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
 		}
@@ -674,7 +657,7 @@ void Application::IRIPNoRestrictionHideDef()
 	{
 		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode, HostName));
 		}
 		//Remove default language automatically from internal path if locale is default language
 		if(locale().name() == _SessionDefaultLocale.name())
@@ -717,7 +700,7 @@ void Application::IRIPNoRestriction()
 	Tokenizer::iterator Itr = Tokens.begin();
 
 	//Check mobile version
-	if(IRIPMobileVersion(HostName, *Itr))
+	if(IRIPMobileVersion(*Itr))
 	{
 		++Itr;
 		if(Itr == Tokens.end())
@@ -727,17 +710,11 @@ void Application::IRIPNoRestriction()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const AccessPathData> LanguageAccessPath;
+	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
-		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr))
-			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
-		{
-			HostName = HostName.substr(4);
-			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
-		}
-		if(!LanguageAccessPath //Check again if STILL not found(without hostname)
-			&& (!_LanguageFromHostname || Configurations()->GetBool("HostUnspecificLanguage", ModulesDatabase::Localization, false))) //But not if language is set from hostname and using HostUnspecificLanguage is not allowed(false)
+		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
+			&& !_LanguageFromHostname)
 		{
 			LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr("", *Itr);
 		}
@@ -748,7 +725,7 @@ void Application::IRIPNoRestriction()
 	{
 		if(locale().name() != LanguageAccessPath->LanguageCode)
 		{
-			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode));
+			setLocale(Server->Languages()->GetLocaleFromCode(LanguageAccessPath->LanguageCode, HostName));
 		}
 		if(_ReservedInternalPath != "/")
 		{
@@ -769,73 +746,63 @@ void Application::InterpretPageInternalPath()
 	boost::char_separator<char> Sep("/");
 	Tokenizer Tokens(InternalPath, Sep);
 
-	//Check if internal path includes page access path and set PageAccessPath ptr
-	boost::shared_ptr<const AccessPathData> PageAccessPath, UseAccessPath;
-	bool InvalidChildPath = false;
+	ReadLock PagesLock(Server->Pages());
+	ReadLock AccessPathsLock(Server->AccessPaths());
 
+	//Check if internal path includes page access path
+	boost::shared_ptr<const PageAccessPathData> PageAccessPathPtr, ParentAccessPathPtr;
 	for(Tokenizer::iterator Itr = Tokens.begin();
 		Itr != Tokens.end();
 		++Itr)
 	{
-		if(!(PageAccessPath = Server->AccessPaths()->PageAccessPathPtr(HostName, *Itr))
-			&& HostName.substr(0, 4) == "www.") //Use hostname without "www." if access path does not exists with the "www."
+		ParentAccessPathPtr = PageAccessPathPtr;
+		long long ParentAccessPathId = ParentAccessPathPtr ? ParentAccessPathPtr->id() : -1;
+		if(!(PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(HostName, *Itr, ParentAccessPathId)))
 		{
-			HostName = HostName.substr(4);
-			PageAccessPath = Server->AccessPaths()->PageAccessPathPtr(HostName, *Itr); //Check again if not found(without www.)
+			PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr("", *Itr, ParentAccessPathId);
 		}
-		if(!PageAccessPath) //Check again if STILL not found(without hostname)
+		if(!PageAccessPathPtr && ParentAccessPathPtr)
 		{
-			PageAccessPath = Server->AccessPaths()->PageAccessPathPtr("", *Itr);
-		}
-
-		//Stop iteration if
-		if(UseAccessPath) //Parent access path
-		{
-			if(PageAccessPath)
+			if(is_number(*Itr) && !(PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(HostName, "#", ParentAccessPathId)))
 			{
-// 				if(UseAccessPath->id() != PageAccessPath->ParentPageId)
-// 				{
-// 					InvalidChildPath = true;
-// 					break;
-// 				}
+				PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr("", "#", ParentAccessPathId);
 			}
-			else if(!UseAccessPath->HasChildPaths
-				//&& UseAccessPath->id() != Server->AccessPaths()->HomePageAccessPathPtr()->id()
-				)
+			else if(!(PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(HostName, "?", ParentAccessPathId)))
 			{
-				InvalidChildPath = true;
-				break;
+				PageAccessPathPtr = Server->AccessPaths()->PageAccessPathPtr("", "?", ParentAccessPathId);
 			}
 		}
-		else if(!PageAccessPath)
+		if(!PageAccessPathPtr)
 		{
+			PageAccessPathPtr = 0;
 			break;
 		}
+	}
 
-		if(PageAccessPath)
+	boost::shared_ptr<const PageData> PagePtr;
+	if(PageAccessPathPtr)
+	{
+		PagePtr = Server->Pages()->GetPtr(PageAccessPathPtr->PageId);
+	}
+	else if(InternalPath == "/") //If still not found use the default homepage if user is on homepage
+	{
+		PagePtr = _HomePagePtr;
+	}
+
+	if(PagePtr)
+	{
+		if(!_CurrentPagePtr)
 		{
-			UseAccessPath = PageAccessPath;
+			SetPage(PagePtr);
 		}
-	}
-
-	//If still not found use the default homepage if user is on homepage
-	if(!UseAccessPath && InternalPath == "/")
-	{
-		UseAccessPath = Server->AccessPaths()->HomePageAccessPathPtr();
-	}
-
-	if(UseAccessPath)
-	{
-		//Set PagePtr and call its handler if the page has changed
-		boost::shared_ptr<const PageData> PagePtr = Server->Pages()->GetPtr(UseAccessPath->PageId);
-		if(PagePtr != _CurrentPagePtr || InvalidChildPath != _InvalidChildPath)
+		else if(PagePtr->id() != _CurrentPagePtr->id())
 		{
-			SetPage(PagePtr, InvalidChildPath);
+			SetPage(PagePtr);
 		}
 	}
 	else
 	{
-		SetPage(0, false);
+		SetPage(0);
 	}
 }
 
@@ -883,13 +850,8 @@ void Application::CreateTestUI()
 	(new Wt::WText(std::string("Current Page: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto cpt = new Wt::WText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"), root());
 	new Wt::WBreak(root());
-	(new Wt::WText(std::string("Invalid Child Path: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto icpt = new Wt::WText(std::string(_InvalidChildPath ? "TRUE" : "false"), root());
-	if(_InvalidChildPath) icpt->decorationStyle().setForegroundColor(Wt::WColor("red"));
-	PageChanged().connect(boost::bind<void>([this, cpt, icpt](){
+	PageChanged().connect(boost::bind<void>([this, cpt](){
 		cpt->setText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"));
-		icpt->setText(std::string(_InvalidChildPath ? "TRUE" : "false"));
-		icpt->decorationStyle().setForegroundColor(Wt::WColor(_InvalidChildPath ? "red" : "inherit"));
 	}));
 
 	new Wt::WBreak(root());

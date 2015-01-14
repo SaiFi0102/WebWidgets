@@ -19,7 +19,10 @@ class Language;
 class LanguageSingle;
 class LanguagePlural;
 class Author;
-class AccessPath;
+class AccessHostName;
+class AbstractAccessPath;
+class PageAccessPath;
+class LanguageAccessPath;
 class Style;
 class StyleCssRule;
 class TemplateCssRule;
@@ -49,7 +52,9 @@ typedef Wt::Dbo::collection< Wt::Dbo::ptr<Language> > LanguageCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<LanguageSingle> > LanguageSingleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<LanguagePlural> > LanguagePluralCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<Author> > AuthorCollections;
-typedef Wt::Dbo::collection< Wt::Dbo::ptr<AccessPath> > AccessPathCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<AccessHostName> > AccessHostNameCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<PageAccessPath> > PageAccessPathCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<LanguageAccessPath> > LanguageAccessPathCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<Style> > StyleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleCssRule> > StyleCssRuleCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleCollections;
@@ -129,6 +134,15 @@ struct Wt::Dbo::dbo_traits<Language> : public Wt::Dbo::dbo_default_traits
 {
 	typedef std::string IdType;
 	static IdType invalidId() { return IdType(); }
+	static const char *surrogateIdField() { return 0; }
+};
+
+//Overloaded dbo_traits for AccessHostName DBO
+template<>
+struct Wt::Dbo::dbo_traits<AccessHostName> : public Wt::Dbo::dbo_default_traits
+{
+	typedef std::string IdType;
+	static IdType invalidId() { return "!"; }
 	static const char *surrogateIdField() { return 0; }
 };
 

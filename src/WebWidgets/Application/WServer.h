@@ -10,7 +10,6 @@
 #include <Wt/Dbo/SqlConnectionPool>
 
 #include <3rdparty/rapidxml/rapidxml.hpp>
-#include <boost/thread.hpp>
 
 class Application;
 class DboInstaller;

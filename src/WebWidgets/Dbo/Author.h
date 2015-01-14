@@ -8,8 +8,8 @@ class Author
 {
 	public:
 		std::string Name;
-		boost::optional<std::string> Email;
-		boost::optional<std::string> Website;
+		std::string Email;
+		std::string Website;
 
 		ModuleCollections ModuleCollection;
 		StyleCollections StyleCollection;

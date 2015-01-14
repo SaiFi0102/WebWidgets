@@ -42,7 +42,8 @@ void WServer::Initialize()
 		log("info") << "Connecting to database backend";
 
 		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		//SQLConnection->setProperty("show-queries", "true");
+		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
+		SQLConnection->setProperty("show-queries", "false");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
 		log("success") << "Successfully connected to database";
@@ -245,7 +246,7 @@ void WServer::CreateWtXmlConfiguration()
 	NodeSessMgmt->append_node(NodeTracking);
 
 	//<session-management> child element <reload-is-new-session>
-	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "reload-is-new-session", "true"));
+	NodeSessMgmt->append_node(XmlDoc.allocate_node(Wt::rapidxml::node_element, "reload-is-new-session", "false"));
 
 	//<session-management> child element <timeout>
 	int ConfSessionTimeout = _Configurations->GetInt("SessionTimeout", ModulesDatabase::Server, 600);

@@ -1,5 +1,5 @@
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include "Application/WServer.h"
+#include <Wt/WLogger>
 
 #define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
 #define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
@@ -299,11 +299,7 @@ std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long Mo
 		Wt::log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
-	if(!StringPtr->Value.is_initialized())
-	{
-		return std::string();
-	}
-	return *StringPtr->Value;
+	return StringPtr->Value;
 }
 
 long long ConfigurationsDatabase::GetLoadDurationinMS() const
@@ -340,7 +336,9 @@ void ConfigurationsDatabase::Load(Wt::Dbo::Session &DboSession)
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 
 	FetchAll(DboSession);
 }

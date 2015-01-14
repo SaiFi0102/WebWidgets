@@ -3,7 +3,6 @@
 
 #include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Configuration.h"
-#include <boost/unordered_map.hpp>
 
 class ConfigurationsDatabase : public AbstractDboDatabase
 {

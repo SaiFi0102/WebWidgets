@@ -1,7 +1,6 @@
 #include "DboDatabase/ConfigurationsCache.h"
-#include "DboDatabase/ConfigurationsDatabase.h"
 #include "DboDatabase/ReadLock.h"
-#include "Application/Application.h"
+#include <Wt/WLogger>
 
 ConfigurationsCache::ConfigurationsCache(ConfigurationsDatabase *Database)
 	: _Database(Database)
@@ -167,9 +166,5 @@ std::string ConfigurationsCache::GetStr(const std::string &Name, long long Modul
 		Wt::log("warn") << "StringPtr not found in ConfigurationsCache in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
 		return Default;
 	}
-	if(!StringPtr->Value.is_initialized())
-	{
-		return std::string();
-	}
-	return *StringPtr->Value;
+	return StringPtr->Value;
 }

@@ -71,14 +71,14 @@ boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageN
 	return itr->PagePtr;
 }
 
-boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr() const
+boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
 {
-	boost::shared_ptr<const AccessPathData> HomePageAccessPath = Server()->AccessPaths()->HomePageAccessPathPtr();
-	if(!HomePageAccessPath)
+	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
+	if(AccessHostNamePtr && AccessHostNamePtr->DefaultPageId != -1)
 	{
-		return boost::shared_ptr<const PageData>();
+		return GetPtr(AccessHostNamePtr->DefaultPageId);
 	}
-	return GetPtr(HomePageAccessPath->PageId);
+	return boost::shared_ptr<const PageData>();
 }
 
 
@@ -115,7 +115,9 @@ void PagesDatabase::Load(Wt::Dbo::Session &DboSession)
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 
 	FetchAll(DboSession);
 }

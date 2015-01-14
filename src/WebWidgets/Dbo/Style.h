@@ -141,7 +141,7 @@ class BaseTemplate
 
 	public:
 		std::string Description;
-		boost::optional<std::string> TemplateStr;
+		std::string TemplateStr;
 
 		std::string Name() const { return _Name; }
 };

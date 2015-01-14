@@ -3,7 +3,6 @@
 
 #include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Style.h"
-#include <boost/unordered_map.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>

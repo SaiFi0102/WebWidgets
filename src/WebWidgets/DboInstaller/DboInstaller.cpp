@@ -34,7 +34,9 @@ void DboInstaller::MapClasses()
 	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
 	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
 	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessPath>(AccessPath::TableName());
+	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
+	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
+	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
 }
 
 void DboInstaller::CreateTables()
@@ -44,7 +46,8 @@ void DboInstaller::CreateTables()
 
 	//UNIQUE
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Language::TableName() + "\" (\"LanguageAccept\")");
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_url\" ON \"") + AccessPath::TableName() + "\" (\"HostName\", \"InternalPath\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page_host_path\" ON \"") + PageAccessPath::TableName() + "\" (\"Access_HostName\", \"InternalPath\", \"Parent_AccessPath_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_host_path\" ON \"") + LanguageAccessPath::TableName() + "\" (\"Access_HostName\", \"InternalPath\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Configuration::TableName() + "\" (\"Name\", \"Module_id\", \"Type\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_singular\" ON \"") + LanguageSingle::TableName() + "\" (\"Language_Code\", \"Key\", \"Module_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_plural\" ON \"") + LanguagePlural::TableName() + "\" (\"Language_Code\", \"Key\", \"Case\", \"Module_id\")");
@@ -81,27 +84,27 @@ void DboInstaller::InsertRows()
 	O.SitemapPage.modify()->Title = "Site map";
 	O.SitemapPage.modify()->DefaultInternalPath = "sitemap";
 
-	//Access Paths
-	//English language
-	O.DefaultLanguageAccessPath = DboSession.add(new AccessPath());
-	O.DefaultLanguageAccessPath.modify()->HostName = "";
-	O.DefaultLanguageAccessPath.modify()->InternalPath = "en";
-	O.DefaultLanguageAccessPath.modify()->LanguagePtr = O.EnglishLanguagePtr;
+	//Global Access HostName
+	O.GlobalAccessHost = DboSession.add(new AccessHostName(""));
+	O.GlobalAccessHost.modify()->LanguagePtr = O.EnglishLanguagePtr;
+	O.GlobalAccessHost.modify()->DefaultPagePtr = O.LandingHomePage;
+	O.GlobalAccessHost.modify()->MobileInternalPath = "mobile";
 
-	//Mobile version
-	O.MobileVersionAccessPath = DboSession.add(new AccessPath());
-	O.MobileVersionAccessPath.modify()->HostName = "";
-	O.MobileVersionAccessPath.modify()->InternalPath = "mobile";
+	//English Access Path
+	O.EnglishAccessPath = DboSession.add(new LanguageAccessPath());
+	O.EnglishAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
+	O.EnglishAccessPath.modify()->InternalPath = "en";
+	O.EnglishAccessPath.modify()->LanguagePtr = O.EnglishLanguagePtr;
 
-	//Home page
-	O.HomePageAccessPath = DboSession.add(new AccessPath());
-	O.HomePageAccessPath.modify()->HostName = "";
+	//Home Page Access Path
+	O.HomePageAccessPath = DboSession.add(new PageAccessPath());
+	O.HomePageAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
 	O.HomePageAccessPath.modify()->InternalPath = "home";
 	O.HomePageAccessPath.modify()->PagePtr = O.LandingHomePage;
 
 	//Sitemap page
-	Wt::Dbo::ptr<AccessPath> SitemapPageAccessPath = DboSession.add(new AccessPath());
-	SitemapPageAccessPath.modify()->HostName = "";
+	Wt::Dbo::ptr<PageAccessPath> SitemapPageAccessPath = DboSession.add(new PageAccessPath());
+	SitemapPageAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
 	SitemapPageAccessPath.modify()->InternalPath = "sitemap";
 	SitemapPageAccessPath.modify()->PagePtr = O.SitemapPage;
 
@@ -115,10 +118,6 @@ void DboInstaller::InsertRows()
 
 	//Set IDs after they have been assigned in the database
 	Wt::Dbo::Transaction transaction2(DboSession);
-
-	O.DefaultAccessPathVal.modify()->Value = O.DefaultLanguageAccessPath.id();
-	O.HomePageAccessPathIdVal.modify()->Value = O.HomePageAccessPath.id();
-	O.MobileAccessPathIdVal.modify()->Value = O.MobileVersionAccessPath.id();
 
 	O.DefaultStyleNameVal.modify()->Value = O.DefaultStyle->Name();
 	O.DefaultStyleNameVal.modify()->DefaultValue = O.DefaultStyle->Name();
