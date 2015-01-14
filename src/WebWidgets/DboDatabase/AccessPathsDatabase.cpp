@@ -157,6 +157,15 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNameP
 			return *itr;
 		}
 	}
+	std::string::size_type ColonPosition = HostName.find(':');
+	if(ColonPosition != std::string::npos)
+	{
+		itr = AccessHostNameContainer.find(HostName.substr(0, ColonPosition));
+		if(itr != AccessHostNameContainer.end())
+		{
+			return *itr;
+		}
+	}
 	return boost::shared_ptr<const AccessHostNameData>();
 }
 boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlobalPtr(const std::string &HostName) const
@@ -170,6 +179,15 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlo
 	if(HostName.substr(0, 4) == "www.")
 	{
 		itr = AccessHostNameContainer.find(HostName.substr(4));
+		if(itr != AccessHostNameContainer.end())
+		{
+			return *itr;
+		}
+	}
+	std::string::size_type ColonPosition = HostName.find(':');
+	if(ColonPosition != std::string::npos)
+	{
+		itr = AccessHostNameContainer.find(HostName.substr(0, ColonPosition));
 		if(itr != AccessHostNameContainer.end())
 		{
 			return *itr;
@@ -212,6 +230,15 @@ boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAcc
 			return *itr;
 		}
 	}
+	std::string::size_type ColonPosition = HostName.find(':');
+	if(ColonPosition != std::string::npos)
+	{
+		itr = LanguageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName.substr(0, ColonPosition), InternalPath));
+		if(itr != LanguageAccessPathContainer.get<ByURL>().end())
+		{
+			return *itr;
+		}
+	}
 	return boost::shared_ptr<const LanguageAccessPathData>();
 }
 
@@ -242,9 +269,17 @@ boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathP
 			return *itr;
 		}
 	}
+	std::string::size_type ColonPosition = HostName.find(':');
+	if(ColonPosition != std::string::npos)
+	{
+		itr = PageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName.substr(0, ColonPosition), InternalPath, ParentAccessPathId));
+		if(itr != PageAccessPathContainer.get<ByURL>().end())
+		{
+			return *itr;
+		}
+	}
 	return boost::shared_ptr<const PageAccessPathData>();
 }
-
 
 std::size_t AccessPathsDatabase::CountAccessHostNames() const
 {
@@ -272,17 +307,34 @@ std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCo
 	READ_LOCK;
 	LanguageAccessPathByLH::const_iterator itr = LanguageAccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName));
 	LanguageAccessPathByLH::const_iterator enditr = LanguageAccessPathContainer.get<ByLanguageHostname>().end();
-	if(itr == enditr && HostName.substr(0, 4) == "www.")
+	if(itr != enditr)
+	{
+		return std::string("/") + (*itr)->InternalPath;
+	}
+	if(HostName.substr(0, 4) == "www.")
 	{
 		itr = LanguageAccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName.substr(4)));
+		if(itr != enditr)
+		{
+			return std::string("/") + (*itr)->InternalPath;
+		}
 	}
-	if(itr == enditr && !LanguageFromHostname)
+	std::string::size_type ColonPosition = HostName.find(':');
+	if(ColonPosition != std::string::npos)
+	{
+		itr = LanguageAccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName.substr(0, ColonPosition)));
+		if(itr != enditr)
+		{
+			return std::string("/") + (*itr)->InternalPath;
+		}
+	}
+	if(!LanguageFromHostname)
 	{
 		itr = LanguageAccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, ""));
+		if(itr != enditr)
+		{
+			return std::string("/") + (*itr)->InternalPath;
+		}
 	}
-	if(itr == enditr)
-	{
-		return "/";
-	}
-	return std::string("/") + (*itr)->InternalPath;
+	return "/";
 }
