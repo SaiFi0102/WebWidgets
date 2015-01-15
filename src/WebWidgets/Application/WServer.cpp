@@ -415,17 +415,7 @@ WServer::~WServer()
 	delete SQLPool; //Also deletes SQLConnections
 }
 
-void WServer::RefreshLocaleStrings()
+void WServer::DboDatabaseReloadHandler()
 {
-	postAll(boost::bind(&Application::RefreshLocaleStrings));
-}
-
-void WServer::RefreshStyleStrings()
-{
-	postAll(boost::bind(&Application::RefreshStyleStrings));
-}
-
-void WServer::RefreshPageStrings()
-{
-	postAll(boost::bind(&Application::RefreshPageStrings));
+	postAll(boost::bind(&Application::RefreshDboDatabasePtrs));
 }

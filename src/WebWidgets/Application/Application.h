@@ -47,26 +47,25 @@ class Application : public Wt::WApplication
 		boost::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
 		Wt::Signal<void> &PageChanged() { return _PageChanged; }
 
-		//Database reload handlers
-		static void RefreshLocaleStrings();
-		static void RefreshStyleStrings();
-		static void RefreshPageStrings();
+		//Database reload handler
+		static void RefreshDboDatabasePtrs();
 
 	protected:
 		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
 		//Internal path change handlers
 		void HandleWtInternalPathChanged();
-
 		void InterpretReservedInternalPath();
 		bool IRIPMobileVersion(const std::string &Path);
 		void IRIPAlwaysShow();
 		void IRIPAlwaysShowHideDef();
 		void IRIPNoRestrictionHideDef();
 		void IRIPNoRestriction();
-
 		void InterpretPageInternalPath();
-		
+
+		//Refresh
+		void SetAccessHostNameDefaults();
+
 		//Styling
 		void SetStyle(boost::shared_ptr<const StyleData> StylePtr);
 		void UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr);
@@ -92,6 +91,7 @@ class Application : public Wt::WApplication
 
 		boost::shared_ptr<const PageData> _HomePagePtr;
 		boost::shared_ptr<const StyleData> _CurrentStylePtr;
+		boost::shared_ptr<const StyleData> _DefaultStylePtr;
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;

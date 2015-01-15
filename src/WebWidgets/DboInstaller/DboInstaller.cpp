@@ -84,47 +84,32 @@ void DboInstaller::InsertRows()
 	O.SitemapPage.modify()->Title = "Site map";
 	O.SitemapPage.modify()->DefaultInternalPath = "sitemap";
 
-	//Global Access HostName
-	O.GlobalAccessHost = DboSession.add(new AccessHostName(""));
-	O.GlobalAccessHost.modify()->LanguagePtr = O.EnglishLanguagePtr;
-	O.GlobalAccessHost.modify()->DefaultPagePtr = O.LandingHomePage;
-	O.GlobalAccessHost.modify()->MobileInternalPath = "mobile";
-
-	//English Access Path
-	O.EnglishAccessPath = DboSession.add(new LanguageAccessPath());
-	O.EnglishAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
-	O.EnglishAccessPath.modify()->InternalPath = "en";
-	O.EnglishAccessPath.modify()->LanguagePtr = O.EnglishLanguagePtr;
-
-	//Home Page Access Path
-	O.HomePageAccessPath = DboSession.add(new PageAccessPath());
-	O.HomePageAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
-	O.HomePageAccessPath.modify()->InternalPath = "home";
-	O.HomePageAccessPath.modify()->PagePtr = O.LandingHomePage;
-
-	//Sitemap page
-	Wt::Dbo::ptr<PageAccessPath> SitemapPageAccessPath = DboSession.add(new PageAccessPath());
-	SitemapPageAccessPath.modify()->AccessHostNamePtr = O.GlobalAccessHost;
-	SitemapPageAccessPath.modify()->InternalPath = "sitemap";
-	SitemapPageAccessPath.modify()->PagePtr = O.SitemapPage;
-
 	//Default style
 	O.DefaultStyle = DboSession.add(new Style("Default", O.SaifAuthor));
 	O.DefaultStyle.modify()->Description = "Default style";
 	O.DefaultStyle.modify()->CompatibilityVersionSeries = 1;
 	O.DefaultStyle.modify()->CompatibilityVersionMajor = 0;
 
+	//Global Access HostName
+	O.GlobalAccessHost = DboSession.add(new AccessHostName(""));
+	O.GlobalAccessHost.modify()->LanguagePtr = O.EnglishLanguagePtr;
+	O.GlobalAccessHost.modify()->DefaultPagePtr = O.LandingHomePage;
+	O.GlobalAccessHost.modify()->StylePtr = O.DefaultStyle;
+	O.GlobalAccessHost.modify()->MobileInternalPath = "mobile";
+
+	//English Access Path
+	O.EnglishAccessPath = DboSession.add(new LanguageAccessPath(O.GlobalAccessHost, "en"));
+	O.EnglishAccessPath.modify()->LanguagePtr = O.EnglishLanguagePtr;
+
+	//Home Page Access Path
+	O.HomePageAccessPath = DboSession.add(new PageAccessPath(O.GlobalAccessHost, "home"));
+	O.HomePageAccessPath.modify()->PagePtr = O.LandingHomePage;
+
+	//Sitemap page
+	Wt::Dbo::ptr<PageAccessPath> SitemapPageAccessPath = DboSession.add(new PageAccessPath(O.GlobalAccessHost, "sitemap"));
+	SitemapPageAccessPath.modify()->PagePtr = O.SitemapPage;
+
 	transaction.commit();
-
-	//Set IDs after they have been assigned in the database
-	Wt::Dbo::Transaction transaction2(DboSession);
-
-	O.DefaultStyleNameVal.modify()->Value = O.DefaultStyle->Name();
-	O.DefaultStyleNameVal.modify()->DefaultValue = O.DefaultStyle->Name();
-	O.DefaultStyleAuthorVal.modify()->Value = O.DefaultStyle->AuthorPtr().id();
-	O.DefaultStyleAuthorVal.modify()->DefaultValue = O.DefaultStyle->AuthorPtr().id();
-
-	transaction2.commit();
 }
 
 void DboInstaller::DropTables()

@@ -42,69 +42,13 @@ Application::Application(const Wt::WEnvironment &env)
 	WServer *Server = WServer::instance();
 	_Configurations = new ConfigurationsCache(Server->Configurations()); //Local copy of configuration ptrs
 
+	//Set AccessHostName and its default settings
+	SetAccessHostNameDefaults();
+	setLocale(_SessionDefaultLocale); //Default langauge
+	SetStyle(_DefaultStylePtr); //Default style
+
 	//Use database backend localized strings instead of WMessageResourceBundle
 	setLocalizedStrings(new DboLocalizedStrings(Server));
-
-	//Set AccessHostNames
-	std::string _hostname = env.hostName();
-	{
-		ReadLock AccessPathLock(Server->AccessPaths()); //So that both ptrs are from the same state
-		_GlobalAccessHost = Server->AccessPaths()->AccessHostNamePtr("");
-		_AccessHostName = Server->AccessPaths()->AccessHostOrGlobalPtr(_hostname);
-	}
-
-	//Set Default and Client's environment locale
-	ReadLock LanguagesLock(Server->Languages());
-	_ClientLocale = env.locale();
-	std::string DefaultLanguageCode = Server->Languages()->DefaultLanguageCode(_hostname);
-
-	//Check if user is using an Hostname AccessPath before checking LanguageAccept for Language
-	if(_AccessHostName != _GlobalAccessHost)
-	{
-		if(!_AccessHostName->LanguageCode.empty())
-		{
-			setLocale(Server->Languages()->GetLocaleFromCode(_AccessHostName->LanguageCode, _hostname));
-			_LanguageFromHostname = true;
-		}
-		_MobileVersionFromHostname = _AccessHostName->MobileMode;
-	}
-	
-	//Set environment locale in Application if language was not found in access path
-	if(!_LanguageFromHostname)
-	{
-		std::string LanguageAccept = env.locale().name();
-		if(LanguageAccept.empty()) //If no language accept http header found, just set locale from default language
-		{
-			setLocale(Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname));
-		}
-		else
-		{
-			if(Server->Languages()->LanguageAcceptExists(LanguageAccept))
-			{
-				setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAccept, _hostname));
-			}
-			else //If not break up the LanguageAccept and check with wild cards
-			{
-				std::string LanguageAcceptLookup = LanguageAccept;
-				std::string::size_type DashPosition = LanguageAccept.find('-');
-				if(DashPosition != std::string::npos) //If there is a country specific language in language accept
-				{
-					LanguageAcceptLookup = LanguageAccept.substr(0, DashPosition); //Remove everything with and after the dash, "-".
-				}
-
-				if(Server->Languages()->LanguageAcceptExists(LanguageAcceptLookup + "*")) //Check if LanguageAccept with wild card exist
-				{
-					setLocale(Server->Languages()->GetLocaleFromLanguageAccept(LanguageAcceptLookup + "*", _hostname));
-				}
-				else //else set locale from default language
-				{
-					setLocale(Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname));
-				}
-			}
-		}
-	}
-	LanguagesLock.Unlock();
-	_SessionDefaultLocale = locale();
 
 	//Internal paths
 	setInternalPathDefaultValid(true);
@@ -116,25 +60,8 @@ Application::Application(const Wt::WEnvironment &env)
 	InterpretReservedInternalPath();
 
 	//Page change signal/slot and home page
-	if(_AccessHostName->DefaultPageId == -1)
-	{
-		if(_GlobalAccessHost->DefaultPageId != -1)
-		{
-			_HomePagePtr = Server->Pages()->GetPtr(_GlobalAccessHost->DefaultPageId);
-		}
-	}
-	else
-	{
-		_HomePagePtr = Server->Pages()->GetPtr(_AccessHostName->DefaultPageId);
-	}
 	internalPathAfterReservedChanged().connect(boost::bind(&Application::InterpretPageInternalPath, this));
 	InterpretPageInternalPath();
-
-	//Style CSS Stylesheet
-	std::string DefaultStyleName = Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
-	long long DefaultStyleAuthor = Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-	boost::shared_ptr<const StyleData> StylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
-	SetStyle(StylePtr);
 
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
@@ -156,6 +83,109 @@ Application::Application(const Wt::WEnvironment &env)
 Application::~Application()
 {
 	delete _Configurations;
+}
+
+void Application::SetAccessHostNameDefaults()
+{
+	WServer *Server = WServer::instance();
+	ReadLock Lock(Server->DatabaseManager());
+
+	//Set AccessHostNames
+	std::string _hostname = environment().hostName();
+	_GlobalAccessHost = Server->AccessPaths()->AccessHostNamePtr("");
+	_AccessHostName = Server->AccessPaths()->AccessHostOrGlobalPtr(_hostname);
+
+	//Home page
+	if(_AccessHostName->DefaultPageId == -1)
+	{
+		if(_GlobalAccessHost->DefaultPageId != -1)
+		{
+			_HomePagePtr = Server->Pages()->GetPtr(_GlobalAccessHost->DefaultPageId);
+		}
+		else
+		{
+			_HomePagePtr = 0;
+		}
+	}
+	else
+	{
+		_HomePagePtr = Server->Pages()->GetPtr(_AccessHostName->DefaultPageId);
+	}
+
+	//Default style
+	if(_AccessHostName->StyleId == -1)
+	{
+		if(_GlobalAccessHost->StyleId == -1)
+		{
+			_DefaultStylePtr = Server->Styles()->FirstStylePtr();
+		}
+		else
+		{
+			_DefaultStylePtr = Server->Styles()->GetStylePtr(_GlobalAccessHost->StyleId);
+		}
+	}
+	else
+	{
+		_DefaultStylePtr = Server->Styles()->GetStylePtr(_AccessHostName->StyleId);
+	}
+
+	//Language and Mobile Mode
+	_ClientLocale = environment().locale();
+	std::string DefaultLanguageCode = Server->Languages()->DefaultLanguageCode(_hostname);
+	_LanguageFromHostname = false;
+	if(_AccessHostName != _GlobalAccessHost)
+	{
+		//Check if user is using Hostname AccessPath before checking LanguageAccept for Language
+		if(!_AccessHostName->LanguageCode.empty())
+		{
+			_SessionDefaultLocale = Server->Languages()->GetLocaleFromCode(_AccessHostName->LanguageCode, _hostname);
+			_LanguageFromHostname = true;
+		}
+
+		//Mobile mode
+		bool omv = IsMobileVersion();
+		_MobileVersionFromHostname = _AccessHostName->MobileMode;
+		bool nmv = IsMobileVersion();
+		if(omv != nmv)
+		{
+			MobileVersionChanged().emit(nmv);
+		}
+	}
+
+	//Set environment locale in Application if language was not found in AccessHostName
+	if(!_LanguageFromHostname)
+	{
+		std::string LanguageAccept = environment().locale().name();
+		if(LanguageAccept.empty()) //If no language accept http header found, just set locale from default language
+		{
+			_SessionDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname);
+		}
+		else
+		{
+			if(Server->Languages()->LanguageAcceptExists(LanguageAccept))
+			{
+				_SessionDefaultLocale = Server->Languages()->GetLocaleFromLanguageAccept(LanguageAccept, _hostname);
+			}
+			else //If not break up the LanguageAccept and check with wild cards
+			{
+				std::string LanguageAcceptLookup = LanguageAccept;
+				std::string::size_type DashPosition = LanguageAccept.find('-');
+				if(DashPosition != std::string::npos) //If there is a country specific language in language accept
+				{
+					LanguageAcceptLookup = LanguageAccept.substr(0, DashPosition); //Remove everything with and after the dash, "-".
+				}
+
+				if(Server->Languages()->LanguageAcceptExists(LanguageAcceptLookup + "*")) //Check if LanguageAccept with wild card exist
+				{
+					_SessionDefaultLocale = Server->Languages()->GetLocaleFromLanguageAccept(LanguageAcceptLookup + "*", _hostname);
+				}
+				else //else set locale from default language
+				{
+					_SessionDefaultLocale = Server->Languages()->GetLocaleFromCode(DefaultLanguageCode, _hostname);
+				}
+			}
+		}
+	}
 }
 
 void Application::setLocale(const Wt::WLocale &locale)
@@ -253,18 +283,7 @@ void Application::SetPage(boost::shared_ptr<const PageData> PagePtr)
 	_PageChanged.emit();
 }
 
-void Application::RefreshLocaleStrings()
-{
-	Application *app = Application::instance();
-	if(!app)
-	{
-		return;
-	}
-	app->refresh();
-	app->triggerUpdate();
-}
-
-void Application::RefreshStyleStrings()
+void Application::RefreshDboDatabasePtrs()
 {
 	Application *app = Application::instance();
 	if(!app)
@@ -272,22 +291,24 @@ void Application::RefreshStyleStrings()
 		return;
 	}
 
-	//Refresh Templates, Style WCssStyleSheet, Template WCssStyleSheets
+	app->SetAccessHostNameDefaults();
+
 	WServer *Server = WServer::instance();
-
+	ReadLock Lock(Server->DatabaseManager());
+	//Refresh Templates, Style WCssStyleSheet, Template WCssStyleSheets
 	//Style CssStyleSheet
 	boost::shared_ptr<const StyleData> NewStylePtr;
 	if(app->CurrentStyle())
 	{
-		NewStylePtr = Server->Styles()->GetStylePtr(app->CurrentStyle()->Name(), app->CurrentStyle()->AuthorId());
+		NewStylePtr = Server->Styles()->GetStylePtr(app->CurrentStyle()->id());
 		if(!NewStylePtr)
 		{
-			//Default style is taken from server's active configuration instead of cached configuration because it is possible
-			//for the default style to get changed from the configuration and that old default style being changed/deleted
-			std::string DefaultStyleName = Server->Configurations()->GetStr("DefaultStyleName", ModulesDatabase::Styles, "Default");
-			long long DefaultStyleAuthor = Server->Configurations()->GetLongInt("DefaultStyleAuthor", ModulesDatabase::Styles, 1);
-			NewStylePtr = Server->Styles()->GetStylePtr(DefaultStyleName, DefaultStyleAuthor);
+			NewStylePtr = app->_DefaultStylePtr;
 		}
+	}
+	else
+	{
+		NewStylePtr = app->_DefaultStylePtr;
 	}
 	app->SetStyle(NewStylePtr);
 
@@ -307,20 +328,17 @@ void Application::RefreshStyleStrings()
 		}
 	}
 
-	//Send changes
-	app->refresh();
+	app->InterpretPageInternalPath();
+	//Hacky way to check if locale was changed by InterpretReservedInternalPath()
+	//refresh() is called from setLocale() in InterpretReservedInternalPath()
+	const Wt::WLocale *locptr = &app->locale();
+	app->InterpretReservedInternalPath();
+	if(locptr == &app->locale())
+	{
+		app->setLocale(app->_SessionDefaultLocale);
+	}
+
 	app->triggerUpdate();
-}
-
-void Application::RefreshPageStrings()
-{
-	//Application *app = Application::instance();
-	//if(!app)
-	//{
-	//	return;
-	//}
-
-	//triggerUpdate();
 }
 
 void Application::UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr)
@@ -334,8 +352,7 @@ void Application::UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> Te
 	}
 
 	//Ignore if the stylesheet is already loaded
-	TemplateStyleSheetMap::const_iterator itr = _TemplateStyleSheets.find(std::make_pair(TemplatePtr->Name(), TemplatePtr->ModuleId()));
-	if(itr != _TemplateStyleSheets.end())
+	if(_TemplateStyleSheets.find(std::make_pair(TemplatePtr->Name(), TemplatePtr->ModuleId())) != _TemplateStyleSheets.end())
 	{
 		return;
 	}
@@ -403,8 +420,7 @@ void Application::InterpretReservedInternalPath()
 	_ReservedInternalPath = "/";
 
 	WServer *Server = WServer::instance();
-	ReadLock LanguagesLock(Server->Languages());
-	ReadLock AccessPathsLock(Server->AccessPaths());
+	ReadLock Lock(Server->DatabaseManager());
 	switch(IPLM)
 	{
 		case 1:
@@ -444,23 +460,25 @@ bool Application::IRIPMobileVersion(const std::string &Path)
 
 	if(Path == MobileInternalPath)
 	{
-		//Emit if MobileVersion just got enabled
 		_ReservedInternalPath += Path; //Add mobile access path to reserved path
-		if(IsMobileVersion() == false)
+		//Emit if MobileVersion just got enabled
+		bool omv = IsMobileVersion();
+		_MobileVersionFromInternalPath = true;
+		if(omv == false)
 		{
 			_MobileVersionChanged.emit(true);
 		}
-		_MobileVersionFromInternalPath = true;
 		return true;
 	}
 	else
 	{
 		//Emit if MobileVersion just got disabled
-		if(IsMobileVersion() == true)
+		bool omv = IsMobileVersion();
+		_MobileVersionFromInternalPath = false;
+		if(omv == true)
 		{
 			_MobileVersionChanged.emit(false);
 		}
-		_MobileVersionFromInternalPath = false;
 		return false;
 	}
 }
@@ -746,8 +764,7 @@ void Application::InterpretPageInternalPath()
 	boost::char_separator<char> Sep("/");
 	Tokenizer Tokens(InternalPath, Sep);
 
-	ReadLock PagesLock(Server->Pages());
-	ReadLock AccessPathsLock(Server->AccessPaths());
+	ReadLock Lock(Server->DatabaseManager());
 
 	//Check if internal path includes page access path
 	boost::shared_ptr<const PageAccessPathData> PageAccessPathPtr, ParentAccessPathPtr;

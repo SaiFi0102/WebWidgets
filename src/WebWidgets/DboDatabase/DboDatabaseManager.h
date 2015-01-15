@@ -1,9 +1,9 @@
 #ifndef DBO_DATABASE_MANAGER_H
 #define DBO_DATABASE_MANAGER_H
 
-#include <Wt/Dbo/Session>
-#include <boost/thread/mutex.hpp>
-#include <boost/unordered_map.hpp>
+#include <boost/thread/shared_mutex.hpp>
+#include <Wt/Dbo/SqlConnectionPool>
+#include <set>
 
 class WServer;
 class AbstractDboDatabase;
@@ -11,7 +11,7 @@ class AbstractDboDatabase;
 class DboDatabaseManager
 {
 	public:
-		typedef std::map<AbstractDboDatabase*, Wt::Dbo::Session> DatabaseMaps;
+		typedef std::set<AbstractDboDatabase*> DatabaseSets;
 
 		DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnection *SQLConnection);
 		DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnectionPool *SQLPool);
@@ -31,8 +31,8 @@ class DboDatabaseManager
 	protected:
 		WServer *_Server;
 		bool _InitiallyLoaded;
-		DatabaseMaps DatabaseMap;
-		mutable boost::mutex mutex;
+		DatabaseSets DatabaseSet;
+		mutable boost::shared_mutex mutex;
 
 		bool _IsConnection;
 		Wt::Dbo::SqlConnection *SQLConnection;

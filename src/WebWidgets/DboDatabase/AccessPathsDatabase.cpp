@@ -1,8 +1,6 @@
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include <Wt/WLogger>
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 AccessPathsDatabase::AccessPathsDatabase(DboDatabaseManager *Manager)
 : AbstractDboDatabase(Manager)
@@ -39,8 +37,6 @@ void AccessPathsDatabase::Load(Wt::Dbo::Session &DboSession)
 
 void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
@@ -135,15 +131,14 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
-	lock.unlock();
-	Wt::log("info") << Name() << ": " << CountAccessHostNames() << " Access Host Names, " << CountPageAccessPaths()
-		<< " Page Access Paths and " << CountLanguageAccessPaths() << " Language Access Paths successfully loaded in "
-		<< GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << AccessHostNameContainer.size() << " Access Host Names, " << PageAccessPathContainer.size()
+		<< " Page Access Paths and " << LanguageAccessPathContainer.size() << " Language Access Paths successfully loaded in "
+		<< LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNamePtr(const std::string &HostName) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	AccessHostNameType::const_iterator itr = AccessHostNameContainer.find(HostName);
 	if(itr != AccessHostNameContainer.end())
 	{
@@ -170,7 +165,7 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNameP
 }
 boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlobalPtr(const std::string &HostName) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	AccessHostNameType::const_iterator itr = AccessHostNameContainer.find(HostName);
 	if(itr != AccessHostNameContainer.end())
 	{
@@ -206,7 +201,7 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlo
 
 boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(long long Id) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageAccessPathById::const_iterator itr = LanguageAccessPathContainer.get<ById>().find(Id);
 	if(itr != LanguageAccessPathContainer.get<ById>().end())
 	{
@@ -216,7 +211,7 @@ boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAcc
 }
 boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageAccessPathByURL::const_iterator itr = LanguageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
 	if(itr != LanguageAccessPathContainer.get<ByURL>().end())
 	{
@@ -244,7 +239,7 @@ boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAcc
 
 boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	PageAccessPathById::const_iterator itr = PageAccessPathContainer.get<ById>().find(Id);
 	if(itr != PageAccessPathContainer.get<ById>().end())
 	{
@@ -255,7 +250,7 @@ boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathP
 
 boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath, long long ParentAccessPathId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	PageAccessPathByURL::const_iterator itr = PageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath, ParentAccessPathId));
 	if(itr != PageAccessPathContainer.get<ByURL>().end())
 	{
@@ -283,28 +278,28 @@ boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathP
 
 std::size_t AccessPathsDatabase::CountAccessHostNames() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return AccessHostNameContainer.size();
 }
 std::size_t AccessPathsDatabase::CountPageAccessPaths() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return PageAccessPathContainer.size();
 }
 std::size_t AccessPathsDatabase::CountLanguageAccessPaths() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LanguageAccessPathContainer.size();
 }
 long long AccessPathsDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }
 
 std::string AccessPathsDatabase::FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageAccessPathByLH::const_iterator itr = LanguageAccessPathContainer.get<ByLanguageHostname>().find(boost::make_tuple(LanguageCode, HostName));
 	LanguageAccessPathByLH::const_iterator enditr = LanguageAccessPathContainer.get<ByLanguageHostname>().end();
 	if(itr != enditr)

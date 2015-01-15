@@ -1,8 +1,6 @@
 #include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include <Wt/WLogger>
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 ModulesDatabase::ModulesDatabase(DboDatabaseManager *Manager)
 	: AbstractDboDatabase(Manager)
@@ -39,8 +37,6 @@ void ModulesDatabase::Load(Wt::Dbo::Session &DboSession)
 
 void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
@@ -74,13 +70,12 @@ void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
-	lock.unlock();
-	Wt::log("info") << Name() << ": " << CountModules() << " entries successfully loaded in " << GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << ModuleMap.size() << " entries successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const ModuleData> ModulesDatabase::GetPtr(long long Id) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	ModuleMaps::const_iterator itr = ModuleMap.find(Id);
 	if(itr == ModuleMap.end())
 	{
@@ -91,11 +86,11 @@ boost::shared_ptr<const ModuleData> ModulesDatabase::GetPtr(long long Id) const
 
 std::size_t ModulesDatabase::CountModules() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return ModuleMap.size();
 }
 long long ModulesDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }

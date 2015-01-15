@@ -44,16 +44,14 @@ class WServer : public Wt::WServer
 		boost::posix_time::ptime StartPTime() const { return PTStart; }
 		bool Start();
 
-		void RefreshLocaleStrings();
-		void RefreshStyleStrings();
-		void RefreshPageStrings();
-
 		static WServer *instance() { return dynamic_cast<WServer*>(Wt::WServer::instance()); }
 
 	protected:
 		void ConfigureAuth();
 		void CreateWtXmlConfiguration();
 		void Initialize();
+
+		void DboDatabaseReloadHandler();
 
 		Wt::Dbo::SqlConnectionPool *SQLPool;
 
@@ -76,6 +74,7 @@ class WServer : public Wt::WServer
 
 	private:
 		friend int main(int argc, char** argv);
+		friend class DboDatabaseManager;
 };
 
 #endif

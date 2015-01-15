@@ -24,8 +24,8 @@ class Page : public BasePage
 		Wt::Dbo::ptr<Module> _ModulePtr;
 
 	public:
-		Wt::Dbo::weak_ptr<PageAccessPath> PageAccessPathPtr;
-		Wt::Dbo::weak_ptr<AccessHostName> AccessHostNamePtr;
+		PageAccessPathCollections PageAccessPathCollection;
+		AccessHostNameCollections AccessHostNameCollection;
 
 		PageCollections ChildrenPages;
 		Wt::Dbo::ptr<Page> ParentPage;
@@ -46,8 +46,8 @@ class Page : public BasePage
 			Wt::Dbo::field(a, DefaultInternalPath, "DefaultInternalPath", 50);
 			Wt::Dbo::field(a, Title, "Title");
 
-			Wt::Dbo::hasOne(a, PageAccessPathPtr, "Page");
-			Wt::Dbo::hasOne(a, AccessHostNamePtr, "DefaultPage");
+			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Page");
+			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "DefaultPage");
 
 			Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
 			Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);

@@ -29,6 +29,7 @@ class Style : public BaseStyle
 	public:
 		StyleCssRuleCollections CssRuleCollection;
 		StyleTemplateCollections TemplateCollection;
+		AccessHostNameCollections AccessHostNameCollection;
 
 		Style() { }
 		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
@@ -47,6 +48,7 @@ class Style : public BaseStyle
 
 			Wt::Dbo::hasMany(a, CssRuleCollection, Wt::Dbo::ManyToOne, "Style");
 			Wt::Dbo::hasMany(a, TemplateCollection, Wt::Dbo::ManyToOne, "Style");
+			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "Style");
 		}
 		static const char *TableName()
 		{
@@ -245,5 +247,7 @@ class StyleTemplateData : public BaseStyleTemplate, public DataSurrogateKey
 		long long DerivingTemplateId() const { return _DerivingTemplateId; }
 		long long StyleId() const { return _StyleId; }
 };
+
+#include "Dbo/AccessPath.h"
 
 #endif

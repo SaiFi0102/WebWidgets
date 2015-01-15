@@ -1,8 +1,8 @@
 #include "DboDatabase/ReadLock.h"
-#include "DboDatabase/AbstractDboDatabase.h"
+#include "DboDatabase/DboDatabaseManager.h"
 
-ReadLock::ReadLock(AbstractDboDatabase *Database)
-	: lock(Database->mutex)
+ReadLock::ReadLock(DboDatabaseManager *Manager)
+	: lock(Manager->mutex)
 { }
 
 void ReadLock::Unlock()

@@ -1,10 +1,8 @@
 #include "DboDatabase/LanguagesDatabase.h"
 #include "DboDatabase/ModulesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include "Application/WServer.h"
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 LanguagesDatabase::LanguagesDatabase(DboDatabaseManager *Manager)
 : AbstractDboDatabase(Manager)
@@ -12,8 +10,6 @@ LanguagesDatabase::LanguagesDatabase(DboDatabaseManager *Manager)
 
 void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
@@ -76,18 +72,18 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = boost::posix_time::time_duration(PTEnd - PTStart);
 
-	lock.unlock();
-
-	if(!LanguageCodeExists("en"))
+	if(LanguageContainer.get<0>().find("en") == LanguageContainer.get<0>().end())
 	{
 		Wt::log("warn") << Name() << ": English language was not found or installed";
 	}
-	Wt::log("info") << Name() << ": " << CountSingle() << " Single and " << CountPlural() << " Plural entries from " << CountLanguages() << " Languages successfully loaded in " << GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << LanguageSingleContainer.size() << " Single and "
+		<< LanguagePluralContainer.size() << " Plural entries from " << LanguageContainer.size()
+		<< " Languages successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageByCode::const_iterator itr = LanguageContainer.get<0>().find(Code);
 	if(itr == LanguageContainer.get<0>().end())
 	{
@@ -98,7 +94,7 @@ boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(
 
 boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageByLanguageAccept::const_iterator itr = LanguageContainer.get<1>().find(LanguageAccept);
 	if(itr == LanguageContainer.get<1>().end())
 	{
@@ -109,7 +105,7 @@ boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLangu
 
 boost::shared_ptr<const LanguageSingleData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageSingleType::const_iterator itr = LanguageSingleContainer.get<0>().find(boost::make_tuple(Code, Key, ModuleId));
 	if(itr == LanguageSingleContainer.get<0>().end())
 	{
@@ -120,7 +116,7 @@ boost::shared_ptr<const LanguageSingleData> LanguagesDatabase::GetSinglePtr(cons
 
 boost::shared_ptr<const LanguagePluralData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguagePluralType::const_iterator itr = LanguagePluralContainer.get<0>().find(boost::make_tuple(Code, Key, Case, ModuleId));
 	if(itr == LanguagePluralContainer.get<0>().end())
 	{
@@ -131,7 +127,7 @@ boost::shared_ptr<const LanguagePluralData> LanguagesDatabase::GetPluralPtr(cons
 
 std::string LanguagesDatabase::DefaultLanguageCode(const std::string &HostName) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
 	if(AccessHostNamePtr)
 	{
@@ -149,13 +145,13 @@ std::string LanguagesDatabase::DefaultLanguageCode(const std::string &HostName) 
 
 bool LanguagesDatabase::LanguageCodeExists(const std::string &Code) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageByCode::const_iterator itr = LanguageContainer.get<0>().find(Code);
 	return itr != LanguageContainer.get<0>().end();
 }
 bool LanguagesDatabase::LanguageAcceptExists(const std::string &LanguageAccept) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LanguageByLanguageAccept::const_iterator itr = LanguageContainer.get<1>().find(LanguageAccept);
 	return itr != LanguageContainer.get<1>().end();
 }
@@ -195,7 +191,7 @@ bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::stri
 
 Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code, const std::string &HostName) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 
 	Wt::WLocale Locale(Code);
 	std::string DefaultLanguage = DefaultLanguageCode(HostName);
@@ -224,23 +220,23 @@ Wt::WLocale LanguagesDatabase::GetLocaleFromCode(const std::string &Code, const 
 
 long long LanguagesDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }
 std::size_t LanguagesDatabase::CountSingle() const
 {
-	READ_LOCK;
-	return LanguageSingleContainer.get<0>().size();
+	ReadLock lock(Manager());
+	return LanguageSingleContainer.size();
 }
 std::size_t LanguagesDatabase::CountPlural() const
 {
-	READ_LOCK;
-	return LanguagePluralContainer.get<0>().size();
+	ReadLock lock(Manager());
+	return LanguagePluralContainer.size();
 }
 std::size_t LanguagesDatabase::CountLanguages() const
 {
-	READ_LOCK;
-	return LanguageContainer.get<0>().size();
+	ReadLock lock(Manager());
+	return LanguageContainer.size();
 }
 
 void LanguagesDatabase::Load(Wt::Dbo::Session &DboSession)
@@ -274,5 +270,4 @@ void LanguagesDatabase::Load(Wt::Dbo::Session &DboSession)
 void LanguagesDatabase::Reload(Wt::Dbo::Session &DboSession)
 {
 	FetchAll(DboSession);
-	Server()->RefreshLocaleStrings();
 }

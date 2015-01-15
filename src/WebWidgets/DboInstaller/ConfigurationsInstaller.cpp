@@ -340,21 +340,4 @@ void DboInstaller::InsertConfigurations()
 	StylesURLVal.modify()->ExampleValue = "/styles";
 	StylesURLVal.modify()->MinLength = 1;
 	StylesURL.modify()->StringPtr = StylesURLVal;
-
-	//DefaultStyleName
-	Wt::Dbo::ptr<Configuration> DefaultStyleName = DboSession.add(new Configuration("DefaultStyleName", O.StylesModule, Configuration::String));
-	DefaultStyleName.modify()->Title = "Default style's name";
-	DefaultStyleName.modify()->Details = "Name of the style which would be used to show as default.";
-	DefaultStyleName.modify()->RestartRequired = false;
-	O.DefaultStyleNameVal = DboSession.add(new ConfigurationString());
-	DefaultStyleName.modify()->StringPtr = O.DefaultStyleNameVal;
-
-	//DefaultStyleAuthor
-	Wt::Dbo::ptr<Configuration> DefaultStyleAuthor = DboSession.add(new Configuration("DefaultStyleAuthor", O.StylesModule, Configuration::LongInt));
-	DefaultStyleAuthor.modify()->Title = "Default style's author id";
-	DefaultStyleAuthor.modify()->Details = "Author ID of the style which would be used to show as default.";
-	DefaultStyleAuthor.modify()->RestartRequired = false;
-	O.DefaultStyleAuthorVal = DboSession.add(new ConfigurationLongInt());
-	O.DefaultStyleAuthorVal.modify()->Value = -1;
-	DefaultStyleAuthor.modify()->LongIntPtr = O.DefaultStyleAuthorVal;
 }

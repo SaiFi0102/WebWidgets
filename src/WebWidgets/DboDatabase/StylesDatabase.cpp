@@ -1,8 +1,6 @@
 #include "DboDatabase/StylesDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include "Application/WServer.h"
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 StylesDatabase::StylesDatabase(DboDatabaseManager *Manager)
 	: AbstractDboDatabase(Manager)
@@ -10,14 +8,12 @@ StylesDatabase::StylesDatabase(DboDatabaseManager *Manager)
 
 void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
 	//Copy into temporary objects and reset the original
-	StyleMaps stylemap;
-	stylemap.swap(StyleMap);
+	StyleContainers stylecontainer;
+	stylecontainer.swap(StyleContainer);
 
 	TemplateMaps templatemap;
 	templatemap.swap(TemplateMap);
@@ -46,7 +42,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 			itr != StyleCollection.end();
 			++itr)
 		{
-			StyleMap[std::make_pair((*itr)->Name(), (*itr)->AuthorPtr().id())] = boost::shared_ptr<StyleData>(new StyleData(*itr));
+			StyleContainer.insert(boost::shared_ptr<StyleData>(new StyleData(*itr)));
 		}
 
 		//Templates
@@ -85,7 +81,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	}
 	catch(...)
 	{
-		StyleMap.swap(stylemap);
+		StyleContainer.swap(stylecontainer);
 		TemplateMap.swap(templatemap);
 		StyleTemplateContainer.swap(styletemplatecontainer);
 		StyleCssRuleMap.swap(stylecssrulemap);
@@ -97,27 +93,35 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
-	lock.unlock();
-	Wt::log("info") << Name() << ": " << CountStyles() << " Styles, " << CountTemplates() << " Templates, "
-		<< CountStyleTemplates() << " Styled Templates, " << CountStyleCssRules() << " Style CSS Rules and "
-		<< CountTemplateCssRules() << " Template CSS Rules successfully loaded in " << GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << StyleContainer.size() << " Styles, " << TemplateMap.size() << " Templates, "
+		<< StyleTemplateContainer.size() << " Styled Templates, " << StyleCssRuleMap.size() << " Style CSS Rules and "
+		<< TemplateCssRuleMap.size() << " Template CSS Rules successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
+boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(long long StyleId) const
 {
-	READ_LOCK;
-	StyleMaps::const_iterator itr = StyleMap.find(std::make_pair(Name, AuthorId));
-	if(itr == StyleMap.end())
+	ReadLock lock(Manager());
+	StyleById::const_iterator itr = StyleContainer.get<ById>().find(StyleId);
+	if(itr == StyleContainer.get<ById>().end())
 	{
 		return boost::shared_ptr<const StyleData>();
 	}
-	return itr->second;
+	return *itr;
 }
-
+boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
+{
+	ReadLock lock(Manager());
+	StyleByNameAuthor::const_iterator itr = StyleContainer.get<ByNameAuthor>().find(boost::make_tuple(Name, AuthorId));
+	if(itr == StyleContainer.get<ByNameAuthor>().end())
+	{
+		return boost::shared_ptr<const StyleData>();
+	}
+	return *itr;
+}
 
 boost::shared_ptr<const TemplateData> StylesDatabase::GetTemplatePtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	TemplateMaps::const_iterator itr = TemplateMap.find(std::make_pair(Name, ModuleId));
 	if(itr == TemplateMap.end())
 	{
@@ -129,9 +133,9 @@ boost::shared_ptr<const TemplateData> StylesDatabase::GetTemplatePtr(const std::
 
 boost::shared_ptr<const StyleTemplateData> StylesDatabase::GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
 {
-	READ_LOCK;
-	StyleTemplateContainers::nth_index<0>::type::const_iterator itr = StyleTemplateContainer.get<0>().find(boost::make_tuple(TemplateName, ModuleId, StyleName, StyleAuthorId));
-	if(itr == StyleTemplateContainer.get<0>().end())
+	ReadLock lock(Manager());
+	StyleTemplateType::const_iterator itr = StyleTemplateContainer.find(boost::make_tuple(TemplateName, ModuleId, StyleName, StyleAuthorId));
+	if(itr == StyleTemplateContainer.end())
 	{
 		return boost::shared_ptr<const StyleTemplateData>();
 	}
@@ -164,7 +168,7 @@ bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long l
 
 StylesDatabase::StyleCssRuleList StylesDatabase::GetStyleCssRules(const std::string &StyleName, long long AuthorId)
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	StyleCssRuleMaps::const_iterator itr = StyleCssRuleMap.find(std::make_pair(StyleName, AuthorId));
 	if(itr == StyleCssRuleMap.end())
 	{
@@ -175,7 +179,7 @@ StylesDatabase::StyleCssRuleList StylesDatabase::GetStyleCssRules(const std::str
 
 StylesDatabase::TemplateCssRuleList StylesDatabase::GetTemplateCssRules(const std::string &TemplateName, long long ModuleId)
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	TemplateCssRuleMaps::const_iterator itr = TemplateCssRuleMap.find(std::make_pair(TemplateName, ModuleId));
 	if(itr == TemplateCssRuleMap.end())
 	{
@@ -184,122 +188,45 @@ StylesDatabase::TemplateCssRuleList StylesDatabase::GetTemplateCssRules(const st
 	return itr->second;
 }
 
-// std::string StylesDatabase::GetStyleSheetFileName()
-// {
-// 	//READ_LOCK;
-// 	return "style.css";
-// }
-// 
-// std::string StylesDatabase::GetStyleSheetFolder(const std::string &StyleName, long long StyleAuthorId)
-// {
-// 	return StyleName + "_" + boost::lexical_cast<std::string>(StyleAuthorId) + "/";
-// }
-// 
-// std::string StylesDatabase::GetTemplateStyleSheetFileName(const std::string &TemplateName, long long ModuleId)
-// {
-// 	//READ_LOCK;
-// 	return "template_" + TemplateName + "_" + boost::lexical_cast<std::string>(ModuleId) + ".css";
-// }
-
-// void StylesDatabase::CreateCssStyleSheets()
-// {
-// 	Wt::WApplication *app = Wt::WApplication::instance();
-// 
-// 	//Style CssStyleSheets
-// 	for(StyleCssRuleMaps::const_iterator itr = StyleCssRuleMap.begin();
-// 		itr != StyleCssRuleMap.end();
-// 		++itr)
-// 	{
-// 		if(itr->second.empty())
-// 		{
-// 			continue;
-// 		}
-// 
-// 		//Create and open folder and file
-// 		boost::filesystem::path FileName;
-// 		if(app)
-// 		{
-// 			FileName = app->docRoot();
-// 		}
-// 		FileName /= _Server.GetConfigurations()->GetStr("StylesURL", ModulesDatabase::Styles, "/styles") + "/" + StylesDatabase::GetStyleSheetFolder(itr->first.first, itr->first.second) + StylesDatabase::GetStyleSheetFileName();
-// 		if(!FileName.is_absolute()) FileName = boost::filesystem::absolute(FileName);
-// 
-// 		boost::filesystem::create_directories(FileName);
-// 		std::ofstream CssFile(FileName.string(), std::ios::trunc);
-// 
-// 		//Write to file
-// 		for(StyleCssRuleVector::const_iterator i = itr->second.begin();
-// 			i != itr->second.end();
-// 			++i)
-// 		{
-// 			CssFile << (*i)->Selector << " { "
-// 				<< (*i)->Declarations << " }" << std::endl;
-// 		}
-// 		CssFile.close();
-// 	}
-// 	
-// 	//Template CssStyleSheets
-// 	for(TemplateCssRuleMaps::const_iterator itr = TemplateCssRuleMap.begin();
-// 		itr != TemplateCssRuleMap.end();
-// 		++itr)
-// 	{
-// 		if(itr->second.empty())
-// 		{
-// 			continue;
-// 		}
-// 
-// 		//Create and open folder and file
-// 		boost::filesystem::path FileName;
-// 		if(app)
-// 		{
-// 			FileName = app->docRoot();
-// 		}
-// 		FileName /= _Server.GetConfigurations()->GetStr("StylesURL", ModulesDatabase::Styles, "/styles") + "/" + StylesDatabase::GetTemplateStyleSheetFileName(itr->first.first, itr->first.second);
-// 		if(!FileName.is_absolute()) FileName = boost::filesystem::absolute(FileName);
-// 
-// 		boost::filesystem::create_directories(FileName);
-// 		std::ofstream CssFile(FileName.string(), std::ios::trunc);
-// 
-// 		//Write to file
-// 		for(TemplateCssRuleVector::const_iterator i = itr->second.begin();
-// 			i != itr->second.end();
-// 			++i)
-// 		{
-// 			CssFile << (*i)->Selector << " { "
-// 				<< (*i)->Declarations << " }" << std::endl;
-// 		}
-// 		CssFile.close();
-// 	}
-// }
+boost::shared_ptr<const StyleData> StylesDatabase::FirstStylePtr() const
+{
+	ReadLock lock(Manager());
+	StyleById::const_iterator itr = StyleContainer.get<ById>().begin();
+	if(itr == StyleContainer.get<ById>().end())
+	{
+		return boost::shared_ptr<const StyleData>();
+	}
+	return *itr;
+}
 
 long long StylesDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }
 std::size_t StylesDatabase::CountStyles() const
 {
-	READ_LOCK;
-	return StyleMap.size();
+	ReadLock lock(Manager());
+	return StyleContainer.size();
 }
 std::size_t StylesDatabase::CountTemplates() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return TemplateMap.size();
 }
 std::size_t StylesDatabase::CountStyleTemplates() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return StyleTemplateContainer.size();
 }
 std::size_t StylesDatabase::CountStyleCssRules() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return StyleCssRuleMap.size();
 }
 std::size_t StylesDatabase::CountTemplateCssRules() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return TemplateCssRuleMap.size();
 }
 
@@ -334,5 +261,4 @@ void StylesDatabase::Load(Wt::Dbo::Session &DboSession)
 void StylesDatabase::Reload(Wt::Dbo::Session &DboSession)
 {
 	FetchAll(DboSession);
-	Server()->RefreshStyleStrings();
 }

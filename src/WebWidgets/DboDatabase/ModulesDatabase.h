@@ -3,6 +3,7 @@
 
 #include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Module.h"
+#include <boost/unordered_map.hpp>
 
 class ModulesDatabase : public AbstractDboDatabase
 {

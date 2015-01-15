@@ -1,9 +1,7 @@
 #include "DboDatabase/PagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include "Application/WServer.h"
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
 	: AbstractDboDatabase(Manager)
@@ -11,8 +9,6 @@ PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
 
 void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
@@ -46,13 +42,13 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
-	lock.unlock();
-	Wt::log("info") << Name() << ": " << CountPages() << " Page entires successfully loaded in " << GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << PageContainer.size() << " Page entires successfully loaded in "
+		<< LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const PageData> PagesDatabase::GetPtr(long long PageId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	PageById::const_iterator itr = PageContainer.get<ById>().find(PageId);
 	if(itr == PageContainer.get<ById>().end())
 	{
@@ -62,7 +58,7 @@ boost::shared_ptr<const PageData> PagesDatabase::GetPtr(long long PageId) const
 }
 boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageName, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	PageByKey::const_iterator itr = PageContainer.get<ByKey>().find(boost::make_tuple(PageName, ModuleId));
 	if(itr == PageContainer.get<ByKey>().end())
 	{
@@ -73,6 +69,7 @@ boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageN
 
 boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
 {
+	ReadLock lock(Manager());
 	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
 	if(AccessHostNamePtr && AccessHostNamePtr->DefaultPageId != -1)
 	{
@@ -84,12 +81,12 @@ boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &
 
 std::size_t PagesDatabase::CountPages() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return PageContainer.size();
 }
 long long PagesDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }
 
@@ -124,5 +121,4 @@ void PagesDatabase::Load(Wt::Dbo::Session &DboSession)
 void PagesDatabase::Reload(Wt::Dbo::Session &DboSession)
 {
 	FetchAll(DboSession);
-	Server()->RefreshPageStrings();
 }

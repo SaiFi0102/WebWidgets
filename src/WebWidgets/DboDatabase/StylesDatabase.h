@@ -6,10 +6,36 @@
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/unordered_map.hpp>
 
 class StylesDatabase : public AbstractDboDatabase
 {
 	protected:
+		struct Style_key_id
+		{
+			typedef long long result_type;
+			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			{
+				return StylePtr->id();
+			}
+		};
+		struct Style_key_Name
+		{
+			typedef std::string result_type;
+			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			{
+				return StylePtr->Name();
+			}
+		};
+		struct Style_key_AuthorId
+		{
+			typedef long long result_type;
+			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			{
+				return StylePtr->AuthorId();
+			}
+		};
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
@@ -43,6 +69,29 @@ class StylesDatabase : public AbstractDboDatabase
 			}
 		};
 
+		struct ById{};
+		struct ByNameAuthor{};
+		typedef boost::multi_index_container<
+			boost::shared_ptr<StyleData>,
+
+			boost::multi_index::indexed_by<
+				//Index by Stlye id
+				boost::multi_index::ordered_unique<
+					boost::multi_index::tag<ById>,
+					Style_key_id
+				>,
+				//Index by Style Name and Author ID
+				boost::multi_index::hashed_unique<
+					boost::multi_index::tag<ByNameAuthor>,
+					boost::multi_index::composite_key<
+						boost::shared_ptr<StyleData>,
+						Style_key_Name,
+						Style_key_AuthorId
+					>
+				>
+			>
+		> StyleContainers;
+
 		typedef boost::multi_index_container<
 			boost::shared_ptr<StyleTemplateData>,
 
@@ -60,6 +109,10 @@ class StylesDatabase : public AbstractDboDatabase
 			>
 		> StyleTemplateContainers;
 
+		typedef StyleContainers::index<ById>::type StyleById;
+		typedef StyleContainers::index<ByNameAuthor>::type StyleByNameAuthor;
+		typedef StyleTemplateContainers::nth_index<0>::type StyleTemplateType;
+
 		typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleList;
 		typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 
@@ -71,6 +124,7 @@ class StylesDatabase : public AbstractDboDatabase
 	public:
 		StylesDatabase(DboDatabaseManager *Manager);
 
+		boost::shared_ptr<const StyleData> GetStylePtr(long long StyleId) const;
 		boost::shared_ptr<const StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
 		boost::shared_ptr<const TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
 		boost::shared_ptr<const StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
@@ -78,6 +132,8 @@ class StylesDatabase : public AbstractDboDatabase
 		bool GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const;
 		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;
 		
+		boost::shared_ptr<const StyleData> FirstStylePtr() const;
+
 		StyleCssRuleList GetStyleCssRules(const std::string &StyleName, long long AuthorId);
 		TemplateCssRuleList GetTemplateCssRules(const std::string &TemplateName, long long ModuleId);
 
@@ -97,7 +153,7 @@ class StylesDatabase : public AbstractDboDatabase
 
 		virtual bool IsVital() const { return true; }
 
-		StyleMaps StyleMap;
+		StyleContainers StyleContainer;
 		TemplateMaps TemplateMap;
 		StyleTemplateContainers StyleTemplateContainer;
 		StyleCssRuleMaps StyleCssRuleMap;

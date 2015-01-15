@@ -37,10 +37,6 @@ struct InstalledObjects
 	Wt::Dbo::ptr<LanguageAccessPath> EnglishAccessPath;
 	Wt::Dbo::ptr<PageAccessPath> HomePageAccessPath;
 	Wt::Dbo::ptr<PageAccessPath> SiteMapAccessPath;
-	
-	//Ptrs to gather IDs from after insertion
-	Wt::Dbo::ptr<ConfigurationString> DefaultStyleNameVal;
-	Wt::Dbo::ptr<ConfigurationLongInt> DefaultStyleAuthorVal;
 };
 
 class DboInstaller

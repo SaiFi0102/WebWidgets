@@ -5,7 +5,7 @@
 ConfigurationsCache::ConfigurationsCache(ConfigurationsDatabase *Database)
 	: _Database(Database)
 {
-	ReadLock lock(_Database);
+	ReadLock lock(_Database->Manager());
 	BoolMap = BoolMaps(Database->BoolMap);
 	DoubleMap = DoubleMaps(Database->DoubleMap);
 	EnumMap = EnumMaps(Database->EnumMap);

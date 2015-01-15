@@ -4,12 +4,12 @@
 #include <boost/thread/shared_mutex.hpp>
 #include <boost/thread/lock_types.hpp>
 
-class AbstractDboDatabase;
+class DboDatabaseManager;
 
 class ReadLock
 {
 	public:
-		ReadLock(AbstractDboDatabase *Database);
+		ReadLock(DboDatabaseManager *Manager);
 		void Unlock();
 
 	protected:

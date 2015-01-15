@@ -1,8 +1,6 @@
 #include "DboDatabase/ConfigurationsDatabase.h"
+#include "DboDatabase/ReadLock.h"
 #include <Wt/WLogger>
-
-#define READ_LOCK boost::shared_lock<boost::shared_mutex> lock(mutex)
-#define WRITE_LOCK boost::unique_lock<boost::shared_mutex> lock(mutex)
 
 ConfigurationsDatabase::ConfigurationsDatabase(DboDatabaseManager *Manager)
 : AbstractDboDatabase(Manager)
@@ -10,8 +8,6 @@ ConfigurationsDatabase::ConfigurationsDatabase(DboDatabaseManager *Manager)
 
 void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
-	WRITE_LOCK;
-
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
@@ -137,13 +133,12 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
-	lock.unlock();
-	Wt::log("info") << Name() << ": " << CountConfigurations() << " entries successfully loaded in " << GetLoadDurationinMS() << " ms";
+	Wt::log("info") << Name() << ": " << Count << " entries successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const ConfigurationBoolData> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	BoolMaps::const_iterator itr = BoolMap.find(std::make_pair(ModuleId, Name));
 	if(itr == BoolMap.end())
 	{
@@ -154,7 +149,7 @@ boost::shared_ptr<const ConfigurationBoolData> ConfigurationsDatabase::GetBoolPt
 
 boost::shared_ptr<const ConfigurationDoubleData> ConfigurationsDatabase::GetDoublePtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	DoubleMaps::const_iterator itr = DoubleMap.find(std::make_pair(ModuleId, Name));
 	if(itr == DoubleMap.end())
 	{
@@ -165,7 +160,7 @@ boost::shared_ptr<const ConfigurationDoubleData> ConfigurationsDatabase::GetDoub
 
 boost::shared_ptr<const ConfigurationEnumData> ConfigurationsDatabase::GetEnumPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	EnumMaps::const_iterator itr = EnumMap.find(std::make_pair(ModuleId, Name));
 	if(itr == EnumMap.end())
 	{
@@ -176,7 +171,7 @@ boost::shared_ptr<const ConfigurationEnumData> ConfigurationsDatabase::GetEnumPt
 
 boost::shared_ptr<const ConfigurationFloatData> ConfigurationsDatabase::GetFloatPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	FloatMaps::const_iterator itr = FloatMap.find(std::make_pair(ModuleId, Name));
 	if(itr == FloatMap.end())
 	{
@@ -187,7 +182,7 @@ boost::shared_ptr<const ConfigurationFloatData> ConfigurationsDatabase::GetFloat
 
 boost::shared_ptr<const ConfigurationIntData> ConfigurationsDatabase::GetIntPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	IntMaps::const_iterator itr = IntMap.find(std::make_pair(ModuleId, Name));
 	if(itr == IntMap.end())
 	{
@@ -198,7 +193,7 @@ boost::shared_ptr<const ConfigurationIntData> ConfigurationsDatabase::GetIntPtr(
 
 boost::shared_ptr<const ConfigurationLongIntData> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	LongIntMaps::const_iterator itr = LongIntMap.find(std::make_pair(ModuleId, Name));
 	if(itr == LongIntMap.end())
 	{
@@ -209,7 +204,7 @@ boost::shared_ptr<const ConfigurationLongIntData> ConfigurationsDatabase::GetLon
 
 boost::shared_ptr<const ConfigurationStringData> ConfigurationsDatabase::GetStringPtr(const std::string &Name, long long ModuleId) const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	StringMaps::const_iterator itr = StringMap.find(std::make_pair(ModuleId, Name));
 	if(itr == StringMap.end())
 	{
@@ -304,13 +299,13 @@ std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long Mo
 
 long long ConfigurationsDatabase::GetLoadDurationinMS() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return LoadDuration.total_milliseconds();
 }
 
 std::size_t ConfigurationsDatabase::CountConfigurations() const
 {
-	READ_LOCK;
+	ReadLock lock(Manager());
 	return Count;
 }
 
