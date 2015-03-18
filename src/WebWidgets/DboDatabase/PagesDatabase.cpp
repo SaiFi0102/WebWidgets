@@ -22,12 +22,28 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		Wt::Dbo::Transaction transaction(DboSession);
 		PageCollections PageCollection = DboSession.find<Page>();
 
-		//All Modules
 		for(PageCollections::const_iterator itr = PageCollection.begin();
 			itr != PageCollection.end();
 			++itr)
 		{
-			PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
+			PageById::iterator i = pagecontainer.find(itr->id());
+			if(i != pagecontainer.end())
+			{
+				PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)), i->PageHandler));
+				pagecontainer.erase(i);
+			}
+			else
+			{
+				PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
+			}
+		}
+
+		//Delete if any AbstractPage left
+		for(PageById::iterator itr = pagecontainer.begin();
+			itr != pagecontainer.end();
+			++itr)
+		{
+			delete itr->PageHandler;
 		}
 
 		transaction.commit();

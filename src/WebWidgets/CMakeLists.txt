@@ -8,6 +8,7 @@ FILE(GLOB_RECURSE sources_dbo Dbo/*.cpp Dbo/*.h)
 FILE(GLOB_RECURSE sources_dbodatabase DboDatabase/*.cpp DboDatabase/*.h)
 FILE(GLOB_RECURSE sources_dboinstaller DboInstaller/*.cpp DboInstaller/*.h)
 FILE(GLOB_RECURSE sources_application Application/*.cpp Application/*.h)
+FILE(GLOB_RECURSE sources_pages Pages/*.cpp Pages/*.h)
 FILE(GLOB_RECURSE sources_widgets Widgets/*.cpp Widgets/*.h)
 FILE(GLOB sources_localdir *.cpp *.h)
 #Group File
@@ -17,6 +18,7 @@ SOURCE_GROUP(Dbo FILES ${sources_dbo})
 SOURCE_GROUP(DboDatabase FILES ${sources_dbodatabase})
 SOURCE_GROUP(DboInstaller FILES ${sources_dboinstaller})
 SOURCE_GROUP(Application FILES ${sources_application})
+SOURCE_GROUP(Page FILES ${sources_pages})
 SOURCE_GROUP(Widgets FILES ${sources_widgets})
 SOURCE_GROUP("" FILES ${sources_localdir})
 
@@ -28,6 +30,7 @@ SET(WebWidgets_SRCS
 	${sources_dbodatabase}
 	${sources_dboinstaller}
 	${sources_application}
+	${sources_pages}
 	${sources_widgets}
 	${sources_localdir}
 )
