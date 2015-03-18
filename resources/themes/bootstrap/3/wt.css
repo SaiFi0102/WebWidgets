@@ -138,6 +138,7 @@
 
 .modal-dialog {
   display: block;
+  width: auto;
 }
 
 .modal-dialog .modal-header {
@@ -316,6 +317,31 @@
 }
 
 .Wt-dateedit::-ms-clear {
+  display: none;
+}
+
+/*
+ * WTimeEdit
+ */
+
+.Wt-timeedit {
+  padding-right: 40px;
+  background-image: url('time-edit-button.png');
+  background-position: right top;
+  background-repeat: no-repeat;
+}
+
+.Wt-timeedit:hover {
+  cursor: default;
+  background-position: right -34px;
+}
+
+.Wt-timeedit:active {
+  cursor: default;
+  background-position: right -68px;
+}
+
+.Wt-timeedit::-ms-clear {
   display: none;
 }
 
@@ -1143,4 +1169,15 @@ body.Wt-rtl .Wt-treeview .Wt-ctrl.noexpand {
 
 .Wt-calendar .form-control {
   display: initial;
+}
+
+/*
+ * WResizable
+ */
+
+.modal-dialog.Wt-resizable .modal-content {
+  background-attachment: scroll;
+  background-image: url(../../../resizable.png);
+  background-position: right bottom;
+  background-repeat: no-repeat;
 }

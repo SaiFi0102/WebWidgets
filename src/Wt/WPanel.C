@@ -57,7 +57,7 @@ WPanel::WPanel(WContainerWidget *parent)
      """}"
      """var c = self.lastChild;"
      """var t = c.previousSibling;"
-     """if (t && t.className == 'titlebar')"
+     """if (t)"
      ""  "h -= t.offsetHeight;"
      """h -= 8;" // padding
      """if (defined && h > 0) {"
@@ -165,6 +165,11 @@ void WPanel::setCollapsible(bool on)
 void WPanel::toggleCollapse()
 {
   setCollapsed(!isCollapsed());
+
+  if(isCollapsed())
+    collapsed_.emit();
+  else
+    expanded_.emit();
 }
 
 void WPanel::setCollapsed(bool on)

@@ -473,9 +473,13 @@ WT_DECLARE_WT_MEMBER
 
 	     if (debug)
 	       console.log("measure " + dir + " "
-	 		   + item.id + ': ' + item.ps[0] + ',' + item.ps[1]
+	 		   + item.id +
+			   (item.w.className ? ' (' + item.w.className + '): '
+			   : ': ') +
+			    item.ps[0] + ',' + item.ps[1]
 			   + ',' + item.dirty + ', set: ['
-			   + item.set[0] + ',' + item.set[1] + ']');
+			   + item.set[0] + ',' + item.set[1] + '], sc: ['
+			   + item.sc[0] + ',' + item.sc[1] + ']');
 
 	     if (item.dirty) {
 	       var wMinimum;
@@ -924,7 +928,8 @@ WT_DECLARE_WT_MEMBER
 	      */
 	     var minSize, ieCSize;
 
-	     if ((WT.hasTag(container, "TD") || WT.hasTag(container, "TH"))
+	     if ((WT.hasTag(container, "TD") || WT.hasTag(container, "TH") ||
+		  $(container.parentNode).hasClass('Wt-domRoot'))
 		 && !(WT.isIE && !WT.isIElt9)) {
 	       minSize = 0;
 	       ieCSize = 1;
@@ -1340,7 +1345,7 @@ WT_DECLARE_WT_MEMBER
 		 if (item.set)
 		   item.set[dir] = false;
 	       } else if (dir == HORIZONTAL)
-		 setCss(w, DC.size, item.fs[dir] + 'px');
+		 setCss(w, DC.size, (item.fs[dir] - m) + 'px');
 	     }
 
 	     off = left;

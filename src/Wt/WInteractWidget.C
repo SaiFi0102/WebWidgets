@@ -7,6 +7,7 @@
 #include "Wt/WApplication"
 #include "Wt/WEnvironment"
 #include "Wt/WFormWidget"
+#include "Wt/WPopupWidget"
 #include "Wt/WServer"
 #include "Wt/WTheme"
 
@@ -57,12 +58,14 @@ WInteractWidget::~WInteractWidget()
 
 void WInteractWidget::setPopup(bool popup)
 {
-  if (popup) {
+  if (popup && wApp->environment().ajax()) {
     clicked().connect
       ("function(o,e) { "
-       WT_CLASS ".WPopupWidget.popupClicked = o;"
-       "$(document).trigger('click', e);"
-       WT_CLASS ".WPopupWidget.popupClicked = null;"
+       " if (" WT_CLASS ".WPopupWidget) {"
+           WT_CLASS ".WPopupWidget.popupClicked = o;"
+           "$(document).trigger('click', e);"
+           WT_CLASS ".WPopupWidget.popupClicked = null;"
+       " }"
        "}");
     clicked().preventPropagation();
   }
@@ -347,7 +350,8 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
     if (mouseDrag) {
       actions.push_back
 	(DomElement::EventAction(WT_CLASS ".buttons",
-				 mouseDrag->javaScript(),
+				 mouseDrag->javaScript()
+				 + WT_CLASS ".drag(e);",
 				 mouseDrag->encodeCmd(),
 				 mouseDrag->isExposedSignal()));
       mouseDrag->updateOk();
@@ -374,6 +378,9 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
 
     js << CheckDisabled;
 
+    if (mouseDrag)
+      js << "if (" WT_CLASS ".dragged()) return;";
+
     if (mouseDblClick && mouseDblClick->needsUpdate(all)) {
       /*
        * Click: if timer is running:
@@ -396,11 +403,8 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
 	}
       }
 
-      js << "if(o.wtClickTimeout) {"
-	       << "clearTimeout(o.wtClickTimeout);"
-	       << "o.wtClickTimeout = null;";
-
-      js << mouseDblClick->javaScript();
+      js << "if(" WT_CLASS ".isDblClick(o, e)) {"
+	 << mouseDblClick->javaScript();
 
       if (mouseDblClick->isExposedSignal())
 	js << app->javaScriptClass()
@@ -413,8 +417,9 @@ void WInteractWidget::updateDom(DomElement& element, bool all)
 	"}else{"
 	"""if (" WT_CLASS ".isIElt9 && document.createEventObject) "
 	""  "e = document.createEventObject(e);"
+	"""o.wtE1 = e;"
 	"""o.wtClickTimeout = setTimeout(function() {"
-	""   "o.wtClickTimeout = null;";
+	""   "o.wtClickTimeout = null; o.wtE1 = null;";
 
       if (mouseClick) {
 	js << mouseClick->javaScript();

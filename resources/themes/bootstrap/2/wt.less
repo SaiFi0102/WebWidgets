@@ -277,6 +277,30 @@
 }
 
 /*
+ * WTimeEdit
+ */
+.Wt-timeedit {
+    background-image: url('time-edit-button.png');
+    background-repeat: no-repeat;
+    background-position: right top;
+    padding-right: 40px;
+
+    &:hover {
+        cursor: default;
+        background-position: right -34px;
+    }
+
+    &:active {
+        cursor: default;
+        background-position: right -68px;
+    }
+}
+
+.Wt-timeedit::-ms-clear {
+    display:none
+}
+
+/*
  * WDateEdit
  */
 .Wt-dateedit {
@@ -1048,4 +1072,14 @@ body.Wt-rtl {
 .Wt-stack.Wt-animated {
     overflow: hidden;
     position: relative;
+}
+
+/*
+ * WResizable
+ */
+.Wt-resizable, .Wt-resizable.modal .modal-footer {
+    background-image: url(../../../resizable.png);
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    background-position: right bottom;
 }

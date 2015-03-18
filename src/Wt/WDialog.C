@@ -14,6 +14,7 @@
 #include "Wt/WText"
 #include "Wt/WTheme"
 #include "Wt/Utils"
+#include "Wt/WGlobal"
 
 #include "Resizable.h"
 #include "WebController.h"
@@ -66,6 +67,8 @@ public:
 
     if (dialogs_.empty())
       delete this;
+    else
+      scheduleRender();
   }
 
   virtual bool isExposed(WWidget *w) {
@@ -84,6 +87,13 @@ public:
 
   bool isTopDialogRendered(WDialog *dialog) const {
     return dialog->id() == topDialogId_;
+  }
+
+  void bringToFront(WDialog *dialog) {
+    if (Utils::erase(dialogs_, dialog)) {
+      dialogs_.push_back(dialog);
+      scheduleRender();
+    }
   }
 
 protected:
@@ -275,6 +285,7 @@ void WDialog::create()
    */
   if (app->environment().ajax()) {
     setAttributeValue("style", "visibility: hidden");
+    impl_->setMargin(0, All);
 
     /*
      * This is needed for animations only, but setting absolute or
@@ -397,8 +408,7 @@ void WDialog::render(WFlags<RenderFlag> flags)
   }
 
   if (!isModal())
-    titleBar()->clicked()
-      .connect("jQuery.data(" + jsRef() + ", 'obj').bringToFront");
+    impl_->mouseWentDown().connect(this, &WDialog::bringToFront);
 
   if ( (flags & RenderFull) && autoFocus_)
     impl_->setFirstFocus();
@@ -609,7 +619,8 @@ void WDialog::setHidden(bool hidden, const WAnimation& animation)
 void WDialog::positionAt(const WWidget *widget, Orientation orientation)
 {
   setPositionScheme(Absolute);
-  setOffsets(0, Left | Top);
+  if (wApp->environment().javaScript())
+    setOffsets(0, Left | Top);
   WPopupWidget::positionAt(widget, orientation);
 }
 
@@ -625,6 +636,16 @@ DialogCover *WDialog::cover()
       return new DialogCover();
   } else
     return 0;
+}
+
+void WDialog::bringToFront(const WMouseEvent &e)
+{
+  if (e.button() == WMouseEvent::LeftButton &&
+      e.modifiers() == NoModifier) {
+    doJavaScript("jQuery.data(" + jsRef() + ", 'obj').bringToFront()");
+    DialogCover *c = cover();
+    c->bringToFront(this);
+  }
 }
 
 }
