@@ -2143,6 +2143,9 @@ protected:
    * @param errorText the error will usually be in json format.
    */
   virtual void handleJavaScriptError(const std::string& errorText);
+
+  std::string oldInternalPath_;
+
 private:
   Signal< ::int64_t > requestTooLarge_;
 
