@@ -8,29 +8,7 @@ AccessPathsDatabase::AccessPathsDatabase(DboDatabaseManager *Manager)
 
 void AccessPathsDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 
 	FetchAll(DboSession);
 }
@@ -40,20 +18,16 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
-	//Copy into temporary objects and reset the original
+	//Insert into temporary objects first
 	AccessHostNameContainers accesshostnamecontainer;
-	accesshostnamecontainer.swap(AccessHostNameContainer);
-
 	PageAccessPathContainers pageaccesspathcontainer;
-	pageaccesspathcontainer.swap(PageAccessPathContainer);
-
 	LanguageAccessPathContainers languageaccesspathcontainer;
-	languageaccesspathcontainer.swap(LanguageAccessPathContainer);
 
-	//Strong transaction like exception safety
 	AccessHostNameCollections AccessHostNameCollection;
 	PageAccessPathCollections PageAccessPathCollection;
 	LanguageAccessPathCollections LanguageAccessPathCollection;
+
+	//CHAR_LENGTH is not supported in all database backends
 	try
 	{
 		Wt::Dbo::Transaction transaction(DboSession);
@@ -64,68 +38,52 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	}
 	catch(Wt::Dbo::Exception &)
 	{
-		try
-		{
-			Wt::Dbo::Transaction transaction(DboSession);
-			LanguageAccessPathCollection = DboSession.find<LanguageAccessPath>().orderBy("LENGTH(\"InternalPath\") ASC");
-			AccessHostNameCollection = DboSession.find<AccessHostName>();
-			PageAccessPathCollection = DboSession.find<PageAccessPath>();
-			transaction.commit();
-		}
-		catch(...)
-		{
-			AccessHostNameContainer.swap(accesshostnamecontainer);
-			PageAccessPathContainer.swap(pageaccesspathcontainer);
-			LanguageAccessPathContainer.swap(languageaccesspathcontainer);
-			throw;
-		}
-	}
-
-	try
-	{
-		//All AccessPaths
 		Wt::Dbo::Transaction transaction(DboSession);
-
-		for(AccessHostNameCollections::const_iterator itr = AccessHostNameCollection.begin();
-			itr != AccessHostNameCollection.end();
-			++itr)
-		{
-			AccessHostNameContainer.insert(boost::shared_ptr<AccessHostNameData>(new AccessHostNameData(*itr)));
-		}
-		for(PageAccessPathCollections::const_iterator itr = PageAccessPathCollection.begin();
-			itr != PageAccessPathCollection.end();
-			++itr)
-		{
-			PageAccessPathContainer.insert(boost::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
-		}
-		for(LanguageAccessPathCollections::const_iterator itr = LanguageAccessPathCollection.begin();
-			itr != LanguageAccessPathCollection.end();
-			++itr)
-		{
-			LanguageAccessPathContainer.insert(boost::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
-		}
-
-		if(AccessHostNameContainer.find("") == AccessHostNameContainer.end())
-		{
-			Wt::log("error") << Name() << ": Global AccessHostName was not found. The website may not function properly without it";
-
-			AccessHostNameType::const_iterator pitr = accesshostnamecontainer.find("");
-			if(pitr != accesshostnamecontainer.end())
-			{
-				AccessHostNameContainer.insert(*pitr);
-				Wt::log("warn") << Name() << ": Using previously loaded global AccessHostName. The website may not function after restarting unless global AccessHostName is restored";
-			}
-		}
-
+		LanguageAccessPathCollection = DboSession.find<LanguageAccessPath>().orderBy("LENGTH(\"InternalPath\") ASC");
+		AccessHostNameCollection = DboSession.find<AccessHostName>();
+		PageAccessPathCollection = DboSession.find<PageAccessPath>();
 		transaction.commit();
 	}
-	catch(...)
+
+	//All AccessPaths/Hostnames
+	Wt::Dbo::Transaction transaction(DboSession);
+
+	for(AccessHostNameCollections::const_iterator itr = AccessHostNameCollection.begin();
+		itr != AccessHostNameCollection.end();
+		++itr)
 	{
-		AccessHostNameContainer.swap(accesshostnamecontainer);
-		PageAccessPathContainer.swap(pageaccesspathcontainer);
-		LanguageAccessPathContainer.swap(languageaccesspathcontainer);
-		throw;
+		accesshostnamecontainer.insert(boost::shared_ptr<AccessHostNameData>(new AccessHostNameData(*itr)));
 	}
+	for(PageAccessPathCollections::const_iterator itr = PageAccessPathCollection.begin();
+		itr != PageAccessPathCollection.end();
+		++itr)
+	{
+		PageAccessPathContainer.insert(boost::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
+	}
+	for(LanguageAccessPathCollections::const_iterator itr = LanguageAccessPathCollection.begin();
+		itr != LanguageAccessPathCollection.end();
+		++itr)
+	{
+		LanguageAccessPathContainer.insert(boost::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
+	}
+
+	//If global access hostname not found
+	if(accesshostnamecontainer.find("") == accesshostnamecontainer.end())
+	{
+		Wt::log("error") << Name() << ": Global AccessHostName was not found. The website may not function properly without it";
+
+		AccessHostNameType::const_iterator pitr = AccessHostNameContainer.find("");
+		if(pitr != AccessHostNameContainer.end())
+		{
+			accesshostnamecontainer.insert(*pitr);
+			Wt::log("warn") << Name() << ": Using previously loaded global AccessHostName. The website may not function after restarting unless global AccessHostName is restored";
+		}
+	}
+
+	transaction.commit();
+	AccessHostNameContainer.swap(accesshostnamecontainer);
+	PageAccessPathContainer.swap(pageaccesspathcontainer);
+	LanguageAccessPathContainer.swap(languageaccesspathcontainer);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();

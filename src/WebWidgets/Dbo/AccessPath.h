@@ -18,6 +18,7 @@ class AccessHostName
 
 		PageAccessPathCollections PageAccessPathCollection;
 		LanguageAccessPathCollections LanguageAccessPathCollection;
+		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
 
 		AccessHostName(const std::string &HostName = "")
 			: _HostName(HostName), MobileMode(false)
@@ -33,6 +34,7 @@ class AccessHostName
 			Wt::Dbo::field(a, MobileInternalPath, "MobileInternalPath", 255);
 			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
 			Wt::Dbo::hasMany(a, LanguageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
+			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnAccessHost");
 		}
 		static const char *TableName()
 		{
@@ -66,7 +68,7 @@ class BaseAccessPath
 {
 	public:
 		std::string InternalPath() const { return _InternalPath; }
-		Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr() const{ return _AccessHostNamePtr; }
+		Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr() const { return _AccessHostNamePtr; }
 
 		BaseAccessPath(Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr, const std::string &InternalPath)
 			: _AccessHostNamePtr(AccessHostNamePtr), _InternalPath(InternalPath)
@@ -81,6 +83,8 @@ class PageAccessPath : public BaseAccessPath
 {
 	public:
 		Wt::Dbo::ptr<Page> PagePtr;
+		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
+		//NavigationMenuItemCollections PageMenuItemCollection;
 
 		Wt::Dbo::ptr<PageAccessPath> ParentAccessPathPtr() const { return _ParentAccessPathPtr; }
 		PageAccessPathCollections ChildrenAccessPaths;
@@ -96,6 +100,8 @@ class PageAccessPath : public BaseAccessPath
 			Wt::Dbo::belongsTo(a, _AccessHostNamePtr, "Access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
 			Wt::Dbo::field(a, _InternalPath, "InternalPath", 255);
 			Wt::Dbo::belongsTo(a, PagePtr, "Page", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnAccessPath");
+			//Wt::Dbo::hasMany(a, PageMenuItemCollection, Wt::Dbo::ManyToOne, "AccessPath");
 
 			Wt::Dbo::hasMany(a, ChildrenAccessPaths, Wt::Dbo::ManyToOne, "Parent_AccessPath");
 			Wt::Dbo::belongsTo(a, _ParentAccessPathPtr, "Parent_AccessPath", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
@@ -113,16 +119,11 @@ class PageAccessPathData : public DataSurrogateKey
 	public:
 		std::string HostName;
 		std::string InternalPath;
+		std::string FullPath;
 		long long PageId;
 		long long ParentAccessPathId;
 
-		PageAccessPathData(Wt::Dbo::ptr<PageAccessPath> Ptr)
-			: DataSurrogateKey(Ptr.id()),
-			HostName(Ptr->AccessHostNamePtr().id()),
-			InternalPath(Ptr->InternalPath()),
-			PageId(Ptr->PagePtr.id()),
-			ParentAccessPathId(Ptr->ParentAccessPathPtr().id())
-		{ }
+		PageAccessPathData(Wt::Dbo::ptr<PageAccessPath> Ptr);
 };
 
 class LanguageAccessPath : public BaseAccessPath

@@ -23,9 +23,10 @@ class Application : public Wt::WApplication
 		boost::shared_ptr<const AccessHostNameData> AccessHostName() const { return _AccessHostName; }
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
-		std::string InternalPathReserved() const { return _ReservedInternalPath; }
-		Wt::Signal<std::string> &internalPathChanged() { return _InternalPathChanged; }
+		std::string ReservedInternalPath() const { return _ReservedInternalPath; }
+		virtual Wt::Signal<std::string> &internalPathChanged();
 		Wt::Signal<std::string> &internalPathAfterReservedChanged() { return _InternalPathAfterReservedChanged; }
+		Wt::Signal<std::string> &reservedInternalPathChanged() { return _ReservedInternalPathChanged; }
 		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);
 
 		//Localization
@@ -45,6 +46,7 @@ class Application : public Wt::WApplication
 
 		//Paging
 		boost::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
+		boost::shared_ptr<const PageAccessPathData> CurrentPageAccessPath() const { return _PageAccessPathPtr; }
 		Wt::Signal<void> &PageChanged() { return _PageChanged; }
 
 		//Database reload handler
@@ -62,6 +64,7 @@ class Application : public Wt::WApplication
 		void IRIPNoRestrictionHideDef();
 		void IRIPNoRestriction();
 		void InterpretPageInternalPath();
+		std::string OldInternalPathAfterReserved() const;
 
 		//Refresh
 		void SetAccessHostNameDefaults();
@@ -73,6 +76,10 @@ class Application : public Wt::WApplication
 		//Paging
 		void SetPage(boost::shared_ptr<const PageData> PagePtr);
 
+		Wt::WTemplate *_MainTemplate;
+		Wt::WStackedWidget *_PageStack;
+		Wt::WMenu *_PageMenu;
+
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
 		boost::shared_ptr<const AccessHostNameData> _AccessHostName;
@@ -83,6 +90,7 @@ class Application : public Wt::WApplication
 		std::string _OldReservedInternalPath;
 		Wt::Signal<void> _LocaleChanged;
 		Wt::Signal<std::string> _InternalPathChanged;
+		Wt::Signal<std::string> _ReservedInternalPathChanged;
 		Wt::Signal<std::string> _InternalPathAfterReservedChanged;
 
 		bool _MobileVersionFromHostname; //And independent of internal path
@@ -97,6 +105,7 @@ class Application : public Wt::WApplication
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
 		boost::shared_ptr<const PageData> _CurrentPagePtr;
+		boost::shared_ptr<const PageAccessPathData> _PageAccessPathPtr;
 		Wt::Signal<void> _PageChanged;
 
 		ConfigurationsCache *_Configurations;

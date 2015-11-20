@@ -26,10 +26,10 @@ class Configuration
 		ValueTypes _Type;
 		
 	public:
-		std::string Title;
-		std::string Details;
+		Wt::Dbo::ptr<SingularKey> TitleKey;
+		Wt::Dbo::ptr<SingularKey> DetailsKey;
+		Wt::Dbo::ptr<SingularKey> ExpertWarningKey;
 		bool RestartRequired;
-		std::string ExpertWarning;
 
 		//hasOne relations
 		Wt::Dbo::weak_ptr<ConfigurationBool>	BoolPtr;
@@ -58,10 +58,10 @@ class Configuration
 			Wt::Dbo::field(a, _Name, "Name", 50);
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, _Type, "Type");
-			Wt::Dbo::field(a, Title, "Title");
-			Wt::Dbo::field(a, Details, "Details");
+			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(a, ExpertWarningKey, "ExpertWarningKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, RestartRequired, "RestartRequired");
-			Wt::Dbo::field(a, ExpertWarning, "ExpertWarning");
 
 			Wt::Dbo::hasOne(a, BoolPtr, "Configuration");
 			Wt::Dbo::hasOne(a, DoublePtr, "Configuration");
@@ -165,16 +165,16 @@ class ConfigurationDoubleData : public BaseConfigurationDouble, public Configura
 class ConfigurationEnumValue
 {
 	public:
-		std::string Title;
-		std::string Details;
+		Wt::Dbo::ptr<SingularKey> TitleKey;
+		Wt::Dbo::ptr<SingularKey> DetailsKey;
 		int Value;
 
 		Wt::Dbo::ptr<ConfigurationEnum> EnumPtr; //belongsTo
 
 		template<class Action>void persist(Action &a)
 		{
-			Wt::Dbo::field(a, Title, "Title");
-			Wt::Dbo::field(a, Details, "Details");
+			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, Value, "Value");
 
 			Wt::Dbo::belongsTo(a, EnumPtr, "Enum", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);

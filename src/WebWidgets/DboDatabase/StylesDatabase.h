@@ -113,13 +113,7 @@ class StylesDatabase : public AbstractDboDatabase
 		typedef StyleContainers::index<ByNameAuthor>::type StyleByNameAuthor;
 		typedef StyleTemplateContainers::nth_index<0>::type StyleTemplateType;
 
-		typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleList;
-		typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
-
-		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<StyleData> > StyleMaps;
 		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<TemplateData> > TemplateMaps;
-		typedef boost::unordered_map< std::pair<std::string, long long>, StyleCssRuleList > StyleCssRuleMaps;
-		typedef boost::unordered_map< std::pair<std::string, long long>, TemplateCssRuleList > TemplateCssRuleMaps;
 
 	public:
 		StylesDatabase(DboDatabaseManager *Manager);
@@ -133,9 +127,6 @@ class StylesDatabase : public AbstractDboDatabase
 		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;
 		
 		boost::shared_ptr<const StyleData> FirstStylePtr() const;
-
-		StyleCssRuleList GetStyleCssRules(const std::string &StyleName, long long AuthorId);
-		TemplateCssRuleList GetTemplateCssRules(const std::string &TemplateName, long long ModuleId);
 
 		long long GetLoadDurationinMS() const;
 		std::size_t CountStyles() const;
@@ -156,8 +147,8 @@ class StylesDatabase : public AbstractDboDatabase
 		StyleContainers StyleContainer;
 		TemplateMaps TemplateMap;
 		StyleTemplateContainers StyleTemplateContainer;
-		StyleCssRuleMaps StyleCssRuleMap;
-		TemplateCssRuleMaps TemplateCssRuleMap;
+		std::size_t _CountStyleCssRules;
+		std::size_t _CountTemplateCssRules;
 
 		boost::posix_time::time_duration LoadDuration;
 };

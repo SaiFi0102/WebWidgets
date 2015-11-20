@@ -29,7 +29,9 @@ class Style : public BaseStyle
 	public:
 		StyleCssRuleCollections CssRuleCollection;
 		StyleTemplateCollections TemplateCollection;
+		StyleSectionCollections SectionCollection;
 		AccessHostNameCollections AccessHostNameCollection;
+		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
 
 		Style() { }
 		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
@@ -48,24 +50,68 @@ class Style : public BaseStyle
 
 			Wt::Dbo::hasMany(a, CssRuleCollection, Wt::Dbo::ManyToOne, "Style");
 			Wt::Dbo::hasMany(a, TemplateCollection, Wt::Dbo::ManyToOne, "Style");
+			Wt::Dbo::hasMany(a, SectionCollection, Wt::Dbo::ManyToOne, "Style");
 			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "Style");
+			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnStyle");
 		}
 		static const char *TableName()
 		{
 			return "styles";
 		}
 };
-class StyleData : public BaseStyle, public DataSurrogateKey
+
+class BaseStyleSection
 {
-	protected:
-		long long _AuthorId;
-
 	public:
-		StyleData(Wt::Dbo::ptr<Style> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseStyle(*Ptr), _AuthorId(Ptr->AuthorPtr().id())
-		{ }
+		enum VerticalOrientation
+		{
+			Top = 0,
+			Middle = 1,
+			Bottom = 2,
+		};
+		enum HorizontalOrientation
+		{
+			Left = 0,
+			Center = 1,
+			Right = 2
+		};
+		enum SectionType
+		{
+			PageContentSection = 0,
+			FixedSection = 1,
+		};
 
-		long long AuthorId() const { return _AuthorId; }
+		VerticalOrientation VOrientation;
+		HorizontalOrientation HOrientation;
+		SectionType Type;
+		int Order;
+};
+class StyleSection : public BaseStyleSection
+{
+	public:
+		Wt::Dbo::ptr<Style> StylePtr;
+
+		template<class Action>void persist(Action &a)
+		{
+			Wt::Dbo::belongsTo(a, StylePtr, "Style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::field(a, VOrientation, "VOrientation");
+			Wt::Dbo::field(a, HOrientation, "HOrientation");
+			Wt::Dbo::field(a, Type, "Type");
+			Wt::Dbo::field(a, Order, "Order");
+		}
+		static const char *TableName()
+		{
+			return "stylesections";
+		}
+};
+class StyleSectionData : public BaseStyleSection, public DataSurrogateKey
+{
+	public:
+		long long StyleId;
+
+		StyleSectionData(Wt::Dbo::ptr<StyleSection> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseStyleSection(*Ptr), StyleId(Ptr->StylePtr.id())
+		{ }
 };
 
 class BaseStyleCssRule
@@ -98,6 +144,25 @@ class StyleCssRuleData : public BaseStyleCssRule, public DataSurrogateKey
 		StyleCssRuleData(Wt::Dbo::ptr<StyleCssRule> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseStyleCssRule(*Ptr), StyleId(Ptr->StylePtr.id())
 		{ }
+};
+
+class StyleData : public BaseStyle, public DataSurrogateKey
+{
+	protected:
+		long long _AuthorId;
+
+	public:
+		typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleSet;
+		typedef std::set< boost::shared_ptr<const StyleSectionData> > StyleSectionSet;
+
+		StyleCssRuleSet StyleCssRules;
+		StyleSectionSet StyleSections;
+
+		StyleData(Wt::Dbo::ptr<Style> Ptr)
+			: DataSurrogateKey(Ptr.id()), BaseStyle(*Ptr), _AuthorId(Ptr->AuthorPtr().id())
+		{ }
+
+		long long AuthorId() const { return _AuthorId; }
 };
 
 class BaseTemplateCssRule
@@ -184,6 +249,9 @@ class TemplateData : public BaseTemplate, public DataSurrogateKey
 		long long _ModuleId;
 
 	public:
+		typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleSet;
+		TemplateCssRuleSet TemplateCssRules;
+
 		TemplateData(Wt::Dbo::ptr<Template> Ptr)
 			: DataSurrogateKey(Ptr.id()), BaseTemplate(*Ptr), _ModuleId(Ptr->ModulePtr().id())
 		{ }

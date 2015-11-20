@@ -13,60 +13,47 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
-	//Copy into temporary objects and reset the original
+	//Insert into temporary objects first
 	LanguageContainers languagecontainer;
-	languagecontainer.swap(LanguageContainer);
-
 	LanguageSingleContainers languagesinglecontainer;
-	languagesinglecontainer.swap(LanguageSingleContainer);
-
 	LanguagePluralContainers languagepluralcontainer;
-	languagepluralcontainer.swap(LanguagePluralContainer);
 
-	//Strong transaction like exception safety
-	try
+	Wt::Dbo::Transaction transaction(DboSession);
+	LanguageCollections LanguageCollection = DboSession.find<Language>().where("\"Installed\" = 1");
+
+	//All languages
+	for(LanguageCollections::const_iterator itr = LanguageCollection.begin();
+		itr != LanguageCollection.end();
+		++itr)
 	{
-		Wt::Dbo::Transaction transaction(DboSession);
-		LanguageCollections LanguageCollection = DboSession.find<Language>().where("\"Installed\" = 1");
+		//Fetch em all
+		SingularStringCollections LanguageSingleCollection = DboSession.find<SingularString>().where("\"Language_Code\" = ?").bind((*itr)->Code());
+		PluralStringCollections LanguagePluralCollection = DboSession.find<PluralString>().where("\"Language_Code\" = ?").bind((*itr)->Code());
 
-		//All languages
-		for(LanguageCollections::const_iterator itr = LanguageCollection.begin();
-			itr != LanguageCollection.end();
-			++itr)
+		//Insert language ptr
+		languagecontainer.get<0>().insert(boost::shared_ptr<LanguageData>(new LanguageData(*itr)));
+
+		//All single strings of this language
+		for(SingularStringCollections::const_iterator i = LanguageSingleCollection.begin();
+			i != LanguageSingleCollection.end();
+			++i)
 		{
-			//Fetch em all
-			LanguageSingleCollections LanguageSingleCollection = DboSession.find<LanguageSingle>().where("\"Language_Code\" = ?").bind((*itr)->Code());
-			LanguagePluralCollections LanguagePluralCollection = DboSession.find<LanguagePlural>().where("\"Language_Code\" = ?").bind((*itr)->Code());
-
-			//Insert language ptr
-			LanguageContainer.get<0>().insert(boost::shared_ptr<LanguageData>(new LanguageData(*itr)));
-
-			//All single strings of this language
-			for(LanguageSingleCollections::const_iterator i = LanguageSingleCollection.begin();
-				i != LanguageSingleCollection.end();
-				++i)
-			{
-				LanguageSingleContainer.get<0>().insert(boost::shared_ptr<LanguageSingleData>(new LanguageSingleData(*i)));
-			}
-
-			//All plural strings of this language
-			for(LanguagePluralCollections::const_iterator i = LanguagePluralCollection.begin();
-				i != LanguagePluralCollection.end();
-				++i)
-			{
-				LanguagePluralContainer.get<0>().insert(boost::shared_ptr<LanguagePluralData>(new LanguagePluralData(*i)));
-			}
+			languagesinglecontainer.get<0>().insert(boost::shared_ptr<SingularStringData>(new SingularStringData(*i)));
 		}
 
-		transaction.commit();
+		//All plural strings of this language
+		for(PluralStringCollections::const_iterator i = LanguagePluralCollection.begin();
+			i != LanguagePluralCollection.end();
+			++i)
+		{
+			languagepluralcontainer.get<0>().insert(boost::shared_ptr<PluralStringData>(new PluralStringData(*i)));
+		}
 	}
-	catch(...)
-	{
-		LanguageContainer.swap(languagecontainer);
-		LanguageSingleContainer.swap(languagesinglecontainer);
-		LanguagePluralContainer.swap(languagepluralcontainer);
-		throw;
-	}
+
+	transaction.commit();
+	LanguageContainer.swap(languagecontainer);
+	LanguageSingleContainer.swap(languagesinglecontainer);
+	LanguagePluralContainer.swap(languagepluralcontainer);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
@@ -103,24 +90,24 @@ boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLangu
 	return *itr;
 }
 
-boost::shared_ptr<const LanguageSingleData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
+boost::shared_ptr<const SingularStringData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	LanguageSingleType::const_iterator itr = LanguageSingleContainer.get<0>().find(boost::make_tuple(Code, Key, ModuleId));
 	if(itr == LanguageSingleContainer.get<0>().end())
 	{
-		return boost::shared_ptr<const LanguageSingleData>();
+		return boost::shared_ptr<const SingularStringData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<const LanguagePluralData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
+boost::shared_ptr<const PluralStringData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
 	ReadLock lock(Manager());
 	LanguagePluralType::const_iterator itr = LanguagePluralContainer.get<0>().find(boost::make_tuple(Code, Key, Case, ModuleId));
 	if(itr == LanguagePluralContainer.get<0>().end())
 	{
-		return boost::shared_ptr<const LanguagePluralData>();
+		return boost::shared_ptr<const PluralStringData>();
 	}
 	return *itr;
 }
@@ -169,7 +156,7 @@ bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string
 
 bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const
 {
-	boost::shared_ptr<const LanguageSingleData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
+	boost::shared_ptr<const SingularStringData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
 	if(!LanguageSinglePtr)
 	{
 		return false;
@@ -180,7 +167,7 @@ bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::stri
 
 bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const
 {
-	boost::shared_ptr<const LanguagePluralData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
+	boost::shared_ptr<const PluralStringData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
 	if(!LanguagePluralPtr)
 	{
 		return false;
@@ -241,29 +228,7 @@ std::size_t LanguagesDatabase::CountLanguages() const
 
 void LanguagesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 
 	FetchAll(DboSession);
 }

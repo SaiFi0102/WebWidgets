@@ -18,6 +18,8 @@
 #include <Wt/WPushButton>
 #include <Wt/WTemplate>
 #include <Wt/WResource>
+#include <Wt/WStackedWidget>
+#include <Wt/WMenu>
 #include <WebUtils.h>
 
 //From https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c/4654718#4654718
@@ -31,9 +33,11 @@ bool is_number(const std::string &s)
 Application::Application(const Wt::WEnvironment &env)
 	: StartTime(boost::posix_time::microsec_clock::local_time()),
 	Wt::WApplication(env),
-	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), _PageChanged(this), //Signals
+	_LocaleChanged(this), _InternalPathChanged(this), _InternalPathAfterReservedChanged(this), _MobileVersionChanged(this), //Signals
+	_PageChanged(this), _ReservedInternalPathChanged(this), //Signals
 	_LanguageFromHostname(false), _SkipReservedPathInterpretation(false), _ReservedInternalPath("/"), _OldReservedInternalPath("/"), //Localization
-	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false) //Mobile UI
+	_MobileVersionFromHostname(false), _MobileVersionFromInternalPath(false), //Mobile UI
+	_MainTemplate(0), _PageStack(0), _PageMenu(0) //Widgets
 {
 	//Enable server push
 	enableUpdates();
@@ -44,7 +48,7 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Set AccessHostName and its default settings
 	SetAccessHostNameDefaults();
-	setLocale(_SessionDefaultLocale); //Default langauge
+	setLocale(_SessionDefaultLocale); //Default language
 	SetStyle(_DefaultStylePtr); //Default style
 
 	//Use database backend localized strings instead of WMessageResourceBundle
@@ -59,6 +63,14 @@ Application::Application(const Wt::WEnvironment &env)
 	//Set language from internal path
 	InterpretReservedInternalPath();
 
+	//Main Template Widget
+	_PageStack = new Wt::WStackedWidget();
+	_PageMenu = new Wt::WMenu(_PageStack);
+	_PageMenu->setInternalPathEnabled();
+	_MainTemplate = new Wt::WTemplate(Wt::WString::tstr("main", ModulesDatabase::Styles), root());
+	_MainTemplate->bindWidget("page-content", _PageStack);
+	_MainTemplate->bindWidget("navigation", _PageMenu);
+
 	//Page change signal/slot and home page
 	internalPathAfterReservedChanged().connect(boost::bind(&Application::InterpretPageInternalPath, this));
 	InterpretPageInternalPath();
@@ -66,8 +78,8 @@ Application::Application(const Wt::WEnvironment &env)
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
 
-	//TEST UI//
-	CreateTestUI();
+// 	//TEST UI
+// 	CreateTestUI();
 
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
@@ -208,6 +220,17 @@ std::string Application::InternalPathAfterReserved() const
 	return Wt::Utils::prepend((internalSubPath(_ReservedInternalPath)), '/');
 }
 
+std::string Application::OldInternalPathAfterReserved() const
+{
+	std::string current = Wt::Utils::append(oldInternalPath_, '/');
+
+	if(!pathMatches(current, _OldReservedInternalPath))
+	{
+		return std::string();
+	}
+	return current.substr(_OldReservedInternalPath.length());
+}
+
 void Application::setInternalPathAfterReserved(const std::string &path, bool emitChange)
 {
 	//Set path
@@ -244,8 +267,6 @@ void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 
 void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 {
-	typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleList;
-
 	//Remove CSS rules
 	styleSheet().clear();
 
@@ -259,9 +280,8 @@ void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 
 	//Add CSS rules for new style
 	WServer *Server = WServer::instance();
-	StyleCssRuleList CssRules = Server->Styles()->GetStyleCssRules(StylePtr->Name(), StylePtr->AuthorId());
-	for(StyleCssRuleList::const_iterator itr = CssRules.begin();
-		itr != CssRules.end();
+	for(StyleData::StyleCssRuleSet::const_iterator itr = StylePtr->StyleCssRules.begin();
+		itr != StylePtr->StyleCssRules.end();
 		++itr)
 	{
 		DboCssRule *Rule = new DboCssRule(*itr, this);
@@ -274,12 +294,17 @@ void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 
 void Application::SetPage(boost::shared_ptr<const PageData> PagePtr)
 {
+	WServer *Server = WServer::instance();
 	_CurrentPagePtr = PagePtr;
+	AbstractPage *PageHandler = Server->Pages()->GetPage(PagePtr->id());
 
-	if(!_CurrentPagePtr)
+	if(!_CurrentPagePtr || !PageHandler)
 	{
 		setInternalPathValid(false);
+		_PageChanged.emit();
+		return;
 	}
+	
 	_PageChanged.emit();
 }
 
@@ -319,9 +344,13 @@ void Application::RefreshDboDatabasePtrs()
 		++itr)
 	{
 		itr->second.clear();
-		TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(itr->first.first, itr->first.second);
-		for(TemplateCssRuleList::const_iterator it = CssRules.begin();
-			it != CssRules.end();
+		boost::shared_ptr<const TemplateData> TemplatePtr = Server->Styles()->GetTemplatePtr(itr->first.first, itr->first.second);
+		if(!TemplatePtr)
+		{
+			continue;
+		}
+		for(TemplateData::TemplateCssRuleSet::const_iterator it = TemplatePtr->TemplateCssRules.begin();
+			it != TemplatePtr->TemplateCssRules.end();
 			++it)
 		{
 			itr->second.addRule(new DboCssRule(*it, app));
@@ -362,14 +391,13 @@ void Application::UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> Te
 	Wt::WCssStyleSheet TemplateStyleSheet;
 	
 	//Ignore if there are no CSS rules for this template
-	TemplateCssRuleList CssRules = Server->Styles()->GetTemplateCssRules(TemplatePtr->Name(), TemplatePtr->ModuleId());
-	if(CssRules.empty())
+	if(TemplatePtr->TemplateCssRules.empty())
 	{
 		return;
 	}
 
-	for(TemplateCssRuleList::const_iterator itr = CssRules.begin();
-		itr != CssRules.end();
+	for(TemplateCssRuleList::const_iterator itr = TemplatePtr->TemplateCssRules.begin();
+		itr != TemplatePtr->TemplateCssRules.end();
 		++itr)
 	{
 		DboCssRule *Rule = new DboCssRule(*itr, this);
@@ -390,13 +418,15 @@ void Application::HandleWtInternalPathChanged()
 	internalPathChanged().emit(internalPath());
 
 	//Check if internal path after reserved changed
-	internalPathAfterReservedChanged().emit(InternalPathAfterReserved());
-// 	std::string NewReservedInternalPath = InternalPathAfterReserved();
-// 	std::string OldReservedInternalPath = Wt::Utils::append(oldInternalPath_, '/').substr(_OldReservedInternalPath.size());
-// 	if(OldReservedInternalPath != NewReservedInternalPath)
-// 	{
-// 		internalPathAfterReservedChanged().emit(NewReservedInternalPath);
-// 	}
+	if(InternalPathAfterReserved() != OldInternalPathAfterReserved())
+	{
+		internalPathAfterReservedChanged().emit(InternalPathAfterReserved());
+	}
+
+	if(_OldReservedInternalPath != _ReservedInternalPath)
+	{
+		reservedInternalPathChanged().emit(ReservedInternalPath());
+	}
 }
 
 void Application::InterpretReservedInternalPath()
@@ -435,6 +465,11 @@ void Application::InterpretReservedInternalPath()
 		case 4:
 			IRIPNoRestriction();
 		break;
+	}
+
+	if(_OldReservedInternalPath != _ReservedInternalPath)
+	{
+		_PageMenu->setInternalBasePath(_ReservedInternalPath);
 	}
 }
 
@@ -795,6 +830,7 @@ void Application::InterpretPageInternalPath()
 			break;
 		}
 	}
+	_PageAccessPathPtr = PageAccessPathPtr;
 
 	boost::shared_ptr<const PageData> PagePtr;
 	if(PageAccessPathPtr)
@@ -808,11 +844,7 @@ void Application::InterpretPageInternalPath()
 
 	if(PagePtr)
 	{
-		if(!_CurrentPagePtr)
-		{
-			SetPage(PagePtr);
-		}
-		else if(PagePtr->id() != _CurrentPagePtr->id())
+		if(!_CurrentPagePtr || PagePtr->id() != _CurrentPagePtr->id())
 		{
 			SetPage(PagePtr);
 		}
@@ -834,7 +866,7 @@ void Application::CreateTestUI()
 	auto ip = new Wt::WText(internalPath(), root());
 	new Wt::WBreak(root());
 	(new Wt::WText("Reserved internal path: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto ipr = new Wt::WText(InternalPathReserved(), root());
+	auto ipr = new Wt::WText(ReservedInternalPath(), root());
 	new Wt::WBreak(root());
 	(new Wt::WText("Internal path after reserve(subpath): ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto ipar = new Wt::WText(InternalPathAfterReserved(), root());
@@ -846,7 +878,7 @@ void Application::CreateTestUI()
 	auto txt = new Wt::WText(locale().name(), root());
 	internalPathChanged().connect(boost::bind<void>([this, ip, ipr](){
 		ip->setText(internalPath());
-		ipr->setText(InternalPathReserved());
+		ipr->setText(ReservedInternalPath());
 	}));
 	internalPathAfterReservedChanged().connect(boost::bind<void>([this, ipar, iparnp](){
 		ipar->setText(InternalPathAfterReserved());
@@ -865,10 +897,10 @@ void Application::CreateTestUI()
 	}, _1));
 	new Wt::WBreak(root());
 	(new Wt::WText(std::string("Current Page: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
-	auto cpt = new Wt::WText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"), root());
+	auto cpt = new Wt::WText(Wt::WString(CurrentPage() ? Wt::WString::tr(CurrentPage()->TitleKey, CurrentPage()->TitleModuleId) : "Invalid Page(404)"), root());
 	new Wt::WBreak(root());
 	PageChanged().connect(boost::bind<void>([this, cpt](){
-		cpt->setText(std::string(CurrentPage() ? CurrentPage()->Title : "Invalid Page(404)"));
+		cpt->setText(CurrentPage() ? Wt::WString::tr(CurrentPage()->TitleKey, CurrentPage()->TitleModuleId) : "Invalid Page(404)");
 	}));
 
 	new Wt::WBreak(root());
@@ -935,4 +967,10 @@ void Application::CreateTestUI()
 	new Wt::WBreak(root());
 	new Wt::WTemplate(Wt::WString::tstr("styletpl", ModulesDatabase::Styles), root());
 	new Wt::WTemplate(Wt::WString::tstr("templatetpl", ModulesDatabase::Styles), root());
+}
+
+Wt::Signal<std::string> &Application::internalPathChanged()
+{
+	Wt::WApplication::internalPathChanged();
+	return _InternalPathChanged;
 }

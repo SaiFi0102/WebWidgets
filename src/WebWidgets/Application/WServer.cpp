@@ -41,8 +41,8 @@ void WServer::Initialize()
 	{
 		log("info") << "Connecting to database backend";
 
-		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
+		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
+		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
 		SQLConnection->setProperty("show-queries", "false");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
@@ -81,7 +81,7 @@ void WServer::Initialize()
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	bool REINSTALLDBO = false;
+	bool REINSTALLDBO = true;
 	if(REINSTALLDBO)
 	{
 		//Drop
@@ -116,20 +116,20 @@ void WServer::Initialize()
 		}
 
 		//Insert
-		try
-		{
+// 		try
+// 		{
 			_Installer->InsertRows();
-		}
-		catch(Wt::Dbo::Exception &e)
-		{
-			log("fatal") << "Database error inserting default data: " <<  e.what();
-			throw e;
-		}
-		catch(std::exception &e)
-		{
-			log("fatal") << "Error inserting default data: " << e.what();
-			throw e;
-		}
+// 		}
+// 		catch(Wt::Dbo::Exception &e)
+// 		{
+// 			log("fatal") << "Database error inserting default data: " <<  e.what();
+// 			throw e;
+// 		}
+// 		catch(std::exception &e)
+// 		{
+// 			log("fatal") << "Error inserting default data: " << e.what();
+// 			throw e;
+// 		}
 	}
 
 	/* *************************************************************************

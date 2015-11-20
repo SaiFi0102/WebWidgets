@@ -78,6 +78,8 @@ class PagesDatabase : public AbstractDboDatabase
 
 		boost::shared_ptr<const PageData> GetPtr(long long PageId) const;
 		boost::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
+		AbstractPage *GetPage(long long PageId) const;
+		AbstractPage *GetPage(const std::string &PageName, long long ModuleId) const;
 		boost::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
 
 		void RegisterPageHandler(long long PageId);

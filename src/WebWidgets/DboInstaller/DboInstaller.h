@@ -25,6 +25,10 @@ struct InstalledObjects
 	//English
 	Wt::Dbo::ptr<Language> EnglishLanguagePtr;
 
+	//Language String Keys
+	Wt::Dbo::ptr<SingularKey> HomePageTitle;
+	Wt::Dbo::ptr<SingularKey> SiteMapPageTitle;
+
 	//Pages
 	Wt::Dbo::ptr<Page> LandingHomePage;
 	Wt::Dbo::ptr<Page> SitemapPage;

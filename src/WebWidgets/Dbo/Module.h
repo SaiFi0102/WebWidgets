@@ -25,8 +25,8 @@ class Module : public BaseModule
 		ConfigurationCollections ConfigurationCollection;
 		PageCollections PageCollection;
 		TemplateCollections TemplateCollection;
-		LanguageSingleCollections LanguageSingleCollection;
-		LanguagePluralCollections LanguagePluralCollection;
+		SingularKeyCollections SingularKeyCollection;
+		PluralKeyCollections PluralKeyCollection;
 
 		Wt::Dbo::ptr<Author> AuthorPtr;
 
@@ -48,8 +48,8 @@ class Module : public BaseModule
 			Wt::Dbo::hasMany(a, ConfigurationCollection, Wt::Dbo::ManyToOne, "Module");
 			Wt::Dbo::hasMany(a, PageCollection, Wt::Dbo::ManyToOne, "Module");
 			Wt::Dbo::hasMany(a, TemplateCollection, Wt::Dbo::ManyToOne, "Module");
-			Wt::Dbo::hasMany(a, LanguageSingleCollection, Wt::Dbo::ManyToOne, "Module");
-			Wt::Dbo::hasMany(a, LanguagePluralCollection, Wt::Dbo::ManyToOne, "Module");
+			Wt::Dbo::hasMany(a, SingularKeyCollection, Wt::Dbo::ManyToOne, "Module");
+			Wt::Dbo::hasMany(a, PluralKeyCollection, Wt::Dbo::ManyToOne, "Module");
 		}
 		static const char *TableName()
 		{

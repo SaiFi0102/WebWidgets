@@ -2,6 +2,7 @@
 #include "DboDatabase/AccessPathsDatabase.h"
 #include "DboDatabase/ReadLock.h"
 #include "Application/WServer.h"
+#include "Pages/AbstractPage.h"
 
 PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
 	: AbstractDboDatabase(Manager)
@@ -12,47 +13,41 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
-	//Copy into temporary objects and reset the original
+	//Insert into temporary object first
 	PageContainers pagecontainer;
-	pagecontainer.swap(PageContainer);
 
-	//Strong transaction like exception safety
-	try
+	Wt::Dbo::Transaction transaction(DboSession);
+	PageCollections PageCollection = DboSession.find<Page>();
+
+	for(PageCollections::const_iterator itr = PageCollection.begin();
+		itr != PageCollection.end();
+		++itr)
 	{
-		Wt::Dbo::Transaction transaction(DboSession);
-		PageCollections PageCollection = DboSession.find<Page>();
-
-		for(PageCollections::const_iterator itr = PageCollection.begin();
-			itr != PageCollection.end();
-			++itr)
+		PageById::iterator i = PageContainer.find(itr->id());
+		if(i != PageContainer.end())
 		{
-			PageById::iterator i = pagecontainer.find(itr->id());
-			if(i != pagecontainer.end())
-			{
-				PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)), i->PageHandler));
-				pagecontainer.erase(i);
-			}
-			else
-			{
-				PageContainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
-			}
+			pagecontainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)), i->PageHandler));
 		}
+		else
+		{
+			pagecontainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
+		}
+	}
 
-		//Delete if any AbstractPage left
-		for(PageById::iterator itr = pagecontainer.begin();
-			itr != pagecontainer.end();
-			++itr)
+	//Delete if any AbstractPage left
+	for(PageById::iterator itr = PageContainer.begin();
+		itr != PageContainer.end();
+		++itr)
+	{
+		PageById::iterator i = pagecontainer.find(itr->PagePtr->id());
+		if(i == pagecontainer.end())
 		{
 			delete itr->PageHandler;
 		}
+	}
 
-		transaction.commit();
-	}
-	catch(...)
-	{
-		PageContainer.swap(pagecontainer);
-		throw;
-	}
+	transaction.commit();
+	PageContainer.swap(pagecontainer);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
@@ -83,6 +78,28 @@ boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageN
 	return itr->PagePtr;
 }
 
+AbstractPage *PagesDatabase::GetPage(long long PageId) const
+{
+	ReadLock lock(Manager());
+	PageById::const_iterator itr = PageContainer.get<ById>().find(PageId);
+	if(itr == PageContainer.get<ById>().end())
+	{
+		return 0;
+	}
+	return itr->PageHandler;
+}
+
+AbstractPage *PagesDatabase::GetPage(const std::string &PageName, long long ModuleId) const
+{
+	ReadLock lock(Manager());
+	PageByKey::const_iterator itr = PageContainer.get<ByKey>().find(boost::make_tuple(PageName, ModuleId));
+	if(itr == PageContainer.get<ByKey>().end())
+	{
+		return 0;
+	}
+	return itr->PageHandler;
+}
+
 boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
@@ -93,7 +110,6 @@ boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &
 	}
 	return boost::shared_ptr<const PageData>();
 }
-
 
 std::size_t PagesDatabase::CountPages() const
 {
@@ -108,29 +124,7 @@ long long PagesDatabase::GetLoadDurationinMS() const
 
 void PagesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 
 	FetchAll(DboSession);
 }

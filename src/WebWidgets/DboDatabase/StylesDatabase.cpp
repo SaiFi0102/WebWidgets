@@ -3,7 +3,7 @@
 #include "Application/WServer.h"
 
 StylesDatabase::StylesDatabase(DboDatabaseManager *Manager)
-	: AbstractDboDatabase(Manager)
+: AbstractDboDatabase(Manager), _CountStyleCssRules(0), _CountTemplateCssRules(0)
 { }
 
 void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
@@ -11,91 +11,87 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
-	//Copy into temporary objects and reset the original
+	//Insert into temporary first
 	StyleContainers stylecontainer;
-	stylecontainer.swap(StyleContainer);
-
 	TemplateMaps templatemap;
-	templatemap.swap(TemplateMap);
-
 	StyleTemplateContainers styletemplatecontainer;
-	styletemplatecontainer.swap(StyleTemplateContainer);
 
-	StyleCssRuleMaps stylecssrulemap;
-	stylecssrulemap.swap(StyleCssRuleMap);
+	Wt::Dbo::Transaction transaction(DboSession);
+	StyleCollections StyleCollection = DboSession.find<Style>();
+	TemplateCollections TemplateCollection = DboSession.find<Template>();
+	StyleTemplateCollections StyleTemplateCollection = DboSession.find<StyleTemplate>();
+	StyleCssRuleCollections StyleCssRuleCollection = DboSession.find<StyleCssRule>();
+	TemplateCssRuleCollections TemplateCssRuleCollection = DboSession.find<TemplateCssRule>();
 
-	TemplateCssRuleMaps templatecssrulemap;
-	templatecssrulemap.swap(TemplateCssRuleMap);
-
-	//Strong transaction like exception safety
-	try
+	//Styles
+	for(StyleCollections::const_iterator itr = StyleCollection.begin();
+		itr != StyleCollection.end();
+		++itr)
 	{
-		Wt::Dbo::Transaction transaction(DboSession);
-		StyleCollections StyleCollection = DboSession.find<Style>();
-		TemplateCollections TemplateCollection = DboSession.find<Template>();
-		StyleTemplateCollections StyleTemplateCollection = DboSession.find<StyleTemplate>();
-		StyleCssRuleCollections StyleCssRuleCollection = DboSession.find<StyleCssRule>();
-		TemplateCssRuleCollections TemplateCssRuleCollection = DboSession.find<TemplateCssRule>();
-
-		//Styles
-		for(StyleCollections::const_iterator itr = StyleCollection.begin();
-			itr != StyleCollection.end();
-			++itr)
-		{
-			StyleContainer.insert(boost::shared_ptr<StyleData>(new StyleData(*itr)));
-		}
-
-		//Templates
-		for(TemplateCollections::const_iterator itr = TemplateCollection.begin();
-			itr != TemplateCollection.end();
-			++itr)
-		{
-			TemplateMap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = boost::shared_ptr<TemplateData>(new TemplateData(*itr));
-		}
-
-		//StyleTemplates
-		for(StyleTemplateCollections::const_iterator itr = StyleTemplateCollection.begin();
-			itr != StyleTemplateCollection.end();
-			++itr)
-		{
-			StyleTemplateContainer.get<0>().insert(boost::shared_ptr<StyleTemplateData>(new StyleTemplateData(*itr)));
-		}
-
-		//StyleCssRules
-		for(StyleCssRuleCollections::const_iterator itr = StyleCssRuleCollection.begin();
-			itr != StyleCssRuleCollection.end();
-			++itr)
-		{
-			StyleCssRuleMap[std::make_pair((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id())].insert(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
-		}
-
-		//TemplateCssRules
-		for(TemplateCssRuleCollections::const_iterator itr = TemplateCssRuleCollection.begin();
-			itr != TemplateCssRuleCollection.end();
-			++itr)
-		{
-			TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
-		}
-
-		transaction.commit();
+		stylecontainer.insert(boost::shared_ptr<StyleData>(new StyleData(*itr)));
 	}
-	catch(...)
+
+	//Templates
+	for(TemplateCollections::const_iterator itr = TemplateCollection.begin();
+		itr != TemplateCollection.end();
+		++itr)
 	{
-		StyleContainer.swap(stylecontainer);
-		TemplateMap.swap(templatemap);
-		StyleTemplateContainer.swap(styletemplatecontainer);
-		StyleCssRuleMap.swap(stylecssrulemap);
-		TemplateCssRuleMap.swap(templatecssrulemap);
-		throw;
+		templatemap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = boost::shared_ptr<TemplateData>(new TemplateData(*itr));
 	}
+
+	//StyleTemplates
+	for(StyleTemplateCollections::const_iterator itr = StyleTemplateCollection.begin();
+		itr != StyleTemplateCollection.end();
+		++itr)
+	{
+		styletemplatecontainer.get<0>().insert(boost::shared_ptr<StyleTemplateData>(new StyleTemplateData(*itr)));
+	}
+
+	//StyleCssRules
+	for(StyleCssRuleCollections::const_iterator itr = StyleCssRuleCollection.begin();
+		itr != StyleCssRuleCollection.end();
+		++itr)
+	{
+		StyleByNameAuthor::const_iterator i = stylecontainer.get<ByNameAuthor>().find(boost::make_tuple((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id()));
+		if(i != stylecontainer.get<ByNameAuthor>().end())
+		{
+			(*i)->StyleCssRules.insert(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
+		}
+		else
+		{
+			Wt::log("warn") << Name() << ": " << "StyleCssRule with Selector(" << (*itr)->Selector << ") unknown StyleName(" << (*itr)->StylePtr->Name() << ") and AuthorId(" << (*itr)->StylePtr->AuthorPtr().id() << "). This StyleCssRule will not be loaded.";
+		}
+	}
+
+	//TemplateCssRules
+	for(TemplateCssRuleCollections::const_iterator itr = TemplateCssRuleCollection.begin();
+		itr != TemplateCssRuleCollection.end();
+		++itr)
+	{
+		//TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
+		TemplateMaps::const_iterator i = templatemap.find(std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id()));
+		if(i != templatemap.end())
+		{
+			i->second->TemplateCssRules.insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
+		}
+		else
+		{
+			Wt::log("warn") << Name() << ": " << "TemplateCssRule with Selector(" << (*itr)->Selector << ") unknown TemplateName(" << (*itr)->TemplatePtr->Name() << ") and ModuleId(" << (*itr)->TemplatePtr->ModulePtr().id() << "). This TemplateCssRule will not be loaded.";
+		}
+	}
+
+	transaction.commit();
+	StyleContainer.swap(stylecontainer);
+	TemplateMap.swap(templatemap);
+	StyleTemplateContainer.swap(styletemplatecontainer);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
 	LoadDuration = PTEnd - PTStart;
 
 	Wt::log("info") << Name() << ": " << StyleContainer.size() << " Styles, " << TemplateMap.size() << " Templates, "
-		<< StyleTemplateContainer.size() << " Styled Templates, " << StyleCssRuleMap.size() << " Style CSS Rules and "
-		<< TemplateCssRuleMap.size() << " Template CSS Rules successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
+		<< StyleTemplateContainer.size() << " Styled Templates, " << _CountStyleCssRules << " Style CSS Rules and "
+		<< _CountTemplateCssRules << " Template CSS Rules successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
 boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(long long StyleId) const
@@ -159,33 +155,10 @@ bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long l
 	boost::shared_ptr<const StyleTemplateData> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
-		//Wt::log("warn") << "StyleTemplatePtr not found in StylesDatabase in GetStyleTemplateStr(...). TemplateName: " << TemplateName << ", ModuleId: " << ModuleId << ", StyleName: " << StyleName << ", StyleAuthorId: " << StyleAuthorId;
 		return false;
 	}
 	result = StyleTemplatePtr->TemplateStr;
 	return true;
-}
-
-StylesDatabase::StyleCssRuleList StylesDatabase::GetStyleCssRules(const std::string &StyleName, long long AuthorId)
-{
-	ReadLock lock(Manager());
-	StyleCssRuleMaps::const_iterator itr = StyleCssRuleMap.find(std::make_pair(StyleName, AuthorId));
-	if(itr == StyleCssRuleMap.end())
-	{
-		return StyleCssRuleList();
-	}
-	return itr->second;
-}
-
-StylesDatabase::TemplateCssRuleList StylesDatabase::GetTemplateCssRules(const std::string &TemplateName, long long ModuleId)
-{
-	ReadLock lock(Manager());
-	TemplateCssRuleMaps::const_iterator itr = TemplateCssRuleMap.find(std::make_pair(TemplateName, ModuleId));
-	if(itr == TemplateCssRuleMap.end())
-	{
-		return TemplateCssRuleList();
-	}
-	return itr->second;
 }
 
 boost::shared_ptr<const StyleData> StylesDatabase::FirstStylePtr() const
@@ -222,39 +195,17 @@ std::size_t StylesDatabase::CountStyleTemplates() const
 std::size_t StylesDatabase::CountStyleCssRules() const
 {
 	ReadLock lock(Manager());
-	return StyleCssRuleMap.size();
+	return _CountStyleCssRules;
 }
 std::size_t StylesDatabase::CountTemplateCssRules() const
 {
 	ReadLock lock(Manager());
-	return TemplateCssRuleMap.size();
+	return _CountTemplateCssRules;
 }
 
 void StylesDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 
 	FetchAll(DboSession);
 }

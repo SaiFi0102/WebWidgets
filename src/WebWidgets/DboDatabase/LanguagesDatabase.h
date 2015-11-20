@@ -33,7 +33,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguageSingle_key_Code
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguageSingleData> &LanguageSinglePtr) const
+			result_type operator()(const boost::shared_ptr<SingularStringData> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr->LanguageCode();
 			}
@@ -41,7 +41,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguageSingle_key_Key
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguageSingleData> &LanguageSinglePtr) const
+			result_type operator()(const boost::shared_ptr<SingularStringData> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr->Key();
 			}
@@ -49,7 +49,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguageSingle_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<LanguageSingleData> &LanguageSinglePtr) const
+			result_type operator()(const boost::shared_ptr<SingularStringData> &LanguageSinglePtr) const
 			{
 				return LanguageSinglePtr->ModuleId();
 			}
@@ -59,7 +59,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguagePlural_key_Code
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguagePluralData> &LanguagePluralPtr) const
+			result_type operator()(const boost::shared_ptr<PluralStringData> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr->LanguageCode();
 			}
@@ -67,7 +67,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguagePlural_key_Key
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguagePluralData> &LanguagePluralPtr) const
+			result_type operator()(const boost::shared_ptr<PluralStringData> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr->Key();
 			}
@@ -75,7 +75,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguagePlural_key_Case
 		{
 			typedef int result_type;
-			result_type operator()(const boost::shared_ptr<LanguagePluralData> &LanguagePluralPtr) const
+			result_type operator()(const boost::shared_ptr<PluralStringData> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr->Case();
 			}
@@ -83,7 +83,7 @@ class LanguagesDatabase : public AbstractDboDatabase
 		struct LanguagePlural_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<LanguagePluralData> &LanguagePluralPtr) const
+			result_type operator()(const boost::shared_ptr<PluralStringData> &LanguagePluralPtr) const
 			{
 				return LanguagePluralPtr->ModuleId();
 			}
@@ -91,11 +91,11 @@ class LanguagesDatabase : public AbstractDboDatabase
 
 		//multi_index containers
 		typedef boost::multi_index_container<
-			boost::shared_ptr<LanguageSingleData>,
+			boost::shared_ptr<SingularStringData>,
 			boost::multi_index::indexed_by<
 				boost::multi_index::hashed_unique<
 					boost::multi_index::composite_key<
-						boost::shared_ptr<LanguageSingleData>,
+						boost::shared_ptr<SingularStringData>,
 						LanguageSingle_key_Code,
 						LanguageSingle_key_Key,
 						LanguageSingle_key_ModuleId
@@ -105,11 +105,11 @@ class LanguagesDatabase : public AbstractDboDatabase
 		> LanguageSingleContainers;
 
 		typedef boost::multi_index_container<
-			boost::shared_ptr<LanguagePluralData>,
+			boost::shared_ptr<PluralStringData>,
 			boost::multi_index::indexed_by<
 				boost::multi_index::hashed_unique<
 					boost::multi_index::composite_key<
-						boost::shared_ptr<LanguagePluralData>,
+						boost::shared_ptr<PluralStringData>,
 						LanguagePlural_key_Code,
 						LanguagePlural_key_Key,
 						LanguagePlural_key_Case,
@@ -137,8 +137,8 @@ class LanguagesDatabase : public AbstractDboDatabase
 
 		boost::shared_ptr<const LanguageData> GetLanguagePtrFromCode(const std::string &Code) const;
 		boost::shared_ptr<const LanguageData> GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const;
-		boost::shared_ptr<const LanguageSingleData> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
-		boost::shared_ptr<const LanguagePluralData> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
+		boost::shared_ptr<const SingularStringData> GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const;
+		boost::shared_ptr<const PluralStringData> GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const;
 
 		std::string DefaultLanguageCode(const std::string &HostName) const;
 

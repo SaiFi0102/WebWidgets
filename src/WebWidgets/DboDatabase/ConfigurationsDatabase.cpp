@@ -11,123 +11,99 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	//Time at start
 	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
 
-	//Copy into temporary objects and reset the original
+	//Insert into temporary objects first
 	BoolMaps boolmap;
-	boolmap.swap(BoolMap);
-
 	DoubleMaps doublemap;
-	doublemap.swap(DoubleMap);
-
 	EnumMaps enummap;
-	enummap.swap(EnumMap);
-
 	FloatMaps floatmap;
-	floatmap.swap(FloatMap);
-
 	IntMaps intmap;
-	intmap.swap(IntMap);
-
 	LongIntMaps longintmap;
-	longintmap.swap(LongIntMap);
-
 	StringMaps stringmap;
-	stringmap.swap(StringMap);
-
 	std::size_t count = 0;
-	boost::swap(count, Count);
 
-	//Strong transaction like exception safety
-	try
+	BoolCollections BoolCollection;
+	DoubleCollections DoubleCollection;
+	EnumCollections EnumCollection;
+	FloatCollections FloatCollection;
+	IntCollections IntCollection;
+	LongIntCollections LongIntCollection;
+	StringCollections StringCollection;
+
+	//Fetch em all
+	Wt::Dbo::Transaction transaction(DboSession);
+	BoolCollection = DboSession.find<ConfigurationBool>();
+	DoubleCollection = DboSession.find<ConfigurationDouble>();
+	EnumCollection = DboSession.find<ConfigurationEnum>();
+	FloatCollection = DboSession.find<ConfigurationFloat>();
+	IntCollection = DboSession.find<ConfigurationInt>();
+	LongIntCollection = DboSession.find<ConfigurationLongInt>();
+	StringCollection = DboSession.find<ConfigurationString>();
+
+	//Bool
+	for(BoolCollections::const_iterator itr = BoolCollection.begin();
+		itr != BoolCollection.end();
+		++itr, Count++)
 	{
-		BoolCollections BoolCollection;
-		DoubleCollections DoubleCollection;
-		EnumCollections EnumCollection;
-		FloatCollections FloatCollection;
-		IntCollections IntCollection;
-		LongIntCollections LongIntCollection;
-		StringCollections StringCollection;
-
-		//Fetch em all
-		Wt::Dbo::Transaction transaction(DboSession);
-		BoolCollection = DboSession.find<ConfigurationBool>();
-		DoubleCollection = DboSession.find<ConfigurationDouble>();
-		EnumCollection = DboSession.find<ConfigurationEnum>();
-		FloatCollection = DboSession.find<ConfigurationFloat>();
-		IntCollection = DboSession.find<ConfigurationInt>();
-		LongIntCollection = DboSession.find<ConfigurationLongInt>();
-		StringCollection = DboSession.find<ConfigurationString>();
-
-		//Bool
-		for(BoolCollections::const_iterator itr = BoolCollection.begin();
-			itr != BoolCollection.end();
-			++itr, Count++)
-		{
-			BoolMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationBoolData>(new ConfigurationBoolData(*itr));
-		}
-
-		//Double
-		for(DoubleCollections::const_iterator itr = DoubleCollection.begin();
-			itr != DoubleCollection.end();
-			++itr, Count++)
-		{
-			DoubleMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationDoubleData>(new ConfigurationDoubleData(*itr));
-		}
-
-		//Enum
-		for(EnumCollections::const_iterator itr = EnumCollection.begin();
-			itr != EnumCollection.end();
-			++itr, Count++)
-		{
-			EnumMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationEnumData>(new ConfigurationEnumData(*itr));
-		}
-
-		//Float
-		for(FloatCollections::const_iterator itr = FloatCollection.begin();
-			itr != FloatCollection.end();
-			++itr, Count++)
-		{
-			FloatMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationFloatData>(new ConfigurationFloatData(*itr));;
-		}
-
-		//Int
-		for(IntCollections::const_iterator itr = IntCollection.begin();
-			itr != IntCollection.end();
-			++itr, Count++)
-		{
-			IntMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationIntData>(new ConfigurationIntData(*itr));;
-		}
-
-		//LongInt
-		for(LongIntCollections::const_iterator itr = LongIntCollection.begin();
-			itr != LongIntCollection.end();
-			++itr, Count++)
-		{
-			LongIntMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationLongIntData>(new ConfigurationLongIntData(*itr));
-		}
-
-		//String
-		for(StringCollections::const_iterator itr = StringCollection.begin();
-			itr != StringCollection.end();
-			++itr, Count++)
-		{
-			StringMap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationStringData>(new ConfigurationStringData(*itr));
-		}
-
-		transaction.commit();
+		boolmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationBoolData>(new ConfigurationBoolData(*itr));
 	}
-	catch(...)
+
+	//Double
+	for(DoubleCollections::const_iterator itr = DoubleCollection.begin();
+		itr != DoubleCollection.end();
+		++itr, Count++)
 	{
-		//If error occurs return back to the previous state
-		BoolMap.swap(boolmap);
-		DoubleMap.swap(doublemap);
-		EnumMap.swap(enummap);
-		FloatMap.swap(floatmap);
-		IntMap.swap(intmap);
-		LongIntMap.swap(longintmap);
-		StringMap.swap(stringmap);
-		boost::swap(Count, count);
-		throw;
+		doublemap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationDoubleData>(new ConfigurationDoubleData(*itr));
 	}
+
+	//Enum
+	for(EnumCollections::const_iterator itr = EnumCollection.begin();
+		itr != EnumCollection.end();
+		++itr, Count++)
+	{
+		enummap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationEnumData>(new ConfigurationEnumData(*itr));
+	}
+
+	//Float
+	for(FloatCollections::const_iterator itr = FloatCollection.begin();
+		itr != FloatCollection.end();
+		++itr, Count++)
+	{
+		floatmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationFloatData>(new ConfigurationFloatData(*itr));;
+	}
+
+	//Int
+	for(IntCollections::const_iterator itr = IntCollection.begin();
+		itr != IntCollection.end();
+		++itr, Count++)
+	{
+		intmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationIntData>(new ConfigurationIntData(*itr));;
+	}
+
+	//LongInt
+	for(LongIntCollections::const_iterator itr = LongIntCollection.begin();
+		itr != LongIntCollection.end();
+		++itr, Count++)
+	{
+		longintmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationLongIntData>(new ConfigurationLongIntData(*itr));
+	}
+
+	//String
+	for(StringCollections::const_iterator itr = StringCollection.begin();
+		itr != StringCollection.end();
+		++itr, Count++)
+	{
+		stringmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationStringData>(new ConfigurationStringData(*itr));
+	}
+
+	transaction.commit();
+	BoolMap.swap(boolmap);
+	DoubleMap.swap(doublemap);
+	EnumMap.swap(enummap);
+	FloatMap.swap(floatmap);
+	IntMap.swap(intmap);
+	LongIntMap.swap(longintmap);
+	StringMap.swap(stringmap);
+	boost::swap(Count, count);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
@@ -311,29 +287,7 @@ std::size_t ConfigurationsDatabase::CountConfigurations() const
 
 void ConfigurationsDatabase::Load(Wt::Dbo::Session &DboSession)
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 
 	FetchAll(DboSession);
 }

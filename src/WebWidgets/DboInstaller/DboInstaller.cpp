@@ -14,29 +14,7 @@ DboInstaller::DboInstaller(Wt::Dbo::SqlConnection &SQLConnection)
 
 void DboInstaller::MapClasses()
 {
-	DboSession.mapClass<Author>(Author::TableName());
-	DboSession.mapClass<Module>(Module::TableName());
-	DboSession.mapClass<Configuration>(Configuration::TableName());
-	DboSession.mapClass<ConfigurationBool>(ConfigurationBool::TableName());
-	DboSession.mapClass<ConfigurationEnum>(ConfigurationEnum::TableName());
-	DboSession.mapClass<ConfigurationEnumValue>(ConfigurationEnumValue::TableName());
-	DboSession.mapClass<ConfigurationDouble>(ConfigurationDouble::TableName());
-	DboSession.mapClass<ConfigurationFloat>(ConfigurationFloat::TableName());
-	DboSession.mapClass<ConfigurationInt>(ConfigurationInt::TableName());
-	DboSession.mapClass<ConfigurationLongInt>(ConfigurationLongInt::TableName());
-	DboSession.mapClass<ConfigurationString>(ConfigurationString::TableName());
-	DboSession.mapClass<Language>(Language::TableName());
-	DboSession.mapClass<LanguageSingle>(LanguageSingle::TableName());
-	DboSession.mapClass<LanguagePlural>(LanguagePlural::TableName());
-	DboSession.mapClass<Page>(Page::TableName());
-	DboSession.mapClass<Template>(Template::TableName());
-	DboSession.mapClass<Style>(Style::TableName());
-	DboSession.mapClass<StyleTemplate>(StyleTemplate::TableName());
-	DboSession.mapClass<StyleCssRule>(StyleCssRule::TableName());
-	DboSession.mapClass<TemplateCssRule>(TemplateCssRule::TableName());
-	DboSession.mapClass<AccessHostName>(AccessHostName::TableName());
-	DboSession.mapClass<PageAccessPath>(PageAccessPath::TableName());
-	DboSession.mapClass<LanguageAccessPath>(LanguageAccessPath::TableName());
+	MAPDBOCASSES(DboSession)
 }
 
 void DboInstaller::CreateTables()
@@ -49,9 +27,12 @@ void DboInstaller::CreateTables()
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page_host_path\" ON \"") + PageAccessPath::TableName() + "\" (\"Access_HostName\", \"InternalPath\", \"Parent_AccessPath_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_host_path\" ON \"") + LanguageAccessPath::TableName() + "\" (\"Access_HostName\", \"InternalPath\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Configuration::TableName() + "\" (\"Name\", \"Module_id\", \"Type\")");
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_singular\" ON \"") + LanguageSingle::TableName() + "\" (\"Language_Code\", \"Key\", \"Module_id\")");
-	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_plural\" ON \"") + LanguagePlural::TableName() + "\" (\"Language_Code\", \"Key\", \"Case\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_key\" ON \"") + SingularKey::TableName() + "\" (\"Key\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_string\" ON \"") + SingularString::TableName() + "\" (\"Language_Code\", \"Key_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_key\" ON \"") + PluralKey::TableName() + "\" (\"Key\", \"Module_id\")");
+	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_string\" ON \"") + PluralString::TableName() + "\" (\"Language_Code\", \"Key_id\", \"Case\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Page::TableName() + "\" (\"Name\", \"Module_id\")");
+// 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_order\" ON \"") + NavigationMenuItem::TableName() + "\" (\"Order\", \"Parent_Item_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style\" ON \"") + Style::TableName() + "\" (\"StyleName\", \"Author_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_template\" ON \"") + Template::TableName() + "\" (\"TemplateName\", \"Module_id\")");
 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style_template\" ON \"") + StyleTemplate::TableName() + "\" (\"Style_id\", \"Template_id\")");
@@ -69,19 +50,19 @@ void DboInstaller::InsertRows()
 	//Authors and Modules
 	InsertAuthorModules();
 
-	//Configurations
-	InsertConfigurations();
-
 	//Localization
 	InsertLanguages();
 
+	//Configurations
+	InsertConfigurations();
+
 	//Pages
 	O.LandingHomePage = DboSession.add(new Page("home", O.NavigationModule));
-	O.LandingHomePage.modify()->Title = "Home";
+	O.LandingHomePage.modify()->TitleKey = O.HomePageTitle;
 	O.LandingHomePage.modify()->DefaultInternalPath = "home";
 
 	O.SitemapPage = DboSession.add(new Page("sitemap", O.NavigationModule));
-	O.SitemapPage.modify()->Title = "Site map";
+	O.SitemapPage.modify()->TitleKey = O.SiteMapPageTitle;
 	O.SitemapPage.modify()->DefaultInternalPath = "sitemap";
 
 	//Default style
@@ -105,7 +86,7 @@ void DboInstaller::InsertRows()
 	O.HomePageAccessPath = DboSession.add(new PageAccessPath(O.GlobalAccessHost, "home"));
 	O.HomePageAccessPath.modify()->PagePtr = O.LandingHomePage;
 
-	//Sitemap page
+	//Sitemap Page Access Path
 	Wt::Dbo::ptr<PageAccessPath> SitemapPageAccessPath = DboSession.add(new PageAccessPath(O.GlobalAccessHost, "sitemap"));
 	SitemapPageAccessPath.modify()->PagePtr = O.SitemapPage;
 
