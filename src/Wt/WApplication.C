@@ -100,6 +100,7 @@ WApplication::WApplication(const WEnvironment& env
 #endif // WT_CNOR
     javaScriptClass_("Wt"),
     quitted_(false),
+    onePixelGifR_(0),
     internalPathsEnabled_(false),
     exposedOnly_(0),
     loadingIndicator_(0),
@@ -354,21 +355,25 @@ WMessageResourceBundle& WApplication::messageResourceBundle()
 
 std::string WApplication::onePixelGifUrl()
 {
-  if (onePixelGifUrl_.empty()) {
-    WMemoryResource *w = new WMemoryResource("image/gif", this);
+  if (environment().agentIsIElt(7)) {
+    if (!onePixelGifR_) {
+      WMemoryResource *w = new WMemoryResource("image/gif", this);
+  
+      static const unsigned char gifData[]
+	= { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00,
+            0x80, 0x00, 0x00, 0xdb, 0xdf, 0xef, 0x00, 0x00, 0x00, 0x21,
+            0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
+            0x01, 0x00, 0x3b };
 
-    static const unsigned char gifData[]
-      = { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00,
-	  0x80, 0x00, 0x00, 0xdb, 0xdf, 0xef, 0x00, 0x00, 0x00, 0x21,
-	  0xf9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
-	  0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
-	  0x01, 0x00, 0x3b };
+      w->setData(gifData, 43);
+      onePixelGifR_ = w;
+    }
 
-    w->setData(gifData, 43);
-    onePixelGifUrl_ = w->url();
-  }
-
-  return onePixelGifUrl_;
+    return onePixelGifR_->url();
+  } else
+    return "data:image/gif;base64,"
+      "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 }
 
 WApplication::~WApplication()
@@ -461,6 +466,12 @@ std::string WApplication::appRoot()
 std::string WApplication::docRoot() const
 {
   return environment().getCgiValue("DOCUMENT_ROOT");
+}
+
+void WApplication::setConnectionMonitor(const std::string& jsFunction) {
+  doJavaScript(javaScriptClass_
+	       + "._p_.setConnectionMonitor("+ jsFunction + ")");
+
 }
 
 #endif // WT_TARGET_JAVA
@@ -747,11 +758,7 @@ void WApplication::handleJavaScriptError(const std::string& errorText)
 void WApplication::addExposedSignal(Wt::EventSignalBase *signal)
 {
   std::string s = signal->encodeCmd();
-#ifdef WT_TARGET_JAVA
-  Utils::insert(exposedSignals_, s, WeakReference<Wt::EventSignalBase*>(signal));
-#else
   Utils::insert(exposedSignals_, s, signal);
-#endif
 
   LOG_DEBUG("addExposedSignal: " << s);
 }
@@ -761,6 +768,7 @@ void WApplication::removeExposedSignal(Wt::EventSignalBase *signal)
   std::string s = signal->encodeCmd();
 
   if (exposedSignals_.erase(s)) {
+    justRemovedSignals_.insert(s);
     LOG_DEBUG("removeExposedSignal: " << s);
   } else {
     LOG_DEBUG("removeExposedSignal of non-exposed " << s << "??");
@@ -773,22 +781,15 @@ WApplication::decodeExposedSignal(const std::string& signalName) const
   SignalMap::const_iterator i = exposedSignals_.find(signalName);
 
   if (i != exposedSignals_.end()) {
-#ifndef WT_TARGET_JAVA
     return i->second;
-#else
-    return i->second.get();
-#endif //WT_TARGET_JAVA
   } else
     return 0;
 }
 
-EventSignalBase *
-WApplication::decodeExposedSignal(const std::string& objectId,
-				  const std::string& name)
+std::string WApplication::encodeSignal(const std::string& objectId,
+				       const std::string& name) const
 {
-  std::string signalName = (objectId == "app" ? id() : objectId) + '.' + name;
-
-  return decodeExposedSignal(signalName);
+  return (objectId == "app" ? id() : objectId) + '.' + name;
 }
 
 std::string WApplication::resourceMapKey(WResource *resource)
@@ -819,7 +820,7 @@ std::string WApplication::addExposedResource(WResource *resource)
   }
 }
 
-void WApplication::removeExposedResource(WResource *resource)
+bool WApplication::removeExposedResource(WResource *resource)
 {
   std::string key = resourceMapKey(resource);
   ResourceMap::iterator i = exposedResources_.find(key);
@@ -830,7 +831,9 @@ void WApplication::removeExposedResource(WResource *resource)
 #else
     exposedResources_.erase(key);
 #endif
-  }
+    return true;
+  } else
+    return false;
 }
 
 WResource *WApplication::decodeExposedResource(const std::string& resourceKey) 
@@ -1397,7 +1400,7 @@ WApplication::UpdateLock::UpdateLock(WApplication *app)
   if (handler && handler->haveLock() && handler->session() == appSession.get())
     return;
 
-  if (appSession.get())
+  if (appSession.get() && !appSession->dead())
     impl_ = new UpdateLockImpl(app);
   else
     ok_ = false;

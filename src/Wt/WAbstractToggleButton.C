@@ -74,6 +74,11 @@ void WAbstractToggleButton::setText(const WString& text)
   repaint(RepaintSizeAffected);
 }
 
+bool WAbstractToggleButton::setTextFormat(TextFormat format)
+{
+  return text_.setFormat(format);
+}
+
 void WAbstractToggleButton::setChecked(bool how)
 {
   setCheckState(how ? Checked : Unchecked);
@@ -348,6 +353,7 @@ bool WAbstractToggleButton::supportsIndeterminate(const WEnvironment& env)
   return env.javaScript()
     && (env.agentIsIE()
 	|| env.agentIsSafari()
+	|| env.agentIsChrome()
 	|| (env.agentIsGecko() && (env.agent() >= WEnvironment::Firefox3_6)));
 }
 

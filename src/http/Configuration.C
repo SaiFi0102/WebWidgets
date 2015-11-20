@@ -219,8 +219,8 @@ void Configuration::setOptions(int argc, char **argv,
     po::variables_map vm;
 
     if (argc)
-      po::store(po::parse_command_line(argc, argv, all_options), vm);
-
+      po::store(po::command_line_parser(argc, argv).options(all_options).allow_unregistered().run(), vm);
+      
     if (!configurationFile.empty()) {
       std::ifstream cfgFile(configurationFile.c_str(),
 	std::ios::in | std::ios::binary);
@@ -356,10 +356,11 @@ void Configuration::readOptions(const po::variables_map& vm)
 	      "Client authentication SSL CA certificates file",
 	      sslCaCertificates_, RegularFile);
 
-    if (sslClientVerification_ != "optional" &&
+    if (sslClientVerification_ != "optional" && 
+	sslClientVerification_ != "once" && 
 	sslClientVerification_ != "required") {
       throw Wt::WServer::Exception(
-	      "ssl-client-verification must be \"none\", \"optional\" or "
+	      "ssl-client-verification must be \"none\", \"optional\", \"once\" or "
 	      "\"required\"");
     }
   }

@@ -51,6 +51,10 @@ private:
   void handleHeadersRead(const boost::system::error_code& ec);
   void handleResponseRead(const boost::system::error_code& ec);
 
+  void appendSSLInfo(const Wt::WSslInfo* sslInfo, std::ostream& os);
+
+  bool sendReload();
+
   SessionProcessManager &sessionManager_;
   boost::shared_ptr<SessionProcess> sessionProcess_;
   boost::shared_ptr<asio::ip::tcp::socket> socket_;
@@ -66,8 +70,10 @@ private:
   std::ostream out_;
 
   std::size_t sending_;
+  ::int64_t contentLength_;
   bool more_;
   bool receiving_;
+  bool fwCertificates_;
 
   Buffer::const_iterator beginRequestBuf_;
   Buffer::const_iterator endRequestBuf_;

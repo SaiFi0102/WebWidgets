@@ -56,7 +56,7 @@ this.condCall = function(o, f, a) {
 this.buttons = 0;
 
 // button last released (for reporting in IE's click event)
-var lastButtonUp = 0, mouseDragging = false;
+var lastButtonUp = 0, mouseDragging = 0;
 
 // returns the button associated with the event (0 if none)
 this.button = function(e)
@@ -116,17 +116,17 @@ this.mouseDown = function(e) {
 this.mouseUp = function(e) {
   lastButtonUp = WT.button(e);
   setTimeout(function() {
-    mouseDragging = false;
+    mouseDragging = 0;
     WT.buttons &= ~lastButtonUp;
   }, 5);
 };
 
 this.dragged = function(e) {
-  return mouseDragging;
+  return mouseDragging > 2;
 };
 
 this.drag = function(e) {
-  mouseDragging = true;
+  ++mouseDragging;
 };
 
 /**
@@ -269,8 +269,13 @@ this.initAjaxComm = function(url, handler) {
 	  if (good) {
 	    handled = true;
 	    handler(0, request.responseText, userData);
-	  } else
-	    handler(1, null, userData);
+		if(monitor)
+		  monitor.onStatusChange('connectionStatus', 1);
+	  } else {
+	    handler(1, null, userData); 
+		if(monitor)
+		  monitor.onStatusChange('connectionStatus', 0);
+	  }
 
 	  if (request) {
 	    request.onreadystatechange = new Function;
@@ -341,6 +346,12 @@ this.initAjaxComm = function(url, handler) {
       this.sendUpdate = function(data, userData, id, timeout) {
 	return new Request(data, userData, id, timeout);
       };
+
+	  var monitor = null;
+
+	  this.setConnectionMonitor = function(aMonitor) {
+		monitor = aMonitor;
+	  }
 
       this.setUrl = function(url) {
 	sessionUrl = url;
@@ -797,9 +808,81 @@ this.windowCoordinates = function(e) {
   return { x: cx, y: cy };
 };
 
+/**
+ * @preserve Includes normalizeWheel from Fixed Data Tables for React by Facebook (BSD Licensed)
+ */
+this.normalizeWheel = function(event) {
+  var PIXEL_STEP = 10;
+  var LINE_HEIGHT = 40;
+  var PAGE_HEIGHT = 800;
+
+  var sX = 0,
+      sY = 0,
+      // spinX, spinY
+  pX = 0,
+      pY = 0; // pixelX, pixelY
+
+  // Legacy
+  if ('detail' in event) {
+    sY = event.detail;
+  }
+  if ('wheelDelta' in event) {
+    sY = -event.wheelDelta / 120;
+  }
+  if ('wheelDeltaY' in event) {
+    sY = -event.wheelDeltaY / 120;
+  }
+  if ('wheelDeltaX' in event) {
+    sX = -event.wheelDeltaX / 120;
+  }
+
+  // side scrolling on FF with DOMMouseScroll
+  if ('axis' in event && event.axis === event.HORIZONTAL_AXIS) {
+    sX = sY;
+    sY = 0;
+  }
+
+  pX = sX * PIXEL_STEP;
+  pY = sY * PIXEL_STEP;
+
+  if ('deltaY' in event) {
+    pY = event.deltaY;
+  }
+  if ('deltaX' in event) {
+    pX = event.deltaX;
+  }
+
+  if ((pX || pY) && event.deltaMode) {
+    if (event.deltaMode == 1) {
+      // delta in LINE units
+      pX *= LINE_HEIGHT;
+      pY *= LINE_HEIGHT;
+    } else {
+      // delta in PAGE units
+      pX *= PAGE_HEIGHT;
+      pY *= PAGE_HEIGHT;
+    }
+  }
+
+  // Fall-back if spin cannot be determined
+  if (pX && !sX) {
+    sX = pX < 1 ? -1 : 1;
+  }
+  if (pY && !sY) {
+    sY = pY < 1 ? -1 : 1;
+  }
+
+  return { spinX: sX,
+    spinY: sY,
+    pixelX: pX,
+    pixelY: pY };
+}
+
 this.wheelDelta = function(e) {
   var delta = 0;
-  if (e.wheelDelta) { /* IE/Opera. */
+  if (e.deltaY) { /* WheelEvent */
+    delta = e.deltaY > 0 ? -1 : 1;
+  } else if (e.wheelDelta) { /* IE/Opera. */
     delta = e.wheelDelta > 0 ? 1 : -1;
     /* if (window.opera)
        delta = -delta; */
@@ -938,8 +1021,8 @@ var repeatT = null, repeatI = null;
 
 this.isDblClick = function(o, e) {
   if (o.wtClickTimeout &&
-      Math.abs(o.wtE1.clientX - e.clientX) < 2 &&
-      Math.abs(o.wtE1.clientY - e.clientY) < 2) {
+      Math.abs(o.wtE1.clientX - e.clientX) < 3 &&
+      Math.abs(o.wtE1.clientY - e.clientY) < 3) {
       clearTimeout(o.wtClickTimeout);
       o.wtClickTimeout = null; o.wtE1 = null;
       return true;
@@ -2646,16 +2729,20 @@ function waitFeedback() {
   showLoadingIndicator();
 }
 
-/** @const */ var WebSocketsUnknown = 0;
-/** @const */ var WebSocketsWorking = 1;
-/** @const */ var WebSocketsUnavailable = 2;
+/** @const */ var WebSocketUnknown = 0;
+/** @const */ var WebSocketConnecting = 1;
+/** @const */ var WebSocketAckConnect = 2;
+/** @const */ var WebSocketWorking = 3;
+/** @const */ var WebSocketUnavailable = 4;
 
 var websocket = {
-  state: WebSocketsUnknown,
+  state: WebSocketUnknown,
   socket: null,
   keepAlive: null,
   reconnectTries: 0
 };
+
+var connectionMonitor = null;
 
 function setServerPush(how) {
   serverPush = how;
@@ -2676,6 +2763,11 @@ function doJavaScript(js) {
 
   if (self == window._$_APP_CLASS_$_)
     doAutoJavaScript();
+}
+
+function webSocketAckConnect() {
+  websocket.socket.send('&signal=none&connected=' + ackUpdateId);
+  websocket.state = WebSocketWorking;
 }
 
 function handleResponse(status, msg, timer) {
@@ -2731,6 +2823,9 @@ _$_$endif_$_();
   if (quitted)
     return;
 
+  if (websocket.state == WebSocketAckConnect)
+    webSocketAckConnect();
+
   if (serverPush || pendingEvents.length > 0) {
     if (status == 1) {
       var ms = Math.min(120000, Math.exp(commErrors) * 500);
@@ -2764,6 +2859,21 @@ function doPollTimeout() {
 }
 
 var updating = false;
+ function setConnectionMonitor(aMonitor)
+ {
+   comm.setConnectionMonitor(aMonitor);
+   connectionMonitor = aMonitor;
+   connectionMonitor.status = {};
+   connectionMonitor.status.connectionStatus = 0;
+   connectionMonitor.status.websocket = false;
+   connectionMonitor.onStatusChange = function(type, newS) {
+	var old = monitor.status[type];
+	if(old == newS) return;
+	monitor.status[type] = newS;
+	monitor.onChange(type, old, newS);
+   }
+ }
+
 
 function update(el, signalName, e, feedback) {
   /*
@@ -2833,16 +2943,16 @@ function scheduleUpdate() {
   }
 
 _$_$if_WEB_SOCKETS_$_();
-  if (websocket.state != WebSocketsUnavailable) {
+  if (websocket.state != WebSocketUnavailable) {
     if (typeof window.WebSocket === UNDEFINED
         && typeof window.MozWebSocket === UNDEFINED)
-      websocket.state = WebSocketsUnavailable;
+      websocket.state = WebSocketUnavailable;
     else {
       var ws = websocket.socket;
 
       if ((ws == null || ws.readyState > 1)) {
-	if (ws != null && websocket.state == WebSocketsUnknown)
-	  websocket.state = WebSocketsUnavailable;
+	if (ws != null && websocket.state == WebSocketUnknown)
+	  websocket.state = WebSocketUnavailable;
 	else {
 	  function reconnect() {
 	    if (!quitted) {
@@ -2869,23 +2979,54 @@ _$_$if_WEB_SOCKETS_$_();
 	  else
 	    websocket.socket = ws = new MozWebSocket(wsurl);
 
+	  websocket.state = WebSocketConnecting;
+
 	  if (websocket.keepAlive)
 	    clearInterval(websocket.keepAlive);
 	  websocket.keepAlive = null;
 
 	  ws.onmessage = function(event) {
+	    var js = null;
+
+	    if (websocket.state == WebSocketConnecting) {
+	      if (event.data == "connect") {
+		if (responsePending != null && pollTimer != null) {
+		  clearTimeout(pollTimer);
+		  responsePending.abort();
+		  responsePending = null;
+		}
+
+		if (responsePending)
+		  websocket.state = WebSocketAckConnect;
+		else
+		  webSocketAckConnect();
+	      } else {
+		console.log("WebSocket: was expecting a connect?");
+		return;
+	      }
+	    } else {
+	      if (connectionMonitor) {
+		connectionMonitor.onStatusChange('websocket', true);
+	    connectionMonitor.onStatusChange('connectionStatus', 1);
+		  }
+              websocket.state = WebSocketWorking;
+	      js = event.data;
+	    }
+
 	    websocket.reconnectTries = 0;
-	    websocket.state = WebSocketsWorking;
-	    handleResponse(0, event.data, null);
+	    if (js != null)
+              handleResponse(0, js, null);
 	  };
 
 	  ws.onerror = function(event) {
 	    /*
 	     * Sometimes, we can connect but cannot send data
 	     */
+	    if (connectionMonitor)
+		connectionMonitor.onStatusChange('websocket', false);
 	    if (websocket.reconnectTries == 3 &&
-		websocket.state == WebSocketsUnknown)
-	      websocket.state = WebSocketsUnavailable;
+		websocket.state == WebSocketUnknown)
+	      websocket.state = WebSocketUnavailable;
 	    reconnect();
 	  };
 
@@ -2893,9 +3034,11 @@ _$_$if_WEB_SOCKETS_$_();
 	    /*
 	     * Sometimes, we can connect but cannot send data
 	     */
+	    if(connectionMonitor)
+			 connectionMonitor.onStatusChange('websocket', false);
 	    if (websocket.reconnectTries == 3 &&
-		websocket.state == WebSocketsUnknown)
-	      websocket.state = WebSocketsUnavailable;
+		websocket.state == WebSocketUnknown)
+	      websocket.state = WebSocketUnavailable;
 	    reconnect();
 	  };
 
@@ -2910,14 +3053,20 @@ _$_$if_WEB_SOCKETS_$_();
 	     *
 	     * So, we ping pong ourselves.
 	     */
-	    ws.send('&signal=ping'); // to get our first onmessage
+	    if (connectionMonitor) {
+		connectionMonitor.onStatusChange('websocket', true);
+		connectionMonitor.onStatusChange('connectionStatus', 1);
+	    }
 
+	    /*
+	      ws.send('&signal=ping'); // to get our first onmessage
+	     */
 	    schedulePing();
 	  };
 	}
       }
 
-      if (ws.readyState == 1) {
+      if ((ws.readyState == 1) && (ws.state == WebSocketWorking)) {
 	schedulePing();
 	sendUpdate();
 	return;
@@ -3023,7 +3172,9 @@ function sendUpdate() {
   if (params.length > 0)
     data.result += '&' + params;
 
-  if (websocket.socket != null && websocket.socket.readyState == 1) {
+  if ((websocket.socket != null) &&
+      (websocket.socket.readyState == 1) &&
+      (websocket.state == WebSocketWorking)) {
     responsePending = null;
 
     if (tm != null) {
@@ -3317,7 +3468,7 @@ function enableInternalPaths(initialHash) {
 function ieAlternative(d)
 {
   if (d.ieAlternativeExecuted) return '0';
-  self.emit(d.parentNode, 'IeAltnernative');
+  self.emit(d.parentNode, 'IeAlternative');
   d.style.width = '';
   d.ieAlternativeExecuted = true;
   return '0';
@@ -3385,6 +3536,7 @@ this._p_ = {
   response : responseReceived,
   setPage : setPage,
   setCloseMessage : setCloseMessage,
+  setConnectionMonitor : setConnectionMonitor,
 
   propagateSize : propagateSize
 };

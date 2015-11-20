@@ -133,12 +133,14 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
   chartConfig->elementAt(row, 0)->addWidget(new WText("Orientation:"));
   chartOrientationEdit_ = new WComboBox(chartConfig->elementAt(row, 1));
   chartOrientationEdit_->setModel(orientation);
+  chartOrientationEdit_->setCurrentIndex(0);
   connectSignals(chartOrientationEdit_);
   ++row;
 
   chartConfig->elementAt(row, 0)->addWidget(new WText("Legend location:"));
   legendLocationEdit_ = new WComboBox(chartConfig->elementAt(row, 1));
   legendLocationEdit_->setModel(legendLocation);
+  legendLocationEdit_->setCurrentIndex(0);
   connectSignals(legendLocationEdit_);
   ++row;
 
@@ -146,6 +148,7 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
   legendSideEdit_ = new WComboBox(chartConfig->elementAt(row, 1));
   legendSideEdit_->setModel(legendSide);
   legendSideEdit_->setCurrentIndex(1);
+  legendSideEdit_->setCurrentIndex(0);
   connectSignals(legendSideEdit_);
   ++row;
 
@@ -153,7 +156,14 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
   legendAlignmentEdit_ = new WComboBox(chartConfig->elementAt(row, 1));
   legendAlignmentEdit_->setModel(legendAlignment);
   legendAlignmentEdit_->setCurrentIndex(4);
+  legendAlignmentEdit_->setCurrentIndex(0);
   connectSignals(legendAlignmentEdit_);
+  ++row;
+
+  chartConfig->elementAt(row, 0)->addWidget(new WText("Border:"));
+  borderEdit_ = new WCheckBox(chartConfig->elementAt(row, 1));
+  borderEdit_->setChecked(false);
+  connectSignals(borderEdit_);
   ++row;
 
   for (int i = 0; i < chartConfig->rowCount(); ++i) {
@@ -163,7 +173,7 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
 
   WPanel *p = list->addWidget("Chart properties", chartConfig);
   p->setMargin(WLength::Auto, Left | Right);
-  p->resize(880, WLength::Auto);
+  p->resize(1080, WLength::Auto);
   p->setMargin(20, Top | Bottom);
 
   // ---- Series properties ----
@@ -223,14 +233,17 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
 
     sc.typeEdit = new WComboBox(seriesConfig->elementAt(j, 2));
     sc.typeEdit->setModel(types);
+	sc.typeEdit->setCurrentIndex(0);
     connectSignals(sc.typeEdit);
 
     sc.markerEdit = new WComboBox(seriesConfig->elementAt(j, 3));
     sc.markerEdit->setModel(markers);
+	sc.markerEdit->setCurrentIndex(0);
     connectSignals(sc.markerEdit);
 
     sc.axisEdit = new WComboBox(seriesConfig->elementAt(j, 4));
     sc.axisEdit->setModel(axes);
+	sc.axisEdit->setCurrentIndex(0);
     connectSignals(sc.axisEdit);
 
     sc.legendEdit = new WCheckBox(seriesConfig->elementAt(j, 5));
@@ -241,6 +254,7 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
 
     sc.labelsEdit = new WComboBox(seriesConfig->elementAt(j, 7));
     sc.labelsEdit->setModel(labels);
+	sc.labelsEdit->setCurrentIndex(0);
     connectSignals(sc.labelsEdit);
 
     int si = seriesIndexOf(chart, j);
@@ -274,7 +288,7 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
   p = list->addWidget("Series properties", seriesConfig);
   p->expand();
   p->setMargin(WLength::Auto, Left | Right);
-  p->resize(880, WLength::Auto);
+  p->resize(1080, WLength::Auto);
   p->setMargin(20, Top | Bottom);
 
   // ---- Axis properties ----
@@ -300,6 +314,10 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
   ::addHeader(axisConfig, "Maximum");
   ::addHeader(axisConfig, "Gridlines");
   ::addHeader(axisConfig, "Label angle");
+  ::addHeader(axisConfig, "Title");
+  ::addHeader(axisConfig, "Title orientation");
+  ::addHeader(axisConfig, "Tick direction");
+  ::addHeader(axisConfig, "Location");
 
   axisConfig->rowAt(0)->setStyleClass("trhead");
 
@@ -362,6 +380,33 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
     sc.labelAngleEdit->setValidator(angleValidator);
     connectSignals(sc.labelAngleEdit);
 
+    sc.titleEdit = new WLineEdit(axisConfig->elementAt(j, 8));
+    sc.titleEdit->setText("");
+    connectSignals(sc.titleEdit);
+
+    sc.titleOrientationEdit = new WComboBox(axisConfig->elementAt(j, 9));
+    sc.titleOrientationEdit->addItem("Horizontal");
+    sc.titleOrientationEdit->addItem("Vertical");
+	sc.titleOrientationEdit->setCurrentIndex(0);
+    connectSignals(sc.titleOrientationEdit);
+
+    sc.tickDirectionEdit = new WComboBox(axisConfig->elementAt(j, 10));
+    sc.tickDirectionEdit->addItem("Outwards");
+    sc.tickDirectionEdit->addItem("Inwards");
+	sc.tickDirectionEdit->setCurrentIndex(0);
+    connectSignals(sc.tickDirectionEdit);
+
+    sc.locationEdit = new WComboBox(axisConfig->elementAt(j, 11));
+    sc.locationEdit->addItem("Minimum value");
+    sc.locationEdit->addItem("Maximum value");
+    sc.locationEdit->addItem("Zero value");
+    sc.locationEdit->addItem("Both sides");
+	sc.locationEdit->setCurrentIndex(0);
+    if (axis.location() == ZeroValue) {
+      sc.locationEdit->setCurrentIndex(2);
+    }
+    connectSignals(sc.locationEdit);
+
     axisConfig->rowAt(j)->setStyleClass("trdata");
 
     axisControls_.push_back(sc);
@@ -369,7 +414,7 @@ ChartConfig::ChartConfig(WCartesianChart *chart, WContainerWidget *parent)
 
   p = list->addWidget("Axis properties", axisConfig);
   p->setMargin(WLength::Auto, Left | Right);
-  p->resize(880, WLength::Auto);
+  p->resize(1080, WLength::Auto);
   p->setMargin(20, Top | Bottom);
 
   /*
@@ -524,6 +569,12 @@ void ChartConfig::update()
     if (sc.autoEdit->isChecked())
       axis.setAutoLimits(MinimumValue | MaximumValue);
     else {
+      if (axis.autoLimits() & (MinimumValue | MaximumValue)) {
+	sc.minimumEdit->setText(WLocale::currentLocale()
+				.toString(axis.minimum()));
+	sc.maximumEdit->setText(WLocale::currentLocale()
+				.toString(axis.maximum()));
+      }
       if (validate(sc.minimumEdit) && validate(sc.maximumEdit)) {
           double min, max;
           getDouble(sc.minimumEdit, min);
@@ -565,6 +616,27 @@ void ChartConfig::update()
     }
 
     axis.setGridLinesEnabled(sc.gridLinesEdit->isChecked());
+
+    axis.setTitle(sc.titleEdit->text());
+
+    axis.setTitleOrientation(sc.titleOrientationEdit->currentIndex() == 0 ? Horizontal : Vertical);
+
+    axis.setTickDirection(sc.tickDirectionEdit->currentIndex() == 0 ? Outwards : Inwards);
+
+    switch (sc.locationEdit->currentIndex()) {
+      case 0:
+	axis.setLocation(MinimumValue);
+	break;
+      case 1:
+	axis.setLocation(MaximumValue);
+	break;
+      case 2:
+	axis.setLocation(ZeroValue);
+	break;
+      case 3:
+	axis.setLocation(BothSides);
+	break;
+    }
   }
 
   chart_->setTitle(titleEdit_->text());
@@ -589,7 +661,6 @@ void ChartConfig::update()
     LegendLocation location = LegendOutside;
     Side side = Right;
     AlignmentFlag alignment = AlignMiddle;
-
     switch (legendLocationEdit_->currentIndex()) {
     case 0: location = LegendOutside; break;
     case 1: location = LegendInside; break;
@@ -623,6 +694,12 @@ void ChartConfig::update()
 
     chart_->setLegendColumns((side == Top || side == Bottom ) ? 2 : 1,
 			     WLength(100));
+  }
+
+  if (borderEdit_->isChecked()) {
+    chart_->setBorderPen(WPen());
+  } else {
+    chart_->setBorderPen(NoPen);
   }
 }
 

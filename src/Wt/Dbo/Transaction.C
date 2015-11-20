@@ -106,6 +106,12 @@ Session& Transaction::session() const
   return session_;
 }
 
+SqlConnection *Transaction::connection() const
+{
+  impl_->open();
+  return impl_->connection_;
+}
+
 Transaction::Impl::Impl(Session& session)
   : session_(session),
     active_(true),
@@ -170,6 +176,7 @@ void Transaction::Impl::rollback()
   }
 
   objects_.clear();
+
 
   session_.returnConnection(connection_);
   connection_ = 0;

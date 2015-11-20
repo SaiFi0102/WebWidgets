@@ -16,8 +16,7 @@
 namespace Wt {
 
 WAnchor::LinkState::LinkState()
-  : target(TargetSelf),
-    clickJS(0)
+  : clickJS(0)
 { }
 
 WAnchor::LinkState::~LinkState()
@@ -39,7 +38,6 @@ WAnchor::WAnchor(const WLink& link, WContainerWidget *parent)
     image_(0)
 {
   setInline(true);
-
   setLink(link);
 }
 
@@ -50,7 +48,6 @@ WAnchor::WAnchor(const std::string& ref, WContainerWidget *parent)
     image_(0)
 {
   setInline(true);
-
   linkState_.link = WLink(WLink::Url, ref);
 }
 
@@ -60,7 +57,6 @@ WAnchor::WAnchor(WResource *resource, WContainerWidget *parent)
     image_(0)
 {
   setInline(true);
-
   setResource(resource);
 }
 #endif // WT_TARGET_JAVA
@@ -72,7 +68,6 @@ WAnchor::WAnchor(const WLink& link, const WString& text,
     image_(0)
 {
   setInline(true);
-
   setLink(link);
 
   text_ = new WText(text, this);
@@ -202,8 +197,8 @@ WResource *WAnchor::resource() const
 
 void WAnchor::setTarget(AnchorTarget target)
 {
-  if (linkState_.target != target) {
-    linkState_.target = target;
+  if (linkState_.link.target() != target) {
+    linkState_.link.setTarget(target);
     flags_.set(BIT_TARGET_CHANGED);
   }
 }
@@ -311,8 +306,15 @@ void WAnchor::updateDom(DomElement& element, bool all)
   }
 
   if (flags_.test(BIT_TARGET_CHANGED) || all) {
-    renderHTarget(linkState_, element, all);
-    flags_.reset(BIT_TARGET_CHANGED);
+	renderHTarget(linkState_, element, all);
+
+	/*
+	 * TODO(Benoit)
+	 * We do that here because of the static method, 
+	 * We should maybe move the code to renderHTarget() 
+	 * and make it non static ?
+	 */
+	flags_.reset(BIT_TARGET_CHANGED);
   }
 
   WContainerWidget::updateDom(element, all);
@@ -335,7 +337,7 @@ bool WAnchor::renderHRef(WInteractWidget *widget,
      * From 但浩亮: setRefInternalPath() and setTarget(TargetNewWindow)
      * does not work without the check below:
      */
-    if (linkState.target == TargetSelf) {
+    if (linkState.link.target() == TargetSelf) {
       linkState.clickJS
 	= linkState.link.manageInternalPathChange(app, widget,
 						  linkState.clickJS);
@@ -357,16 +359,21 @@ bool WAnchor::renderHRef(WInteractWidget *widget,
 
 void WAnchor::renderHTarget(LinkState& linkState, DomElement& element, bool all)
 {
-  switch (linkState.target) {
+  switch (linkState.link.target()) {
   case TargetSelf:
     if (!all)
       element.setProperty(PropertyTarget, "_self");
     break;
   case TargetThisWindow:
     element.setProperty(PropertyTarget, "_top");
-    break;
+	break;
   case TargetNewWindow:
     element.setProperty(PropertyTarget, "_blank");
+	break;
+  case TargetDownload:
+	element.setProperty(PropertyTarget, "wt_iframe_dl");
+	element.setProperty(PropertyDownload, ""); // Only works on some browsers (FF, Chrome)
+	break;
   }
 }
 

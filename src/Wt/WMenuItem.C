@@ -82,7 +82,7 @@ void WMenuItem::create(const std::string& iconPath, const WString& text,
       cw->removeWidget(contents);
   }
 
-  setContents(contents);
+  setContents(contents, policy);
 
   if (!separator_) {
     new WAnchor(this);
@@ -377,6 +377,25 @@ void WMenuItem::enableAjax()
     resetLearnedSlots();
 
   WContainerWidget::enableAjax();
+}
+
+void WMenuItem::setDisabled(bool disabled)
+{
+  WContainerWidget::setDisabled(disabled);
+
+  if (disabled)
+    if (menu_)
+      menu_->onItemHidden(menu_->indexOf(this), true);
+}
+
+void WMenuItem::setHidden(bool hidden,
+			  const WAnimation& animation)
+{
+  WContainerWidget::setHidden(hidden, animation);
+
+  if (hidden)
+    if (menu_)
+      menu_->onItemHidden(menu_->indexOf(this), true);
 }
 
 void WMenuItem::render(WFlags<RenderFlag> flags)

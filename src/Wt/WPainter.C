@@ -24,6 +24,8 @@
 #include "Wt/WTransform"
 #include "Wt/WWebWidget"
 
+#include "Wt/WCanvasPaintDevice"
+
 #include "FileUtils.h"
 #include "ImageUtils.h"
 #include "UriUtils.h"
@@ -462,7 +464,12 @@ void WPainter::drawPolyline(const WT_ARRAY WPointF *points, int pointCount)
 
 void WPainter::drawRect(const WRectF& rectangle)
 {
-  drawRect(rectangle.x(), rectangle.y(), rectangle.width(), rectangle.height());
+  WCanvasPaintDevice *cDevice = dynamic_cast<WCanvasPaintDevice*>(device_);
+  if (cDevice && rectangle.isJavaScriptBound()) {
+    cDevice->drawRect(rectangle);
+  } else {
+    drawRect(rectangle.x(), rectangle.y(), rectangle.width(), rectangle.height());
+  }
 }
 
 void WPainter::drawRect(double x, double y, double width, double height)
@@ -497,24 +504,30 @@ void WPainter::drawText(const WRectF& rectangle, WFlags<AlignmentFlag> flags,
   if (!(flags & AlignHorizontalMask))
     flags |= AlignLeft;
 
-  device_->drawText(rectangle.normalized(), flags, TextSingleLine, text);
+  device_->drawText(rectangle.normalized(), flags, TextSingleLine, text, 0);
 }
 
 void WPainter::drawText(const WRectF& rectangle, 
 			WFlags<AlignmentFlag> alignmentFlags,
 			TextFlag textFlag,
-			const WString& text)
+			const WString& text,
+			const WPointF *clipPoint)
 {
-  if (textFlag == TextSingleLine)
-    drawText(rectangle, alignmentFlags, text);
-  else {
+  if (textFlag == TextSingleLine) {
+    if (!(alignmentFlags & AlignVerticalMask))
+      alignmentFlags |= AlignTop;
+    if (!(alignmentFlags & AlignHorizontalMask))
+      alignmentFlags |= AlignLeft;
+
+    device_->drawText(rectangle.normalized(), alignmentFlags, TextSingleLine, text, clipPoint);
+  } else {
     if (!(alignmentFlags & AlignVerticalMask))
       alignmentFlags |= AlignTop;
     if (!(alignmentFlags & AlignHorizontalMask))
       alignmentFlags |= AlignLeft;
 
     if (device_->features() & WPaintDevice::CanWordWrap)
-      device_->drawText(rectangle.normalized(), alignmentFlags, textFlag, text);
+      device_->drawText(rectangle.normalized(), alignmentFlags, textFlag, text, clipPoint);
     else if (device_->features() & WPaintDevice::HasFontMetrics) {
 #ifndef WT_TARGET_JAVA
       MultiLineTextRenderer renderer(*this, rectangle);
@@ -696,15 +709,15 @@ void WPainter::scale(double sx, double sy)
 
 void WPainter::translate(double dx, double dy)
 {
-  s().worldTransform_.translate(dx, dy);
-
-  if (device_)
-    device_->setChanged(WPaintDevice::Transform);
+  translate(WPointF(dx, dy));
 }
 
 void WPainter::translate(const WPointF& p)
 {
-  translate(p.x(), p.y());
+  s().worldTransform_.translate(p);
+
+  if (device_)
+    device_->setChanged(WPaintDevice::Transform);
 }
 
 void WPainter::setWorldTransform(const WTransform& matrix, bool combine)

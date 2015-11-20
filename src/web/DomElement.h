@@ -27,7 +27,7 @@ typedef EscapeOStream EStream;
 enum Property { PropertyInnerHTML, PropertyAddedInnerHTML,
 		PropertyValue, PropertyDisabled,
 		PropertyChecked, PropertySelected, PropertySelectedIndex,
-		PropertyMultiple, PropertyTarget, PropertyIndeterminate,
+		PropertyMultiple, PropertyTarget, PropertyDownload, PropertyIndeterminate,
 		PropertySrc,
 		PropertyColSpan, PropertyRowSpan, PropertyReadOnly,
 		PropertyTabIndex, PropertyLabel,
@@ -77,7 +77,10 @@ enum Property { PropertyInnerHTML, PropertyAddedInnerHTML,
 		PropertyStyleVisibility, PropertyStyleDisplay,
 
 		/* CSS 3 */
-		PropertyStyleBoxSizing };
+		PropertyStyleBoxSizing,
+
+		/* Keep as last, e.g. for bitset sizing. Otherwise, unused. */
+		PropertyLastPlusOne };
 
 /*! \class DomElement web/DomElement web/DomElement
  *  \brief Class to represent a client-side DOM element (proxy).
@@ -122,6 +125,10 @@ public:
   /*! \brief Destructor.
    */
   ~DomElement();
+
+  /*! \brief set dom element custom tag name 
+   */
+  void setDomElementTagName(const std::string& name);
 
   /*! \brief Low-level URL encoding function.
    */
@@ -511,6 +518,7 @@ private:
   typedef std::set<std::string> AttributeSet;
   typedef std::map<const char *, EventHandler> EventHandlerMap;
 
+  bool willRenderInnerHtmlJS(WApplication *app) const;
   bool canWriteInnerHTML(WApplication *app) const;
   bool containsElement(DomElementType type) const;
   void processEvents(WApplication *app) const;
@@ -566,6 +574,7 @@ private:
   std::vector<DomElement *> updatedChildren_;
   EStream childrenHtml_;
   TimeoutList timeouts_;
+  std::string elementTagName_;
 
   static int nextId_;
 

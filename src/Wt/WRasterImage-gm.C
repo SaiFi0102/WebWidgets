@@ -612,7 +612,7 @@ void WRasterImage::drawImage(const WRectF& rect, const std::string& imgUri,
   if (cImage == 0) {
     LOG_ERROR("drawImage failed: "
 	      << (exception.reason ? exception.reason :
-		  "(unkown reason)") << ", "
+		  "(unknown reason)") << ", "
 	      << (exception.description ? exception.description :
 		  "(unknown description)") );
     return;
@@ -798,10 +798,17 @@ void WRasterImage::Impl::drawPlainPath(const WPainterPath& path)
 void WRasterImage::drawText(const WRectF& rect, 
 			    WFlags<AlignmentFlag> flags,
 			    TextFlag textFlag,
-			    const WString& text)
+			    const WString& text,
+			    const WPointF *clipPoint)
 {
   if (textFlag == TextWordWrap)
     throw WException("WRasterImage::drawText() TextWordWrap is not supported");
+
+  if (clipPoint && painter()) {
+    if (!painter()->clipPathTransform().map(painter()->clipPath())
+	  .isPointInPath(painter()->worldTransform().map(*clipPoint)))
+      return;
+  }
 
   if (impl_->renderText_) {
     impl_->internalInit();

@@ -343,6 +343,14 @@ public:
 
   virtual void positionAt(const WWidget *widget,
 			  Orientation orientation = Vertical);
+  
+  /*! \brief Set the position of the widget at the mouse position
+   */
+  void positionAt(const Wt::WMouseEvent& ev);
+
+  /*! \brief Raises this dialog to be the top-most dialog.
+   */
+  void raiseToFront();
 
   virtual void setMinimumSize(const WLength& width, const WLength& height);
   virtual void setMaximumSize(const WLength& width, const WLength& height);

@@ -161,6 +161,7 @@ WTemplate::WTemplate(WContainerWidget *parent)
     previouslyRendered_(0),
     newlyRendered_(0),
     encodeInternalPaths_(false),
+    encodeTemplateText_(true),
     changed_(false),
     widgetIdMode_(SetNoWidgetId)
 {
@@ -174,6 +175,7 @@ WTemplate::WTemplate(const WString& text, WContainerWidget *parent)
     previouslyRendered_(0),
     newlyRendered_(0),
     encodeInternalPaths_(false),
+    encodeTemplateText_(true),
     changed_(false),
     widgetIdMode_(SetNoWidgetId)
 {
@@ -292,6 +294,11 @@ WWidget *WTemplate::takeWidget(const std::string& varName)
     return 0;
 }
 
+void WTemplate::setWidgetIdMode(WidgetIdMode mode)
+{
+  widgetIdMode_ = mode;
+}
+
 void WTemplate::bindEmpty(const std::string& varName)
 {
   bindWidget(varName, 0);
@@ -361,7 +368,7 @@ void WTemplate::resolveString(const std::string& varName,
 
   StringMap::const_iterator i = strings_.find(varName);
   if (i != strings_.end())
-    result << i->second;
+    result << i->second.toUTF8();
   else {
     WWidget *w = resolveWidget(varName);
     if (w) {
@@ -405,6 +412,27 @@ WWidget *WTemplate::resolveWidget(const std::string& varName)
     return j->second;
   else
     return 0;
+}
+
+std::vector<WWidget *> WTemplate::widgets() const
+{
+  std::vector<WWidget *> result;
+
+  for (WidgetMap::const_iterator j = widgets_.begin();
+       j != widgets_.end(); ++j)
+    result.push_back(j->second);
+
+  return result;
+}
+
+std::string WTemplate::varName(WWidget *w) const
+{
+  for (WidgetMap::const_iterator j = widgets_.begin();
+       j != widgets_.end(); ++j)
+    if (j->second == w)
+      return j->first;
+
+  return std::string();
 }
 
 void WTemplate::setTemplateText(const WString& text, TextFormat textFormat)
@@ -470,7 +498,11 @@ void WTemplate::updateDom(DomElement& element, bool all)
       }
     }
 
-    element.setProperty(Wt::PropertyInnerHTML, html.str());
+    if (encodeTemplateText_)
+      element.setProperty(Wt::PropertyInnerHTML, html.str());
+    else
+      element.setProperty(Wt::PropertyInnerHTML, encode(html.str()));
+
     changed_ = false;
 
     for (std::set<WWidget *>::const_iterator i = previouslyRendered.begin();
@@ -495,16 +527,8 @@ void WTemplate::updateDom(DomElement& element, bool all)
   WInteractWidget::updateDom(element, all);
 }
 
-void WTemplate::renderTemplate(std::ostream& result)
+std::string WTemplate::encode(const std::string& text) const
 {
-  renderTemplateText(result, templateText());
-}
-
-bool WTemplate::renderTemplateText(std::ostream& result, const WString& templateText)
-{
-  errorText_ = "";
-  std::string text;
-
   WApplication *app = WApplication::instance();
 
   if (app && (encodeInternalPaths_ || app->session()->hasSessionIdInUrl())) {
@@ -513,10 +537,24 @@ bool WTemplate::renderTemplateText(std::ostream& result, const WString& template
       options |= EncodeInternalPaths;
     if (app->session()->hasSessionIdInUrl())
       options |= EncodeRedirectTrampoline;
-    WString t = templateText;
-    EncodeRefs(t, options);
-    text = t.toUTF8();
+    return EncodeRefs(WString::fromUTF8(text), options).toUTF8();
   } else
+    return text;
+}
+
+void WTemplate::renderTemplate(std::ostream& result)
+{
+  renderTemplateText(result, templateText());
+}
+
+bool WTemplate::renderTemplateText(std::ostream& result, const WString& templateText)
+{
+  errorText_ = "";
+
+  std::string text;
+  if (encodeTemplateText_)
+    text = encode(templateText.toUTF8());
+  else
     text = templateText.toUTF8();
 
   std::size_t lastPos = 0;
@@ -774,9 +812,14 @@ void WTemplate::setInternalPathEncoding(bool enabled)
   }
 }
 
+void WTemplate::setEncodeTemplateText(bool on)
+{
+  encodeTemplateText_ = on;
+}
+
 void WTemplate::refresh()
 {
-  if (text_.refresh()) {
+  if (text_.refresh() || !strings_.empty()) {
     changed_ = true;
     repaint(RepaintSizeAffected);
   }

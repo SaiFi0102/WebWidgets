@@ -115,8 +115,12 @@ RequestParser::parse(Request& req, Buffer::iterator begin,
     result = consume(req, begin++);
 
   if (boost::indeterminate(result) && currentString_) {
-    req.headers.push_back(Request::Header());
-    currentString_->next = &req.headers.back().value;
+    /*
+     * push at front since we may be relying on back() for the current
+     * name/value
+     */
+    req.headers.insert(req.headers.begin(), Request::Header());
+    currentString_->next = &req.headers.front().value;
     currentString_ = currentString_->next;
   }
 
@@ -352,7 +356,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
   }
 
   Buffer::iterator dataBegin = begin;
-  Buffer::iterator dataEnd = end;
+  Buffer::iterator dataEnd = begin; // Initially assume no data
 
   Request::State state = Request::Partial;
 
@@ -366,8 +370,7 @@ RequestParser::parseWebSocketMessage(Request& req, ReplyPtr reply,
 	remainder_ = 0;
       } else {
 	wsState_ = ws00_text_data;
-	dataBegin = begin;
-        ++dataBegin;
+	dataBegin = begin + 1;
 	remainder_ = 0;
       }
 

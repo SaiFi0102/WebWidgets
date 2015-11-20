@@ -94,6 +94,12 @@ WTableView::WTableView(WContainerWidget *parent)
     canvas_->setPositionScheme(Relative);
     canvas_->clicked()
       .connect(boost::bind(&WTableView::handleSingleClick, this, false, _1));
+
+	canvas_->clicked().connect(
+		"function(o, e) { "
+		  "$(document).trigger('click', e);"
+		"}");
+
     canvas_->clicked().preventPropagation();
     canvas_->mouseWentDown()
       .connect(boost::bind(&WTableView::handleMouseWentDown, this, false, _1)); 
@@ -752,6 +758,7 @@ void WTableView::defineJavaScript()
        "if (obj) obj.autoJavaScript();}");
   
     connectObjJS(canvas_->mouseWentDown(), "mouseDown");
+    connectObjJS(canvas_->mouseWentUp(), "mouseUp");
 
     /* Two-lines needed for WT_PORT */
     EventSignalBase& ccScrolled = contentsContainer_->scrolled();

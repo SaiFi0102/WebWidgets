@@ -206,6 +206,7 @@ bool WebRenderer::ackUpdate(int updateId)
    * delivered ?
    */
   if (updateId == expectedAckId_) {
+    LOG_DEBUG("jsSynced(false) after ackUpdate okay");
     setJSSynced(false);
     ++expectedAckId_;
     return true;
@@ -265,6 +266,7 @@ void WebRenderer::serveResponse(WebResponse& response)
     break;
   case WebResponse::Page:
     initialStyleRendered_ = false;
+    ++pageId_;
     if (session_.app())
       serveMainpage(response);
     else
@@ -412,7 +414,8 @@ void WebRenderer::serveBootstrap(WebResponse& response)
   DomElement::htmlAttributeValue
     (bootStyleUrl,
      session_.bootstrapUrl(response, WebSession::ClearInternalPath)
-     + "&request=style");
+     + "&request=style&page="
+     + boost::lexical_cast<std::string>(pageId_));
 
   boot.setVar("BOOT_STYLE_URL", bootStyleUrl.str());
 
@@ -523,8 +526,8 @@ void WebRenderer::setHeaders(WebResponse& response, const std::string mimeType)
   cookiesToSet_.clear();
 
 #ifndef WT_TARGET_JAVA
-  Configuration& conf = session_.controller()->configuration();
-  if (conf.behindReverseProxy() && conf.singleSession()) {
+  const WServer *s = session_.controller()->server();
+  if (s->dedicatedSessionProcess()) {
     response.addHeader("X-Wt-Session", session_.sessionId());
   }
 #endif // WT_TARGET_JAVA
@@ -581,8 +584,10 @@ void WebRenderer::serveJavaScriptUpdate(WebResponse& response)
 
     out << collectedJS1_.str() << collectedJS2_.str();
 
-    if (response.isWebSocketMessage())
+    if (response.isWebSocketMessage()) {
+      LOG_DEBUG("jsSynced(false) after rendering websocket message");
       setJSSynced(false);
+    }
   }
 
   out.spool(response.out());
@@ -733,6 +738,8 @@ void WebRenderer::collectJavaScript()
    * This is also used to render JavaScript that was rendered in asHtml()
    * in a hybrid page.
    */
+  LOG_DEBUG("Rendering invisible: " << invisibleJS_.str());
+  
   collectedJS1_ << invisibleJS_.str();
   invisibleJS_.clear();
 
@@ -1256,8 +1263,6 @@ void WebRenderer::renderStyleSheet(WStringStream& out,
 void WebRenderer::serveMainpage(WebResponse& response)
 {
   ++expectedAckId_;
-  ++pageId_;
-
   session_.sessionIdChanged_ = false;
 
   Configuration& conf = session_.controller()->configuration();
@@ -1744,16 +1749,7 @@ void WebRenderer::preLearnStateless(WApplication *app, WStringStream& out)
 
   for (WApplication::SignalMap::iterator i = ss.begin();
        i != ss.end(); ) {
-
-#ifdef WT_TARGET_JAVA
-    Wt::EventSignalBase *s = i->second.get();
-    if (!s) {
-      Utils::eraseAndNext(ss, i);
-      continue;
-    }
-#else
     Wt::EventSignalBase* s = i->second;
-#endif // WT_TARGET_JAVA
 
     if (s->sender() == app)
       s->processPreLearnStateless(this);

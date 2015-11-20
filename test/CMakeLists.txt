@@ -21,6 +21,7 @@ IF(ENABLE_LIBWTTEST)
     utf8/Utf8Test.C
     utf8/XmlTest.C
     utils/Base64Test.C
+    utils/EraseWord.C
     wdatetime/WDateTimeTest.C
     widgets/WSpinBoxTest.C
     length/WLengthTest.C
@@ -29,6 +30,7 @@ IF(ENABLE_LIBWTTEST)
     payment/MoneyTest.C
     locale/LocaleNumberTest.C
     trampoline/RefEncoder.C
+    testenvironment/TestEnvironmentTest.C
   )
 
   IF (WT_HAS_WRASTERIMAGE)

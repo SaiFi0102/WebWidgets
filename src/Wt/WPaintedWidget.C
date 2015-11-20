@@ -6,21 +6,28 @@
 
 #include <boost/lexical_cast.hpp>
 
+#include "Wt/WAbstractArea"
 #include "Wt/WApplication"
 #include "Wt/WCanvasPaintDevice"
 #include "Wt/WEnvironment"
 #include "Wt/WImage"
+#include "Wt/WJavaScriptExposableObject"
 #include "Wt/WPaintedWidget"
 #include "Wt/WPainter"
 #include "Wt/WResource"
 #include "Wt/WSvgImage"
 #include "Wt/WVmlImage"
+#include "WebUtils.h"
 
 #ifdef WT_HAS_WRASTERIMAGE
 #include "Wt/WRasterImage"
 #endif // WT_HAS_WRASTERIMAGE
 
 #include "DomElement.h"
+
+#ifndef WT_DEBUG_JS
+#include "js/WPaintedWidget.min.js"
+#endif
 
 namespace Wt {
 
@@ -106,7 +113,12 @@ WPaintedWidget::WPaintedWidget(WContainerWidget *parent)
     areaImageAdded_(false),
     repaintFlags_(0),
     areaImage_(0),
-    renderWidth_(0), renderHeight_(0)
+    renderWidth_(0), renderHeight_(0),
+    repaintSlot_("function() {"
+	"var o=" + this->objJsRef() + ";"
+	"if(o){o.repaint();}"
+	"}", this),
+    jsObjects_(this->objJsRef())
 {
   if (WApplication::instance()) {
     const WEnvironment& env = WApplication::instance()->environment();
@@ -117,6 +129,8 @@ WPaintedWidget::WPaintedWidget(WContainerWidget *parent)
   }
 
   setInline(false);
+  if (WApplication::instance())
+    setFormObject(true);
 }
 
 WPaintedWidget::~WPaintedWidget()
@@ -183,14 +197,51 @@ void WPaintedWidget::enableAjax()
   WInteractWidget::enableAjax();
 }
 
+void WPaintedWidget::defineJavaScript()
+{
+  WApplication *app = WApplication::instance();
+
+  LOAD_JAVASCRIPT(app, "js/WPaintedWidget.js", "gfxUtils", wtjs2);
+  LOAD_JAVASCRIPT(app, "js/WPaintedWidget.js", "WPaintedWidget", wtjs1);
+}
+
+void WPaintedWidget::render(WFlags<RenderFlag> flags)
+{
+  if (flags & RenderFull) {
+    defineJavaScript();
+  }
+
+  WInteractWidget::render(flags);
+}
+
+void WPaintedWidget::setFormData(const FormData& formData)
+{
+  Http::ParameterValues parVals = formData.values;
+  if (Utils::isEmpty(parVals))
+    return;
+  if (parVals[0] == "undefined")
+    return;
+
+  jsObjects_.assignFromJSON(parVals[0]);
+}
+
 WPaintedWidget::Method WPaintedWidget::getMethod() const
 {
   const WEnvironment& env = WApplication::instance()->environment();
 
   Method method;
 
-  if (!((env.agentIsChrome() && env.agent() >= WEnvironment::Chrome5)
-        || (env.agentIsIE() && env.agent() >= WEnvironment::IE9)
+#ifdef WT_HAS_WRASTERIMAGE
+  if (preferredMethod_ == PngImage) return PngImage;
+#endif
+
+  if (env.agentIsIElt(9)) {
+#ifdef WT_HAS_WRASTERIMAGE
+    method = preferredMethod_ == InlineSvgVml ? InlineSvgVml : PngImage;
+#else
+    method = InlineSvgVml;
+#endif
+  } else if (!((env.agentIsChrome() && env.agent() >= WEnvironment::Chrome5)
         || (env.agentIsGecko() && env.agent() >= WEnvironment::Firefox4_0))) {
     // on older browsers, inline svg is only supported in xhtml mode. HTML5
     // also allows inline svg
@@ -200,10 +251,10 @@ WPaintedWidget::Method WPaintedWidget::getMethod() const
 #else
     method = HtmlCanvas;
 #endif
-  } else 
-    if (!env.javaScript())
+  } else  {
+    if (!env.javaScript()) {
       method = InlineSvgVml;
-    else {
+    } else {
       /*
        * For Firefox pre 3.0 on Mac: SVG support is buggy (text filling
        * is broken).
@@ -215,8 +266,10 @@ WPaintedWidget::Method WPaintedWidget::getMethod() const
 
       if (oldFirefoxMac)
 	method = HtmlCanvas;
-      else
-	method = preferredMethod_;
+      else {
+	// HTML canvas if preferred method is PNG, but there's no WRasterImage support
+	method = preferredMethod_ == PngImage ? HtmlCanvas : preferredMethod_;
+      }
 
       /*
        * Nokia 810's default browser does not do SVG but there is no way of
@@ -229,9 +282,12 @@ WPaintedWidget::Method WPaintedWidget::getMethod() const
 
       if (nokia810)
 	method = HtmlCanvas;
-      else
-	method = preferredMethod_;
+      else {
+	// HTML canvas if preferred method is PNG, but there's no WRasterImage support
+	method = preferredMethod_ == PngImage ? HtmlCanvas : preferredMethod_;
+      }
     }
+  }
 
   return method;
 }
@@ -241,27 +297,18 @@ bool WPaintedWidget::createPainter()
   if (painter_)
     return false;
 
-  if (preferredMethod_ == PngImage) {
-    painter_ = new WWidgetRasterPainter(this);
-    return true;
-  }
-
   const WEnvironment& env = WApplication::instance()->environment();
-
-  /*
-   * For IE < 9: no choice. Use VML
-   */
-  if (env.agentIsIElt(9)) {
-    painter_ = new WWidgetVectorPainter(this, WWidgetPainter::InlineVml);
-    return true;
-  }
 
   /* Otherwise, combined preferred method with actual capabilities */
   Method method = getMethod();
 
-  if (method == InlineSvgVml)
-    painter_ = new WWidgetVectorPainter(this, WWidgetPainter::InlineSvg);
-  else if (method == PngImage)
+  if (method == InlineSvgVml) {
+    if (env.agentIsIElt(9)) {
+      painter_ = new WWidgetVectorPainter(this, WWidgetPainter::InlineVml);
+    } else {
+      painter_ = new WWidgetVectorPainter(this, WWidgetPainter::InlineSvg);
+    }
+  } else if (method == PngImage)
     painter_ = new WWidgetRasterPainter(this);
   else
     painter_ = new WWidgetCanvasPainter(this);
@@ -332,6 +379,7 @@ DomElement *WPaintedWidget::createDomElement(WApplication *app)
   }
 
   if (renderWidth_ != 0 && renderHeight_ != 0) {
+
     paintEvent(device);
 
 #ifdef WT_TARGET_JAVA
@@ -384,6 +432,7 @@ void WPaintedWidget::getDomChanges(std::vector<DomElement *>& result,
       ((repaintFlags_ & PaintUpdate) && !createdNew);
 
     if (renderWidth_ != 0 && renderHeight_ != 0) {
+
       paintEvent(device);
 
 #ifdef WT_TARGET_JAVA
@@ -580,7 +629,36 @@ void WWidgetCanvasPainter::createContents(DomElement *result,
     text->setProperty(PropertyStyleLeft, "0px");
   }
 
-  canvasDevice->render("c" + widget_->id(), text ? text : result);
+  DomElement *el = text ? text : result;
+  bool hasJsObjects = widget_->jsObjects_.size() > 0;
+
+  if (hasJsObjects) {
+    WStringStream ss;
+    WApplication *app = WApplication::instance();
+    ss << "new " WT_CLASS ".WPaintedWidget("
+      << app->javaScriptClass() << "," << widget_->jsRef() << ");";
+    widget_->jsObjects_.updateJs(ss);
+    el->callJavaScript(ss.str());
+  }
+
+  canvasDevice->render('c' + widget_->id(), el);
+
+  if (hasJsObjects) {
+    WStringStream ss;
+    ss << widget_->objJsRef() << ".repaint=function(){";
+    ss << canvasDevice->recordedJs_.str();
+    if (widget_->areaImage_) {
+      widget_->areaImage_->setTargetJS(widget_->objJsRef());
+      ss << widget_->areaImage_->updateAreasJS();
+    }
+    ss << "};";
+    ss << widget_->objJsRef() << ".repaint();";
+    el->callJavaScript(ss.str());
+  } else {
+    WStringStream ss;
+    ss << canvasDevice->recordedJs_.str();
+    el->callJavaScript(ss.str());
+  }
 
   if (text)
     result->addChild(text);
@@ -613,7 +691,32 @@ void WWidgetCanvasPainter::updateContents(std::vector<DomElement *>& result,
   if (domText)
     el->removeAllChildren();
 
+  bool hasJsObjects = widget_->jsObjects_.size() > 0;
+
+  if (hasJsObjects) {
+    WStringStream ss;
+    widget_->jsObjects_.updateJs(ss);
+    el->callJavaScript(ss.str());
+  }
+
   canvasDevice->render('c' + widget_->id(), el);
+
+  if (hasJsObjects) {
+    WStringStream ss;
+    ss << widget_->objJsRef() << ".repaint=function(){";
+    ss << canvasDevice->recordedJs_.str();
+    if (widget_->areaImage_) {
+      widget_->areaImage_->setTargetJS(widget_->objJsRef());
+      ss << widget_->areaImage_->updateAreasJS();
+    }
+    ss << "};";
+    ss << widget_->objJsRef() << ".repaint();";
+    el->callJavaScript(ss.str());
+  } else {
+    WStringStream ss;
+    ss << canvasDevice->recordedJs_.str();
+    el->callJavaScript(ss.str());
+  }
 
   result.push_back(el);
 
@@ -711,6 +814,41 @@ void WWidgetRasterPainter::updateContents(std::vector<DomElement *>& result,
   img->setAttribute("src", resource->generateUrl());
 
   result.push_back(img);
+}
+
+WJavaScriptHandle<WTransform> WPaintedWidget::createJSTransform()
+{
+  return jsObjects_.addObject(new WTransform());
+}
+
+WJavaScriptHandle<WBrush> WPaintedWidget::createJSBrush()
+{
+  return jsObjects_.addObject(new WBrush());
+}
+
+WJavaScriptHandle<WPen> WPaintedWidget::createJSPen()
+{
+  return jsObjects_.addObject(new WPen());
+}
+
+WJavaScriptHandle<WPainterPath> WPaintedWidget::createJSPainterPath()
+{
+  return jsObjects_.addObject(new WPainterPath());
+}
+
+WJavaScriptHandle<WRectF> WPaintedWidget::createJSRect()
+{
+  return jsObjects_.addObject(new WRectF(0,0,0,0));
+}
+
+WJavaScriptHandle<WPointF> WPaintedWidget::createJSPoint()
+{
+  return jsObjects_.addObject(new WPointF(0,0));
+}
+
+std::string WPaintedWidget::objJsRef() const
+{
+  return "jQuery.data(" + jsRef() + ",'obj')";
 }
 
 }

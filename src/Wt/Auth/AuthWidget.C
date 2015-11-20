@@ -59,6 +59,8 @@ AuthWidget::AuthWidget(Login& login, WContainerWidget *parent)
 
 void AuthWidget::init()
 {
+  setWidgetIdMode(SetWidgetObjectName);
+
   registrationModel_ = 0;
   registrationEnabled_ = false;
   created_ = false;
@@ -308,7 +310,9 @@ void AuthWidget::onLoginChange()
       
       model_->reset();
       createLoginView();
-    }
+    } else {
+	  createLoginView();
+	}
   }
 }
 

@@ -142,12 +142,15 @@ const std::string WTextEdit::toolBar(int i) const
 		  (setting + boost::lexical_cast<std::string>(i + 1))).toUTF8();
 }
 
-std::string WTextEdit::renderRemoveJs()
+std::string WTextEdit::renderRemoveJs(bool recursive)
 {
-  if (isRendered())
-    return jsRef() + ".ed.remove();" WT_CLASS ".remove('" + id() + "');";
-  else
-    return WTextArea::renderRemoveJs();
+  if (isRendered()) {
+    std::string result = jsRef() + ".ed.remove();";
+    if (!recursive)
+      result += WT_CLASS ".remove('" + id() + "');";
+    return result;
+  } else
+    return WTextArea::renderRemoveJs(recursive);
 }
 
 int WTextEdit::getTinyMCEVersion()
@@ -313,8 +316,11 @@ void WTextEdit::getDomChanges(std::vector<DomElement *>& result,
    * This causes fail when a text edit is progressively enhanced. The solution
    * is to listen for the onInit() event -> we should be able to add a
    * wrapping ... .onInit(function(ed) { .... }) around the changes
+   *
+   * New version of tinyMCE uses divs instead of table and removing the _tbl 
+   * makes it work on all version
    */
-  DomElement *e = DomElement::getForUpdate(formName() + "_tbl",
+  DomElement *e = DomElement::getForUpdate(formName()/* + "_tbl" */ ,
 					   DomElement_TABLE);
   updateDom(*e, false);
 

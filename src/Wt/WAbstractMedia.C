@@ -253,8 +253,7 @@ DomElement *WAbstractMedia::createDomElement(WApplication *app)
     setJavaScriptMember(WT_RESIZE_JS, "function() {}");
   }
 
-  if (app->environment().agentIsIElt(9) ||
-      app->environment().agent() == WEnvironment::MobileWebKitAndroid) {
+  if (app->environment().agentIsIElt(9)) {
     // Shortcut: IE misbehaves when it encounters a media element
     result = DomElement::createNew(DomElement_DIV);
     if (alternative_)
@@ -426,6 +425,16 @@ void WAbstractMedia::setAlternativeContent(WWidget *alternative)
     addChild(alternative_);
 }
 
+void WAbstractMedia::enableAjax() 
+{
+  WWebWidget::enableAjax();
+  if(flags_ & Autoplay) {
+	// chrome stops playing as soon as the widget tree is changed
+	// We therefore restart the play manually
+	play();
+  }
+}	
+
 WAbstractMedia::Source::Source(WAbstractMedia *parent,
 			       const WLink& link, const std::string &type,
 			       const std::string &media)
@@ -449,3 +458,4 @@ void WAbstractMedia::Source::resourceChanged()
   parent->sourcesChanged_ = true;
   parent->repaint();
 }
+

@@ -10,6 +10,10 @@
 #include "Wt/WLogger"
 #include "Wt/WSslInfo"
 #include "Wt/Http/Request"
+#include "Wt/Json/Parser"
+#include "Wt/Json/Object"
+#include "Wt/Json/Array"
+#include "Wt/WString"
 
 #include "WebController.h"
 #include "WebRequest.h"
@@ -18,6 +22,13 @@
 #include "Configuration.h"
 
 #include <boost/lexical_cast.hpp>
+
+#ifndef WT_TARGET_JAVA
+#ifdef WT_WITH_SSL
+#include <openssl/ssl.h>
+#include "SslUtils.h"
+#endif //WT_TARGET_JAVA
+#endif //WT_WITH_SSL
 
 namespace {
   inline std::string str(const char *s) {
@@ -84,36 +95,87 @@ const std::string& WEnvironment::deploymentPath() const
     return session_->deploymentPath();
 }
 
+void WEnvironment::updateHostName(const WebRequest& request)
+{
+  Configuration& conf = session_->controller()->configuration();
+  std::string oldHost = host_;
+  host_ = str(request.headerValue("Host"));
+
+  if(conf.behindReverseProxy()) {
+	std::string forwardedHost = str(request.headerValue("X-Forwarded-Host"));
+
+	if (!forwardedHost.empty()) {
+	  std::string::size_type i = forwardedHost.rfind(',');
+	  if (i == std::string::npos)
+		host_ = forwardedHost;
+	  else
+		host_ = forwardedHost.substr(i+1);
+	}
+
+  }
+  if(host_.size() == 0) host_ = oldHost;
+}
+
+void WEnvironment::updateUrlScheme(const WebRequest& request) 
+{
+  urlScheme_       = str(request.urlScheme());
+
+  Configuration& conf = session_->controller()->configuration();
+#ifndef WT_TARGET_JAVA
+  if (conf.behindReverseProxy() || server()->dedicatedSessionProcess()) {
+#else
+  if (conf.behindReverseProxy()){
+#endif
+  std::string forwardedProto = str(request.headerValue("X-Forwarded-Proto"));
+  if (!forwardedProto.empty()) {
+	std::string::size_type i = forwardedProto.rfind(',');
+	if (i == std::string::npos)
+	  urlScheme_ = forwardedProto;
+	else
+	  urlScheme_ = forwardedProto.substr(i+1);
+  }
+  }
+}
+
+
 void WEnvironment::init(const WebRequest& request)
 {
   Configuration& conf = session_->controller()->configuration();
 
   queryString_ = request.queryString();
   parameters_ = request.getParameterMap();
-
-  urlScheme_       = str(request.urlScheme());
+  host_            = str(request.headerValue("Host"));
   referer_         = str(request.headerValue("Referer"));
   accept_          = str(request.headerValue("Accept"));
   serverSignature_ = str(request.envValue("SERVER_SIGNATURE"));
   serverSoftware_  = str(request.envValue("SERVER_SOFTWARE"));
   serverAdmin_     = str(request.envValue("SERVER_ADMIN"));
   pathInfo_        = request.pathInfo();
+
 #ifndef WT_TARGET_JAVA
+  if(!str(request.headerValue("Redirect-Secret")).empty())
+	session_->controller()->redirectSecret_ = str(request.headerValue("Redirect-Secret"));
+
   sslInfo_         = request.sslInfo();
+  if(!sslInfo_ && !str(request.headerValue("SSL-Client-Certificates")).empty()) {
+	parseSSLInfo(str(request.headerValue("SSL-Client-Certificates")));
+  }
 #endif
 
   setUserAgent(str(request.headerValue("User-Agent")));
+  updateUrlScheme(request);
 
   LOG_INFO("UserAgent: " << userAgent_);
 
   /*
-   * Determine server host name
+   * If behind a reverse proxy, use external host, schema as communicated using 'X-Forwarded'
+   * headers.
    */
-  if (conf.behindReverseProxy()) {
-    /*
-     * Take the last entry in X-Forwarded-Host, assuming that we are only
-     * behind 1 proxy
-     */
+#ifndef WT_TARGET_JAVA
+  if (conf.behindReverseProxy() || server()->dedicatedSessionProcess()) {
+#else
+	if (conf.behindReverseProxy()){
+#endif
     std::string forwardedHost = str(request.headerValue("X-Forwarded-Host"));
 
     if (!forwardedHost.empty()) {
@@ -122,10 +184,10 @@ void WEnvironment::init(const WebRequest& request)
 	host_ = forwardedHost;
       else
 	host_ = forwardedHost.substr(i+1);
-    } else
-      host_ = str(request.headerValue("Host"));
-  } else
-    host_ = str(request.headerValue("Host"));
+    }
+  }
+
+
 
   if (host_.empty()) {
     /*
@@ -146,6 +208,41 @@ void WEnvironment::init(const WebRequest& request)
 
   locale_ = request.parseLocale();
 }
+
+#ifndef WT_TARGET_JAVA
+void WEnvironment::parseSSLInfo(const std::string& json) {
+#ifdef WT_WITH_SSL
+	Wt::Json::Object obj;
+	Wt::Json::ParseError error;
+	if(!Wt::Json::parse(Wt::Utils::base64Decode(json), obj, error)) {
+	  LOG_ERROR("error while parsing client certificates");
+	  return;
+	}
+
+	std::string clientCertificatePem = obj["client-certificate"];
+  
+	X509* cert = Wt::Ssl::readFromPem(clientCertificatePem);
+
+	if(cert) {
+	  Wt::WSslCertificate clientCert = Wt::Ssl::x509ToWSslCertificate(cert);
+	  X509_free(cert);
+
+	  Wt::Json::Array arr = obj["client-pem-certification-chain"];
+
+	  std::vector<Wt::WSslCertificate> clientCertChain;
+
+	  for(unsigned int i = 0; i < arr.size(); ++i ) {
+		clientCertChain.push_back(Wt::Ssl::x509ToWSslCertificate(Wt::Ssl::readFromPem(arr[i])));
+	  }
+
+	  Wt::WValidator::State state = static_cast<Wt::WValidator::State>((int)obj["client-verification-result-state"]);
+	  Wt::WString message = obj["client-verification-result-message"];
+
+	  sslInfo_ = new Wt::WSslInfo(clientCert, clientCertChain, Wt::WValidator::Result(state, message));
+	}
+#endif // WT_WITH_SSL
+}
+#endif // WT_TARGET_JAVA
 
 std::string WEnvironment::getClientAddress(const WebRequest& request,
 					   const Configuration& conf)
@@ -262,7 +359,15 @@ void WEnvironment::setUserAgent(const std::string& userAgent)
   agent_ = Unknown;
 
   /* detecting MSIE is as messy as their browser */
-  if (userAgent_.find("MSIE 2.") != std::string::npos
+  if (userAgent_.find("Trident/4.0") != std::string::npos) {
+    agent_ = IE8; return;
+  } if (userAgent_.find("Trident/5.0") != std::string::npos) {
+    agent_ = IE9; return;
+  } else if (userAgent_.find("Trident/6.0") != std::string::npos) {
+    agent_ = IE10; return;
+  } else if (userAgent_.find("Trident/") != std::string::npos) {
+    agent_ = IE11; return;
+  } else if (userAgent_.find("MSIE 2.") != std::string::npos
       || userAgent_.find("MSIE 3.") != std::string::npos
       || userAgent_.find("MSIE 4.") != std::string::npos
       || userAgent_.find("MSIE 5.") != std::string::npos
@@ -278,13 +383,6 @@ void WEnvironment::setUserAgent(const std::string& userAgent)
     agent_ = IE9;
   else if (userAgent_.find("MSIE") != std::string::npos)
     agent_ = IE10;
-  else if (userAgent_.find("Trident/5.0") != std::string::npos) {
-    agent_ = IE9; return;
-  } else if (userAgent_.find("Trident/6.0") != std::string::npos) {
-    agent_ = IE10; return;
-  } else if (userAgent_.find("Trident/") != std::string::npos) {
-    agent_ = IE11; return;
-  }
 
   if (userAgent_.find("Opera") != std::string::npos) {
     agent_ = Opera;
@@ -368,6 +466,10 @@ void WEnvironment::setUserAgent(const std::string& userAgent)
       else
 	agent_ = Firefox5_0;
     }
+  }
+
+  if (userAgent_.find("Edge/12") != std::string::npos) {
+    agent_ = Edge;
   }
 
   if (conf.agentIsBot(userAgent_))

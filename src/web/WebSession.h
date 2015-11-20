@@ -196,6 +196,7 @@ public:
     static Handler *instance();
 
     bool haveLock() const;
+    void unlock();
 
     void flushResponse();
     WebResponse *response() { return response_; }
@@ -257,6 +258,8 @@ private:
   void handleWebSocketRequest(Handler& handler);
   static void handleWebSocketMessage(boost::weak_ptr<WebSession> session,
 				     WebReadEvent event);
+  static void webSocketConnect(boost::weak_ptr<WebSession> session,
+			       WebWriteEvent event);
   static void webSocketReady(boost::weak_ptr<WebSession> session,
 			     WebWriteEvent event);
 
@@ -286,13 +289,13 @@ private:
   std::string applicationName_;
   std::string bookmarkUrl_, basePath_, absoluteBaseUrl_;
   std::string applicationUrl_, deploymentPath_;
+  std::string docRoot_;
   std::string redirect_;
   std::string pagePathInfo_;
-  std::string pongMessage_;
-  WebResponse *asyncResponse_, *bootStyleResponse_;
-  bool canWriteAsyncResponse_;
+  WebResponse *asyncResponse_, *webSocket_, *bootStyleResponse_;
+  bool canWriteWebSocket_, webSocketConnected_;
   int pollRequestsIgnored_;
-  bool progressiveBoot_, bootStyle_;
+  bool progressiveBoot_;
 
   WebRequest *deferredRequest_;
   WebResponse *deferredResponse_;

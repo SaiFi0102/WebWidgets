@@ -402,7 +402,8 @@ void WDialog::render(WFlags<RenderFlag> flags)
       Utils::replace(js, "$centerY", centerY ? "1" : "0");
 
       impl_->bindString
-	("center-script", "<script>" + js + "</script>", XHTMLUnsafeText);
+	("center-script", "<script>" + Utils::htmlEncode(js)
+	 + "</script>", XHTMLUnsafeText);
     } else
       impl_->bindEmpty("center-script");
   }
@@ -624,6 +625,15 @@ void WDialog::positionAt(const WWidget *widget, Orientation orientation)
   WPopupWidget::positionAt(widget, orientation);
 }
 
+void WDialog::positionAt(const Wt::WMouseEvent& ev)
+{
+  setPositionScheme(Fixed);
+  if (wApp->environment().javaScript()) {
+	setOffsets(ev.window().x, Left);
+	setOffsets(ev.window().y, Top);
+  }
+}
+
 DialogCover *WDialog::cover() 
 {
   WApplication *app = WApplication::instance();
@@ -642,10 +652,15 @@ void WDialog::bringToFront(const WMouseEvent &e)
 {
   if (e.button() == WMouseEvent::LeftButton &&
       e.modifiers() == NoModifier) {
-    doJavaScript("jQuery.data(" + jsRef() + ", 'obj').bringToFront()");
-    DialogCover *c = cover();
-    c->bringToFront(this);
+    raiseToFront();
   }
+}
+
+void WDialog::raiseToFront()
+{
+  doJavaScript("jQuery.data(" + jsRef() + ", 'obj').bringToFront()");
+  DialogCover *c = cover();
+  c->bringToFront(this);  
 }
 
 }

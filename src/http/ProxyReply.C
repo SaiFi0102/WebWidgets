@@ -10,6 +10,15 @@
 #include "Connection.h"
 #include "Server.h"
 #include "StockReply.h"
+#include "Wt/Json/Serializer"
+#include "Wt/Json/Value"
+#include "Wt/Json/Array"
+#include "Wt/Json/Object"
+#include "Wt/WSslCertificate"
+#include "Wt/WSslInfo"
+#include "SslUtils.h"
+#include "Wt/WString"
+#include "Wt/Utils"
 
 namespace Wt {
   LOGGER("wthttp/proxy");
@@ -26,7 +35,8 @@ ProxyReply::ProxyReply(Request& request,
     out_(&out_buf_),
     sending_(0),
     more_(true),
-    receiving_(false)
+    receiving_(false),
+	fwCertificates_(false)
 {
   reset(0);
 }
@@ -36,6 +46,13 @@ ProxyReply::~ProxyReply()
   if (sessionProcess_ && sessionProcess_->sessionId().empty()) {
     sessionProcess_->stop();
   }
+  
+  boost::system::error_code ignored_ec;
+  if(socket_.get()) {
+	socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+	socket_->close();
+  }
+
 }
 
 void ProxyReply::reset(const Wt::EntryPoint *ep)
@@ -44,6 +61,11 @@ void ProxyReply::reset(const Wt::EntryPoint *ep)
     sessionProcess_->stop();
   }
   sessionProcess_.reset();
+  boost::system::error_code ignored_ec;
+  if(socket_.get()) {
+	socket_->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored_ec);
+	socket_->close();
+  }
   socket_.reset();
   contentType_.clear();
   requestBuf_.consume(requestBuf_.size());
@@ -52,6 +74,7 @@ void ProxyReply::reset(const Wt::EntryPoint *ep)
   sending_ = 0;
   more_ = true;
   receiving_ = false;
+  contentLength_ = -1;
 
   Reply::reset(ep);
 }
@@ -71,7 +94,6 @@ void ProxyReply::writeDone(bool success)
   }
 
   if (more_) {
-    // Get more data to send
     asio::async_read(*socket_, responseBuf_,
 	asio::transfer_at_least(1),
 	connection()->strand().wrap(
@@ -86,13 +108,13 @@ bool ProxyReply::consumeData(Buffer::const_iterator begin,
 			     Request::State state)
 {
   if (state == Request::Error) {
-    socket_.reset();
     return false;
   }
 
   beginRequestBuf_ = begin;
   endRequestBuf_ = end;
   state_ = state;
+
 
   if (sessionProcess_) {
     // Connection with child already established, send request data
@@ -109,6 +131,7 @@ bool ProxyReply::consumeData(Buffer::const_iterator begin,
 
     if (sessionId.empty() || !sessionProcess_) {
       if (sessionManager_.tryToIncrementSessionCount()) {
+		fwCertificates_ = true;
 	// Launch new child process
 	sessionProcess_.reset(
 	    new SessionProcess(connection()->server()->service()));
@@ -170,9 +193,11 @@ void ProxyReply::handleChildConnected(const boost::system::error_code& ec)
 void ProxyReply::assembleRequestHeaders()
 {
   std::ostream os(&requestBuf_);
-  os << request_.method.data << " " << request_.uri.data << " HTTP/1.1\r\n";
+  os << request_.method << " " << request_.uri << " HTTP/1.1\r\n";
   bool establishWebSockets = false;
   std::string forwardedFor;
+  std::string forwardedProto = request_.urlScheme;
+  std::string forwardedPort;
   for (Request::HeaderList::const_iterator it = request_.headers.begin();
        it != request_.headers.end(); ++it) {
     if (it->name.iequals("Connection") || it->name.iequals("Keep-Alive") ||
@@ -181,15 +206,19 @@ void ProxyReply::assembleRequestHeaders()
     } else if (it->name.iequals("X-Forwarded-For") || it->name.iequals("Client-IP")) {
       const Wt::Configuration& wtConfiguration = connection()->server()->controller()->configuration();
       if (wtConfiguration.behindReverseProxy()) {
-	forwardedFor = std::string(it->value.data) + ", ";
+	forwardedFor = it->value.str() + ", ";
       }
     } else if (it->name.iequals("Upgrade")) {
       if (it->value.iequals("websocket")) {
 	establishWebSockets = true;
       }
-    } else {
-      os << it->name.data << ": " << it->value.data << "\r\n";
-    }
+    } else if (it->name.iequals("X-Forwarded-Proto")) { 
+		forwardedProto = it->value.str();
+	} else if(it->name.iequals("X-Forwarded-Port")) {
+		forwardedPort = it->value.str();
+    } else if (it->name.length() > 0) {
+      os << it->name << ": " << it->value << "\r\n";
+  }
   }
   if (establishWebSockets) {
     os << "Connection: Upgrade\r\n";
@@ -198,11 +227,52 @@ void ProxyReply::assembleRequestHeaders()
     os << "Connection: close\r\n";
   }
   os << "X-Forwarded-For: " << forwardedFor << request_.remoteIP << "\r\n";
+  os << "X-Forwarded-Proto: " <<  forwardedProto  << "\r\n";
+  if(forwardedPort.size() > 0)
+	os << "X-Forwarded-Port: " <<  forwardedPort << "\r\n";
+  else
+	os << "X-Forwarded-Port: " <<  request_.port << "\r\n";
+  // Forward SSL Certificate to session only for first request
+  if(request_.sslInfo() && fwCertificates_) {
+	appendSSLInfo(request_.sslInfo(), os);
+  }
+
+  // Append redirect secret
+  os << "Redirect-Secret: " <<  Wt::WServer::instance()->controller()->redirectSecret_ << "\r\n";
+
   os << "\r\n";
+  fwCertificates_ = false;
+}
+
+void ProxyReply::appendSSLInfo(const Wt::WSslInfo* sslInfo, std::ostream& os) {
+#ifdef WT_WITH_SSL
+  os << "SSL-Client-Certificates: ";
+
+  Wt::Json::Value val(Wt::Json::ObjectType);
+  Wt::Json::Object &obj = val;
+
+  Wt::WSslCertificate clientCert = sslInfo->clientCertificate();
+  std::string pem = clientCert.toPem();
+
+  obj["client-certificate"] = Wt::WString(pem); 
+
+  Wt::Json::Value arrVal(Wt::Json::ArrayType);
+  Wt::Json::Array &sslCertsArr = arrVal;
+  for(unsigned int i = 0; i< sslInfo->clientPemCertificateChain().size(); ++i) {
+	sslCertsArr.push_back(Wt::WString(sslInfo->clientPemCertificateChain()[i].toPem()));
+  }
+
+  obj["client-pem-certification-chain"] = arrVal;
+  obj["client-verification-result-state"] = (int)sslInfo->clientVerificationResult().state();
+  obj["client-verification-result-message"] = sslInfo->clientVerificationResult().message();
+
+  os <<Wt::Utils::base64Encode(Wt::Json::serialize(obj), false);
+  os << "\r\n";
+#endif
 }
 
 void ProxyReply::handleDataWritten(const boost::system::error_code &ec,
-				   std::size_t transferred)
+	std::size_t transferred)
 {
   if (!ec) {
     if (state_ == Request::Partial) {
@@ -216,7 +286,8 @@ void ProxyReply::handleDataWritten(const boost::system::error_code &ec,
     }
   } else {
     LOG_ERROR("error sending data to child: " << ec.message());
-    error(service_unavailable);
+    if (!sendReload())
+      error(service_unavailable);
   }
 }
 
@@ -233,7 +304,8 @@ void ProxyReply::handleStatusRead(const boost::system::error_code &ec)
     std::getline(response_stream, status_message);
     if (!response_stream || http_version.substr(0, 5) != "HTTP/") {
       LOG_ERROR("got malformed response!");
-      error(internal_server_error);
+      if (!sendReload())
+	error(internal_server_error);
       return;
     }
 
@@ -243,7 +315,8 @@ void ProxyReply::handleStatusRead(const boost::system::error_code &ec)
 	  asio::placeholders::error));
   } else {
     LOG_ERROR("error reading status line: " << ec.message());
-    error(service_unavailable);
+    if (!sendReload())
+      error(service_unavailable);
   }
 }
 
@@ -251,7 +324,8 @@ void ProxyReply::handleHeadersRead(const boost::system::error_code &ec)
 {
   if (ec) {
     LOG_ERROR("error reading headers: " << ec.message());
-    error(service_unavailable);
+    if (!sendReload())
+      error(service_unavailable);
     return;
   }
 
@@ -269,7 +343,9 @@ void ProxyReply::handleHeadersRead(const boost::system::error_code &ec)
       std::string value = boost::trim_copy(header.substr(i+1));
       if (boost::iequals(name, "Content-Type")) {
 	contentType_ = value;
-      } else if (boost::iequals(name, "Date")) {
+      } else if (boost::iequals(name, "Content-Length")) { 
+		contentLength_ = boost::lexical_cast<int64_t>(value);
+	  } else if (boost::iequals(name, "Date")) {
 	// Ignore, we're overriding it
       } else if (boost::iequals(name, "Transfer-Encoding") || boost::iequals(name, "Keep-Alive") ||
 	  boost::iequals(name, "TE")) {
@@ -296,7 +372,8 @@ void ProxyReply::handleHeadersRead(const boost::system::error_code &ec)
 	//	 we sent Connection: close.
 	// If decoding is needed, look in Wt::Http::Client
 	LOG_ERROR("unexpected chunked encoding!");
-	error(internal_server_error);
+	if (!sendReload())
+	  error(internal_server_error);
 	return;
       }
     }
@@ -335,7 +412,8 @@ void ProxyReply::handleResponseRead(const boost::system::error_code &ec)
     }
   } else {
     LOG_ERROR("error reading response: " << ec.message());
-    error(service_unavailable);
+    if (!sendReload()) 
+      error(service_unavailable);
   }
 }
 
@@ -353,9 +431,10 @@ std::string ProxyReply::getSessionId() const
       && !wtConfiguration.reloadIsNewSession()) {
     const Request::Header *cookieHeader = request_.getHeader("Cookie");
     if (cookieHeader) {
-      sessionId = Wt::WebController::sessionFromCookie(cookieHeader->value.data,
-							 request_.request_path,
-							 wtConfiguration.sessionIdLength());
+      std::string cookie = cookieHeader->value.str();
+      sessionId = Wt::WebController::sessionFromCookie(cookie.c_str(),
+						       request_.request_path,
+						       wtConfiguration.sessionIdLength());
     }
   }
 
@@ -372,7 +451,7 @@ std::string ProxyReply::contentType()
 
 ::int64_t ProxyReply::contentLength()
 {
-  return -1;
+  return contentLength_;
 }
 
 bool ProxyReply::nextContentBuffers(std::vector<asio::const_buffer>& result)
@@ -397,5 +476,25 @@ void ProxyReply::error(status_type status)
   }
 }
 
-} // namespace server
+bool ProxyReply::sendReload()
+{
+  // If the method is POST and the request contains
+  // only the wtd then we are almost sure that it's a jsupdate
+
+  if ((request_.method.icontains("POST") &&
+       request_.request_query.find("&") == std::string::npos) ||
+      request_.request_query.find("request=script") != std::string::npos) {
+    LOG_INFO("signal from dead session, sending reload.");
+    addHeader("Content-Type", "text/javascript; charset=UTF-8");
+    out_ <<
+      "if (window.Wt) window.Wt._p_.quit(null); window.location.reload(true);";
+    send();
+
+    return true;
+  }
+
+  return false;
+}
+
+  } // namespace server
 } // namespace http

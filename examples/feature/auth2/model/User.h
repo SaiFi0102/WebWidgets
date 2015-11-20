@@ -11,6 +11,7 @@
 #include <Wt/WDate>
 #include <Wt/Dbo/WtSqlTraits>
 #include <Wt/WGlobal>
+#include <Wt/Auth/Dbo/AuthInfo>
 
 namespace dbo = Wt::Dbo;
 
@@ -21,11 +22,13 @@ class User {
 public:
   /* You probably want to add other user information here, e.g. */
   std::string favouritePet;
+  dbo::weak_ptr<AuthInfo> authInfo;
 
   template<class Action>
   void persist(Action& a)
   {
     dbo::field(a, favouritePet, "favourite_pet");
+    dbo::hasOne(a, authInfo, "user");
   }
 };
 

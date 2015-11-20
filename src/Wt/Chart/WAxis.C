@@ -19,9 +19,11 @@
 #include "Wt/WPainterPath"
 #include "Wt/WRectF"
 #include "Wt/WTime"
+#include "Wt/WMeasurePaintDevice"
 
-#include "Wt/Chart/WAxis"
 #include "Wt/Chart/WAbstractChartImplementation"
+#include "Wt/Chart/WAxis"
+#include "Wt/Chart/WCartesianChart"
 
 #include "WebUtils.h"
 
@@ -53,6 +55,10 @@ namespace {
 
   int roundDown(int v, int factor) {
     return (v / factor) * factor;
+  }
+
+  int roundUp(int v, int factor) {
+    return ((v - 1) / factor + 1) * factor;
   }
 
   Wt::WPointF interpolate(const Wt::WPointF& p1, const Wt::WPointF& p2,
@@ -115,7 +121,8 @@ WAxis::Segment::Segment()
     renderMaximum(AUTO_MAXIMUM),
     renderLength(AUTO_MAXIMUM),
     renderStart(AUTO_MAXIMUM),
-    dateTimeRenderUnit(Days)
+    dateTimeRenderUnit(Days),
+    dateTimeRenderInterval(0)
 { }
 
 WAxis::WAxis()
@@ -136,11 +143,19 @@ WAxis::WAxis()
     segmentMargin_(40),
     titleOffset_(0),
     textPen_(black),
-    titleOrientation_(Horizontal)
+    titleOrientation_(Horizontal),
+    maxZoom_(4),
+    zoom_(1),
+    pan_(0),
+    zoomDirty_(true),
+    panDirty_(true),
+    padding_(0),
+    tickDirection_(Outwards),
+    partialLabelClipping_(true)
 {
-  titleFont_.setFamily(WFont::SansSerif);
+  titleFont_.setFamily(WFont::SansSerif, "Arial");
   titleFont_.setSize(WFont::FixedSize, WLength(12, WLength::Point));
-  labelFont_.setFamily(WFont::SansSerif);
+  labelFont_.setFamily(WFont::SansSerif, "Arial");
   labelFont_.setSize(WFont::FixedSize, WLength(10, WLength::Point));
 
   segments_.push_back(Segment());
@@ -379,6 +394,44 @@ void WAxis::setLabelFont(const WFont& labelFont)
   set(labelFont_, labelFont);
 }
 
+double WAxis::calcTitleSize(WPaintDevice *d, Orientation orientation) const {
+  WMeasurePaintDevice device(d);
+
+  WPainter painter(&device);
+
+  // Set Painter props
+  painter.setFont(titleFont_);
+
+  painter.drawText( 0, 0, 100, 100, AlignCenter, title());
+  
+  return orientation == Vertical ? device.boundingRect().height() : device.boundingRect().width();
+
+
+}
+
+double WAxis::calcMaxTickLabelSize(WPaintDevice *d, Orientation orientation) const {
+  WMeasurePaintDevice device(d);
+
+  WPainter painter(&device);
+
+  // Set Painter props
+  painter.setFont(labelFont_);
+
+  std::vector<TickLabel> ticks;
+
+  // Get all the ticks for the axis
+  for(int i = 0; i< segmentCount(); ++i) {
+   getLabelTicks(ticks, i, 1);
+  }
+
+  for(unsigned int i = 0; i< ticks.size(); ++i) {
+	painter.drawText(0, 0, 100, 100, AlignRight, ticks[i].label);
+  }
+
+  return orientation == Vertical ? device.boundingRect().height() : device.boundingRect().width();
+
+}
+
 void WAxis::update()
 {
   if (chart_)
@@ -396,9 +449,9 @@ bool WAxis::prepareRender(Orientation orientation, double length) const
   }
 
   double clipMin = segments_.front().renderMinimum == 0 ?
-    0 : chart_->axisPadding();
+    0 : padding();
   double clipMax = segments_.back().renderMaximum == 0 ?
-    0 : chart_->axisPadding();
+    0 : padding();
 
   double totalRenderLength = length;
   double totalRenderStart = clipMin;
@@ -542,11 +595,42 @@ bool WAxis::prepareRender(Orientation orientation, double length) const
 	} else if (daysInterval > 0.6) {
 	  s.dateTimeRenderUnit = Days;
 
-	  if (daysInterval < 1.3)
+	  if (daysInterval < 1.3) {
 	    interval = 1;
-	  else
+
+	    /* push min and max to midnight */
+	    if (roundLimits_ & MinimumValue)
+	      min.setTime(WTime(0, 0));
+
+	    if (roundLimits_ & MaximumValue) {
+	      if (max.time() != WTime(0, 0))
+		max = WDateTime(max.date().addDays(1));
+	    }
+	  } else {
 	    interval = 7 * std::max(1,
 				    static_cast<int>((daysInterval + 5) / 7));
+	   
+	    /* push min to midnight start of the week */
+	    if (roundLimits_ & MinimumValue) {
+	      int dw = min.date().dayOfWeek();
+	      min = WDateTime(min.date().addDays(-(dw - 1)));
+	    }
+
+	    /*
+	      push max to midgnight start of the week, at interval days
+	      from min
+	     */
+	    if (roundLimits_ & MaximumValue) {	
+	      int days = min.date().daysTo(max.date());
+	      if (max.time() != WTime(0, 0))
+		++days;
+
+	      days = roundUp(days, interval);
+	      
+	      max = WDateTime(min.addDays(days));
+	    }	    
+	  }
+
 	} else {
 	  double minutes = daysInterval * 24 * 60;
 
@@ -701,12 +785,12 @@ void WAxis::setOtherAxisLocation(AxisValue otherLocation) const
       int borderMin, borderMax;
 
       if (scale_ == CategoryScale){
-	borderMax = borderMin = chart_->axisPadding();
+	borderMax = borderMin = padding();
       }else {
 	borderMin = (s.renderMinimum == 0 && otherLocation == ZeroValue)
-	  ? 0 : chart_->axisPadding();
+	  ? 0 : padding();
 	borderMax = (s.renderMinimum == 0 && otherLocation == ZeroValue)
-	  ? 0 : chart_->axisPadding();
+	  ? 0 : padding();
       }
 
       s.renderLength -= (borderMin + borderMax);
@@ -974,9 +1058,61 @@ WString WAxis::label(double u) const
   return text;
 }
 
-void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment) const
+void WAxis::setZoom(double zoom)
+{
+  set(zoom_, zoom);
+  zoomDirty_ = true;
+}
+
+double WAxis::zoom() const
+{
+  return zoom_;
+}
+
+void WAxis::setPan(double pan)
+{
+  set(pan_, pan);
+  zoomDirty_ = true;
+}
+
+double WAxis::pan() const
+{
+  return pan_;
+}
+
+void WAxis::setPadding(int padding)
+{
+  set(padding_, padding);
+}
+
+void WAxis::setTickDirection(TickDirection direction)
+{
+  if (direction == Inwards) {
+    setPadding(25);
+  }
+  set(tickDirection_, direction);
+}
+
+void WAxis::setSoftLabelClipping(bool enabled)
+{
+  set(partialLabelClipping_, !enabled);
+}
+
+void WAxis::setMaxZoom(double maxZoom)
+{
+  maxZoom = maxZoom < 1 ? 1 : maxZoom;
+  set(maxZoom_, maxZoom);
+}
+
+double WAxis::maxZoom() const
+{
+  return maxZoom_;
+}
+
+void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment, int zoomLevel) const
 {
   static double EPSILON = 1E-3;
+  double divisor = std::pow(2.0, zoomLevel - 1);
 
   const Segment& s = segments_[segment];
 
@@ -994,7 +1130,7 @@ void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment) const
       /*
        * We could do a special effort for date X series here...
        */
-      for (int i = (int)(s.renderMinimum + 0.5); i < s.renderMaximum;
+      for (int i = (int)(s.renderMinimum); i < s.renderMaximum;
 	   i += renderInterval) {
 	ticks.push_back(TickLabel(i, TickLabel::Long,
 				  label(static_cast<double>(i))));
@@ -1003,10 +1139,11 @@ void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment) const
     break;
   }
   case LinearScale: {
+    double interval = renderInterval_ / divisor;
     for (int i = 0;; ++i) {
-      double v = s.renderMinimum + renderInterval_ * i;
+      double v = s.renderMinimum + interval * i;
 
-      if (v - s.renderMaximum > EPSILON * renderInterval_)
+      if (v - s.renderMaximum > EPSILON * interval)
 	break;
 
       WString t;
@@ -1059,14 +1196,111 @@ void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment) const
     } else
       dt = WDateTime::fromTime_t((std::time_t)s.renderMinimum);
 
-    int interval = s.dateTimeRenderInterval;
-    DateTimeUnit unit = s.dateTimeRenderUnit;
+    DateTimeUnit unit;
+    int interval;
+    if (zoomLevel == 1) {
+      unit = s.dateTimeRenderUnit;
+      interval = s.dateTimeRenderInterval;
+    } else {
+      // FIXME: this duplicates code in prepareRender
+      double daysInterval = 0.0;
+      if (scale_ == DateScale) {
+	daysInterval = renderInterval_;
+      } else {
+	daysInterval = renderInterval_ / (60.0 * 60.0 * 24);
+      }
+      daysInterval /= divisor;
+      if (daysInterval > 200) {
+	unit = Years;
+	interval = std::max(1,
+	    static_cast<int>(round125(daysInterval / 365)));
+      } else if (daysInterval > 20) {
+	unit = Months;
+	double d = daysInterval / 30;
+	if (d < 1.3)
+	  interval = 1;
+	else if (d < 2.3)
+	  interval = 2;
+	else if (d < 3.3)
+	  interval = 3;
+	else if (d < 4.3)
+	  interval = 4;
+	else
+	  interval = 6;
+      } else if (daysInterval > 0.6) {
+	unit = Days;
+
+	if (daysInterval < 1.3) {
+	  interval = 1;
+	} else {
+	  interval = 7 * std::max(1,
+				  static_cast<int>((daysInterval + 5) / 7));
+	}
+      } else {
+	double minutes = daysInterval * 24 * 60;
+
+	if (minutes > 40) {
+	  unit = Hours;
+
+	  double d = minutes / 60;
+	  if (d < 1.3)
+	    interval = 1;
+	  else if (d < 2.3)
+	    interval = 2;
+	  else if (d < 3.3)
+	    interval = 3;
+	  else if (d < 4.3)
+	    interval = 4;
+	  else if (d < 6.3)
+	    interval = 6;
+	  else
+	    interval = 12;
+	} else if (minutes > 0.8) {
+	  unit = Minutes;
+
+	  if (minutes < 1.3)
+	    interval = 1;
+	  else if (minutes < 2.3)
+	    interval = 2;
+	  else if (minutes < 5.3)
+	    interval = 5;
+	  else if (minutes < 10.3)
+	    interval = 10;
+	  else if (minutes < 15.3)
+	    interval = 15;
+	  else if (minutes < 20.3)
+	    interval = 20;
+	  else
+	    interval = 30;
+	} else {
+	  unit = Seconds;
+
+	  double seconds = minutes * 60;
+
+	  if (seconds < 1.3)
+	    interval = 1;
+	  else if (seconds < 2.3)
+	    interval = 2;
+	  else if (seconds < 5.3)
+	    interval = 5;
+	  else if (seconds < 10.3)
+	    interval = 10;
+	  else if (seconds < 15.3)
+	    interval = 15;
+	  else if (seconds < 20.3)
+	    interval = 20;
+	  else
+	    interval = 30;
+	}
+      }
+    }
+
     bool atTick = (interval > 1) ||
       (unit <= Days) || 
       !(roundLimits_ & MinimumValue);
 
     for (;;) {
-      long dl = getDateNumber(dt);
+      long long dl = getDateNumber(dt);
 
       if (dl > s.renderMaximum)
 	break;
@@ -1110,30 +1344,8 @@ void WAxis::getLabelTicks(std::vector<TickLabel>& ticks, int segment) const
   }
 }
 
-WString WAxis::defaultDateTimeFormat(const Segment& s) const
+WString WAxis::autoDateFormat(const WDateTime& dt, DateTimeUnit unit, bool atTick) const 
 {
-  if (scale_ != DateScale && scale_ != DateTimeScale)
-    return WString::Empty;
-
-  WDateTime dt;
-
-  if (scale_ == DateScale) {
-    dt.setDate(WDate::fromJulianDay(static_cast<int>(s.renderMinimum)));
-    if (!dt.isValid()) {
-      std::string exception = "Invalid julian day: "
-	+ boost::lexical_cast<std::string>(s.renderMinimum);
-      throw WException(exception);
-    }
-  } else
-    dt = WDateTime::fromTime_t((std::time_t)s.renderMinimum);
-
-  int interval = s.dateTimeRenderInterval;
-  DateTimeUnit unit = s.dateTimeRenderUnit;
-
-  bool atTick = (interval > 1) ||
-    (unit <= Days) || 
-    !(roundLimits_ & MinimumValue);
-
   if (atTick) {
     switch (unit) {
     case Months:
@@ -1178,17 +1390,43 @@ WString WAxis::defaultDateTimeFormat(const Segment& s) const
       break;
     }
   }
-
   return WString::Empty;
 }
 
-long WAxis::getDateNumber(WDateTime dt) const
+WString WAxis::defaultDateTimeFormat(const Segment& s) const
+{
+  if (scale_ != DateScale && scale_ != DateTimeScale)
+    return WString::Empty;
+
+  WDateTime dt;
+
+  if (scale_ == DateScale) {
+    dt.setDate(WDate::fromJulianDay(static_cast<int>(s.renderMinimum)));
+    if (!dt.isValid()) {
+      std::string exception = "Invalid julian day: "
+	+ boost::lexical_cast<std::string>(s.renderMinimum);
+      throw WException(exception);
+    }
+  } else
+    dt = WDateTime::fromTime_t((std::time_t)s.renderMinimum);
+
+  int interval = s.dateTimeRenderInterval;
+  DateTimeUnit unit = s.dateTimeRenderUnit;
+
+  bool atTick = (interval > 1) ||
+    (unit <= Days) || 
+    !(roundLimits_ & MinimumValue);
+
+  return autoDateFormat(dt, unit, atTick);
+}
+
+long long WAxis::getDateNumber(WDateTime dt) const
 {
   switch (scale_) {
   case DateScale:
-    return static_cast<long>(dt.date().toJulianDay());
+    return static_cast<long long>(dt.date().toJulianDay());
   case DateTimeScale:
-    return static_cast<long>(dt.toTime_t());
+    return static_cast<long long>(dt.toTime_t());
   default:
     return 1;
   }
@@ -1211,7 +1449,10 @@ void WAxis::render(WPainter& painter,
 		   const WPointF& axisStart,
 		   const WPointF& axisEnd,
 		   double tickStart, double tickEnd, double labelPos,
-		   WFlags<AlignmentFlag> labelFlags) const
+		   WFlags<AlignmentFlag> labelFlags,
+		   const WTransform& transform,
+		   std::vector<WPen> pens,
+		   std::vector<WPen> textPens) const
 {
   WFont oldFont1 = painter.font();
   painter.setFont(labelFont_);
@@ -1223,13 +1464,22 @@ void WAxis::render(WPainter& painter,
     const WAxis::Segment& s = segments_[segment];
 
     if (properties & Line) { 
+#ifdef WT_TARGET_JAVA
+      painter.setPen(WPen(pen()));
+#else
       painter.setPen(pen());
+#endif
 
       WPointF begin = interpolate(axisStart, axisEnd, s.renderStart);
       WPointF end = interpolate(axisStart, axisEnd, s.renderStart +
 				s.renderLength);
 
-      painter.drawLine(begin, end);
+      {
+	WPainterPath path;
+	path.moveTo(begin);
+	path.lineTo(end);
+	painter.drawPath(transform.map(path).crisp());
+      }
 
       bool rotate = vertical;
 
@@ -1252,49 +1502,55 @@ void WAxis::render(WPainter& painter,
       }
     }
 
-    WPainterPath ticksPath;
+    if (pens.empty()) {
+      pens.push_back(pen());
+      textPens.push_back(textPen());
+    }
+    for (unsigned level = 1; level <= pens.size(); ++level) {
+      WPainterPath ticksPath;
 
-    std::vector<WAxis::TickLabel> ticks;
-    getLabelTicks(ticks, segment);
+      std::vector<WAxis::TickLabel> ticks;
+      getLabelTicks(ticks, segment, level);
 
-    for (unsigned i = 0; i < ticks.size(); ++i) {
-      double u = mapToDevice(ticks[i].u, segment);
-      WPointF p = interpolate(axisStart, axisEnd, std::floor(u));
+      for (unsigned i = 0; i < ticks.size(); ++i) {
+	double u = mapToDevice(ticks[i].u, segment);
+	WPointF p = interpolate(axisStart, axisEnd, u);
 
-      if ((properties & Line) &&
-	  ticks[i].tickLength != WAxis::TickLabel::Zero) {
-	double ts = tickStart;
-	double te = tickEnd;
+	if ((properties & Line) &&
+	    ticks[i].tickLength != WAxis::TickLabel::Zero) {
+	  double ts = tickStart;
+	  double te = tickEnd;
 
-	if (ticks[i].tickLength == WAxis::TickLabel::Short) {
-	  ts = tickStart / 2;
-	  te = tickEnd / 2;
+	  if (ticks[i].tickLength == WAxis::TickLabel::Short) {
+	    ts = tickStart / 2;
+	    te = tickEnd / 2;
+	  }
+
+	  if (vertical) {
+	    ticksPath.moveTo(WPointF(p.x() + ts, p.y()));
+	    ticksPath.lineTo(WPointF(p.x() + te, p.y()));
+	  } else {
+	    ticksPath.moveTo(WPointF(p.x(), p.y() + ts));
+	    ticksPath.lineTo(WPointF(p.x(), p.y() + te));
+	  }
 	}
 
-  	if (vertical) {
-	  ticksPath.moveTo(WPointF(p.x() + ts, p.y()));
-	  ticksPath.lineTo(WPointF(p.x() + te, p.y()));
-  	} else {
-	  ticksPath.moveTo(WPointF(p.x(), p.y() + ts));
-	  ticksPath.lineTo(WPointF(p.x(), p.y() + te));
-  	}
+	if ((properties & Labels) && !ticks[i].label.empty()) {
+	  WPointF labelP;
+
+	  if (vertical)
+	    labelP = WPointF(p.x() + labelPos, p.y());
+	  else
+	    labelP = WPointF(p.x(), p.y() + labelPos);
+
+	  renderLabel(painter, ticks[i].label, labelP,
+		       labelFlags, labelAngle(), 3, transform, textPens[level-1]);
+	}
       }
 
-      if ((properties & Labels) && !ticks[i].label.empty()) {
-	WPointF labelP;
-
-	if (vertical)
-	  labelP = WPointF(p.x() + labelPos, p.y());
-	else
-	  labelP = WPointF(p.x(), p.y() + labelPos);
-
-	renderLabel(painter, ticks[i].label, labelP,
-		     labelFlags, labelAngle(), 3);
-      }
+      if (!ticksPath.isEmpty())
+	painter.strokePath(transform.map(ticksPath).crisp(), pens[level-1]);
     }
-
-    if (!ticksPath.isEmpty())
-      painter.strokePath(ticksPath, pen());
   }
 
   painter.setFont(oldFont1);
@@ -1303,7 +1559,9 @@ void WAxis::render(WPainter& painter,
 void WAxis::renderLabel(WPainter& painter,
 			const WString& text, const WPointF& p,
 			WFlags<AlignmentFlag> flags,
-			double angle, int margin) const
+			double angle, int margin,
+			WTransform transform,
+			const WPen& pen) const
 {
   AlignmentFlag horizontalAlign = flags & AlignHorizontalMask;
   AlignmentFlag verticalAlign = flags & AlignVerticalMask;
@@ -1338,20 +1596,34 @@ void WAxis::renderLabel(WPainter& painter,
     break;
   }
 
+#ifdef WT_TARGET_JAVA
+  WPen oldPen = WPen(painter.pen());
+  painter.setPen(WPen(pen));
+#else
   WPen oldPen = painter.pen();
-  painter.setPen(textPen_);
+  painter.setPen(pen);
+#endif
 
-  if (angle == 0)
-    painter.drawText(WRectF(left, top, width, height),
-		      horizontalAlign | verticalAlign, text);
-  else {
+  bool clipping = painter.hasClipping();
+  if (!partialLabelClipping_ && clipping && tickDirection() == Outwards && location() != ZeroValue) {
+    painter.setClipping(false);
+  }
+  WPointF transformedPoint = transform.map(pos);
+  if (angle == 0) {
+    painter.drawText(transform.map(WRectF(left, top, width, height)),
+		      horizontalAlign | verticalAlign, TextSingleLine, text,
+		      clipping && !partialLabelClipping_ ? &transformedPoint : 0);
+  } else {
     painter.save();
-    painter.translate(pos);
+    painter.translate(transform.map(pos));
     painter.rotate(-angle);
+    transformedPoint = painter.worldTransform().inverted().map(transformedPoint);
     painter.drawText(WRectF(left - pos.x(), top - pos.y(), width, height),
-		     horizontalAlign | verticalAlign, text);
+		     horizontalAlign | verticalAlign, TextSingleLine, text,
+		     clipping && !partialLabelClipping_ ? &transformedPoint : 0);
     painter.restore();
   }
+  painter.setClipping(clipping);
 
   painter.setPen(oldPen);
 }
@@ -1362,7 +1634,7 @@ std::vector<double> WAxis::gridLinePositions() const
 
   for (unsigned segment = 0; segment < segments_.size(); ++segment) {
     std::vector<WAxis::TickLabel> ticks;
-    getLabelTicks(ticks, segment);
+    getLabelTicks(ticks, segment, 1);
 
     for (unsigned i = 0; i < ticks.size(); ++i)
       if (ticks[i].tickLength == WAxis::TickLabel::Long)

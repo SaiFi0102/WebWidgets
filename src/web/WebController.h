@@ -22,6 +22,12 @@
 #include <boost/thread.hpp>
 #endif
 
+namespace http {
+  namespace server {
+	class ProxyReply;
+  }
+}
+
 namespace Wt {
 
 class Configuration;
@@ -95,6 +101,7 @@ public:
 
   void addSession(boost::shared_ptr<WebSession> session);
   void removeSession(const std::string& sessionId);
+  void sessionDeleted();
 
   void newAjaxSession();
   bool limitPlainHtmlSessions();
@@ -149,6 +156,7 @@ private:
   std::string singleSessionId_;
   bool autoExpire_;
   int plainHtmlSessions_, ajaxSessions_;
+  volatile int zombieSessions_;
   std::string redirectSecret_;
   bool running_;
 
@@ -188,6 +196,9 @@ private:
 #endif // WT_TARGET_JAVA
 
   WServer& server_;
+
+  friend class http::server::ProxyReply;
+  friend class WEnvironment;
 };
 
 }

@@ -65,6 +65,7 @@ namespace Wt {
 WAbstractArea::WAbstractArea()
   : impl_(new Impl::AreaWidget(this)),
     hole_(false),
+    transformable_(true),
     anchor_(0)
 { }
 
@@ -188,6 +189,13 @@ void WAbstractArea::setHole(bool hole)
   repaint();
 }
 
+void WAbstractArea::setTransformable(bool transformable)
+{
+  transformable_ = transformable;
+
+  repaint();
+}
+
 void WAbstractArea::setLink(const WLink& link)
 {
   createAnchorImpl();
@@ -226,15 +234,14 @@ void WAbstractArea::setTarget(AnchorTarget target)
 {
   createAnchorImpl();
 
-  anchor_->linkState.target = target;
-
+  anchor_->linkState.link.setTarget(target);
   repaint();
 }
 
 AnchorTarget WAbstractArea::target() const
 {
   if (anchor_)
-    return anchor_->linkState.target;
+    return anchor_->linkState.link.target();
   else
     return TargetSelf;
 }

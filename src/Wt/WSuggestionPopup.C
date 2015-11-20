@@ -65,13 +65,14 @@ WSuggestionPopup::WSuggestionPopup(const Options& options, WObject *parent)
     filtering_(false),
     defaultValue_(-1),
     isDropDownIconUnfiltered_(false),
+    currentItem_(-1),
+    editRole_(UserRole),
     matcherJS_(generateMatcherJS(options)),
     replacerJS_(generateReplacerJS(options)),
     filterModel_(this),
     activated_(this),
     filter_(implementation(), "filter"),
-    jactivated_(implementation(), "select"),
-	currentItem_(-1)
+    jactivated_(implementation(), "select")
 {
   init();
 }
@@ -86,11 +87,12 @@ WSuggestionPopup::WSuggestionPopup(const std::string& matcherJS,
     filtering_(false),
     defaultValue_(-1),
     isDropDownIconUnfiltered_(false),
+    currentItem_(-1),
+    editRole_(UserRole),
     matcherJS_(matcherJS),
     replacerJS_(replacerJS),
     filter_(implementation(), "filter"),
-    jactivated_(implementation(), "select"),
-	currentItem_(-1)
+    jactivated_(implementation(), "select")
 {
   init();
 }
@@ -226,7 +228,7 @@ void WSuggestionPopup::modelRowsInserted(const WModelIndex& parent,
     WAnchor *anchor = new WAnchor(line);
     WText *value = new WText(asString(d), format, anchor);
 
-    boost::any d2 = index.data(UserRole);
+    boost::any d2 = index.data(editRole_);
     if (d2.empty())
       d2 = d;
 
@@ -274,7 +276,7 @@ void WSuggestionPopup::modelDataChanged(const WModelIndex& topLeft,
     TextFormat format = index.flags() & ItemIsXHTMLText ? XHTMLText : PlainText;
     value->setTextFormat(format);
 
-    boost::any d2 = model_->data(i, modelColumn_, UserRole);
+    boost::any d2 = model_->data(i, modelColumn_, editRole());
     if (d2.empty())
       d2 = d;
 
@@ -342,7 +344,8 @@ void WSuggestionPopup::addSuggestion(const WString& suggestionText,
   if (model_->insertRow(row)) {
     model_->setData(row, modelColumn_, boost::any(suggestionText), DisplayRole);
     if (!suggestionValue.empty())
-      model_->setData(row, modelColumn_, boost::any(suggestionValue), UserRole);
+      model_->setData(row, modelColumn_, boost::any(suggestionValue),
+		      editRole());
   }
 }
 

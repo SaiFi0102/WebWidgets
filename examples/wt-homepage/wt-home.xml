@@ -585,7 +585,7 @@ target="_blank">item model</a>.</p>
   retrieved from for example a database. A draw-back is however that
   all data must be retrieved in advance and is kept in session
   memory. By reimplementing <a
-  href="http://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1WAbstractItemModel"
+  href="http://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1WAbstractItemModel.html"
   target="_blank">WAbstractItemModel</a>, you can however implement a
   model that reads (or computes) the data only when needed, and
   provides a trade-off between keeping data in memory or fetching it
@@ -993,7 +993,7 @@ features in Wt:
     then the HTTPS protocol will be supported by the web client
     (<a href="http://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1Http_1_1Client.html">Http::Client</a>) and web server (wthttp connector)
   </li>
-  <li><a href="http://libharu.org/wiki/Main_Page">libharu</a>: if
+  <li><a href="https://github.com/libharu/libharu/wiki">libharu</a>: if
     available, a
     <a href="http://www.webtoolkit.eu/wt/doc/reference/html/classWt_1_1WPdfImage.html">WPdfImage</a>
     paint device will be included, which provides rendering support for PDF

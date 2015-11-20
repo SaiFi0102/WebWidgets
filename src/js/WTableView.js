@@ -60,9 +60,11 @@ WT_DECLARE_WT_MEMBER
 	 || contentsContainer.scrollTop > scrollY2
 	 || contentsContainer.scrollLeft < scrollX1
 	 || contentsContainer.scrollLeft > scrollX2)) {
-       APP.emit(el, 'scrolled', rtlScrollLeft(contentsContainer),
-	        contentsContainer.scrollTop, contentsContainer.clientWidth,
-	        contentsContainer.clientHeight);       
+       APP.emit(el, 'scrolled',
+		Math.round(rtlScrollLeft(contentsContainer)),
+	        Math.round(contentsContainer.scrollTop),
+		Math.round(contentsContainer.clientWidth),
+	        Math.round(contentsContainer.clientHeight));
      }
    };
 
@@ -73,10 +75,18 @@ WT_DECLARE_WT_MEMBER
        var height = o.clientHeight == o.firstChild.clientHeight
          ? -1
          : o.clientHeight;
-       APP.emit(el, 'scrolled', rtlScrollLeft(o), o.scrollTop,
-		o.clientWidth, height);
+       APP.emit(el, 'scrolled',
+		Math.round(rtlScrollLeft(o)),
+		Math.round(o.scrollTop),
+		Math.round(o.clientWidth),
+		Math.round(height));
      }
    };
+
+   function isSelected(item) {
+     var $t = $(item.el);
+     return $t.hasClass(selectedClass);
+   }
 
    function getItem(event) {
      var columnId = -1, rowIdx = -1, selected = false,
@@ -170,13 +180,44 @@ WT_DECLARE_WT_MEMBER
      self.autoJavaScript();
    }
 
+   var startDrag = null;
+
    this.mouseDown = function(obj, event) {
      WT.capture(null);
 
      var item = getItem(event);
-     if (el.getAttribute('drag') === 'true' && item.selected)
-       APP._p_.dragStart(el, event);
+
+     if (!event.ctrlKey && !event.shiftKey) {
+       /*
+	* For IE, there is only global event object which does not survive
+	* the event lifetime
+	*/
+       var e = {
+         ctrlKey: event.ctrlKey,
+	 shiftKey: event.shiftKey,
+	 target: event.target,
+	 srcElement: event.srcElement,
+	 type: event.type,
+	 which: event.which,
+	 touches: event.touches,
+	 changedTouches: event.changedTouches,
+	 pageX: event.pageX,
+	 pageY: event.pageY,
+	 clientX: event.clientX,
+	 clientY: event.clientY
+       };
+
+       startDrag = setTimeout(function() {
+	 if (el.getAttribute('drag') === 'true' && isSelected(item)) {
+	   APP._p_.dragStart(el, e);
+	 }
+       }, 400);
+     }
    };
+
+   this.mouseUp = function(obj, event) {
+     clearTimeout(startDrag);
+   }
 
    this.resizeHandleMDown = function(obj, event) {
      var header = obj.parentNode,

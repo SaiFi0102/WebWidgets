@@ -11,6 +11,7 @@
 #include "Wt/WRectF"
 
 #include <algorithm>
+#include <iostream>
 
 namespace Wt {
 
@@ -89,8 +90,15 @@ void WMeasurePaintDevice::drawLine(double x1, double y1, double x2, double y2)
 
 void WMeasurePaintDevice::drawText(const WRectF& rect,
 				   WFlags<AlignmentFlag> flags,
-				   TextFlag textFlag, const WString& text)
+				   TextFlag textFlag, const WString& text,
+				   const WPointF *clipPoint)
 {
+  if (clipPoint && painter()) {
+    if (!painter()->clipPathTransform().map(painter()->clipPath())
+	  .isPointInPath(painter()->worldTransform().map(*clipPoint)))
+      return;
+  }
+
   double w = 0, h = 0;
   WString line = text;
 
@@ -151,6 +159,8 @@ WFontMetrics WMeasurePaintDevice::fontMetrics()
 
 void WMeasurePaintDevice::setChanged(WFlags<ChangeFlag> flags)
 {
+  if (device_->painter() != painter_ && (flags & Font))
+	  device_->painter()->setFont(painter_->font());
   device_->setChanged(flags);
 }
 

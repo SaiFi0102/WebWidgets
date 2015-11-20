@@ -206,13 +206,36 @@ DomElement::~DomElement()
   delete insertBefore_;
 }
 
+void DomElement::setDomElementTagName(const std::string& name) {
+  this->elementTagName_ = name;
+}
+
+#ifndef WT_TARGET_JAVA
+#define toChar(b) char(b)
+#else
+unsigned char toChar(int b) {
+  return (unsigned char)b;
+}
+#endif
+
 std::string DomElement::urlEncodeS(const std::string& url,
                                    const std::string &allowed)
 {
   WStringStream result;
 
-  for (unsigned i = 0; i < url.length(); ++i) {
-    unsigned char c = url[i];
+#ifdef WT_TARGET_JAVA
+  std::vector<unsigned char> bytes;
+  try {
+    bytes = url.getBytes("UTF-8");
+  } catch (UnsupportedEncodingException& e) {
+    // eat silly UnsupportedEncodingException
+  }
+#else
+  const std::string& bytes = url;
+#endif
+
+  for (unsigned i = 0; i < bytes.size(); ++i) {
+    unsigned char c = toChar(bytes[i]);
     if (c <= 31 || c >= 127 || unsafeChars_.find(c) != std::string::npos) {
       if (allowed.find(c) != std::string::npos) {
         result << (char)c;
@@ -705,9 +728,9 @@ void DomElement::setJavaScriptEvent(EscapeOStream& out,
     out << var_;
   }
 
-  if (eventName == WInteractWidget::MOUSE_WHEEL_SIGNAL
-      && app->environment().agentIsGecko())
-    out << ".addEventListener('DOMMouseScroll', f" << fid << ", false);\n";
+  if (eventName == WInteractWidget::WHEEL_SIGNAL
+      && app->environment().agentIsIE() && app->environment().agent() >= WEnvironment::IE9)
+    out << ".addEventListener('wheel', f" << fid << ", false);\n";
   else
     out << ".on" << const_cast<char *>(eventName) << "=f" << fid << ";\n";
 }
@@ -885,7 +908,9 @@ void DomElement::asHTML(EscapeOStream& out,
     out << "<a href=\"#\" class=\"Wt-wrap\" onclick=";
     fastHtmlAttributeValue(out, attributeValues, clickEvent->second.jsCode);
     out << "><" << elementNames_[renderedType];
-  } else
+  } else if (renderedType == DomElement_OTHER)  // Custom tag name
+	out << '<' << elementTagName_;
+  else
     out << '<' << elementNames_[renderedType];
 
   if (!id_.empty()) {
@@ -905,8 +930,8 @@ void DomElement::asHTML(EscapeOStream& out,
 	 i != eventHandlers_.end(); ++i) {
       if (!i->second.jsCode.empty()) {
 	if (id_ == app->domRoot()->id()
-	    || (i->first == WInteractWidget::MOUSE_WHEEL_SIGNAL
-		&& app->environment().agentIsGecko()))
+	    || (i->first == WInteractWidget::WHEEL_SIGNAL
+		&& app->environment().agentIsIE() && app->environment().agent() >= WEnvironment::IE9))
 	  setJavaScriptEvent(javaScript, i->first, i->second, app);
 	else {
 	  out << " on" << const_cast<char *>(i->first) << '=';
@@ -955,6 +980,9 @@ void DomElement::asHTML(EscapeOStream& out,
     case PropertyTarget:
       out << " target=\"" << i->second << "\"";
       break;
+	case PropertyDownload:
+	  out << " download=\"" << i->second << "\"";
+	  break;
     case PropertyIndeterminate:
       if (i->second == "true") {
 	DomElement *self = const_cast<DomElement *>(this);
@@ -1031,8 +1059,10 @@ void DomElement::asHTML(EscapeOStream& out,
 	  && childrenToAdd_.empty()
 	  && childrenHtml_.empty())
 	out << "&nbsp;";
-
-      out << "</" << elementNames_[renderedType] << ">";
+	  if( renderedType  == DomElement_OTHER) // Custom tag name
+		out << "</" << elementTagName_ << ">";
+	  else
+		out << "</" << elementNames_[renderedType] << ">";
     } else
       out << " />";
 
@@ -1374,9 +1404,18 @@ std::string DomElement::asJavaScript(EscapeOStream& out,
   return var_;
 }
 
+bool DomElement::willRenderInnerHtmlJS(WApplication *app) const
+{
+  /*
+   * Returns whether we will (or at least can) write the
+   * innerHTML with setHtml(), combining children and literal innerHTML
+   */
+  return !childrenHtml_.empty() || (wasEmpty_ && canWriteInnerHTML(app));
+}
+
 void DomElement::renderInnerHtmlJS(EscapeOStream& out, WApplication *app) const
 {
-  if (!childrenHtml_.empty() || (wasEmpty_ && canWriteInnerHTML(app))) {
+  if (willRenderInnerHtmlJS(app)) {
     std::string innerHTML;
 
     if (!properties_.empty()) {
@@ -1390,7 +1429,10 @@ void DomElement::renderInnerHtmlJS(EscapeOStream& out, WApplication *app) const
       }
     }
 
-    // IE6: write &nbsp; inside a empty <div></div>
+    /*
+     * Do we actually have anything to render ?
+     *   first condition: for IE6: write &nbsp; inside a empty <div></div>
+     */
     if ((type_ == DomElement_DIV
 	 && app->environment().agent() == WEnvironment::IE6)
 	|| !childrenToAdd_.empty() || !childrenHtml_.empty()
@@ -1473,9 +1515,15 @@ void DomElement::setJavaScriptProperties(EscapeOStream& out,
     switch(i->first) {
     case PropertyInnerHTML:
     case PropertyAddedInnerHTML:
-      if (mode_ == ModeCreate && ((type_ == DomElement_DIV
-	   && app->environment().agent() == WEnvironment::IE6)
-	  || !childrenToAdd_.empty() || !childrenHtml_.empty()))
+      /*
+       * In all cases, setJavaScriptProperties() is followed by
+       * renderInnerHtmlJS() which also considers children.
+       *
+       * When there's 'AddedInnerHTML' then willRenderInnerHtmlJS() should
+       * return false, and that's necessary since then we need to pass 'true'
+       * as last argument to setHtml()
+       */
+      if (willRenderInnerHtmlJS(app))
 	break;
 
       out << WT_CLASS ".setHtml(" << var_ << ',';
@@ -1490,6 +1538,7 @@ void DomElement::setJavaScriptProperties(EscapeOStream& out,
 	out << ",true";
 
       out << ");";
+
       break;
     case PropertyValue:
       out << var_ << ".value=";
