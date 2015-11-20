@@ -59,8 +59,8 @@ class Configuration
 			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 			Wt::Dbo::field(a, _Type, "Type");
 			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::belongsTo(a, ExpertWarningKey, "ExpertWarningKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+			Wt::Dbo::belongsTo(a, ExpertWarningKey, "ExpertWarningKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
 			Wt::Dbo::field(a, RestartRequired, "RestartRequired");
 
 			Wt::Dbo::hasOne(a, BoolPtr, "Configuration");
