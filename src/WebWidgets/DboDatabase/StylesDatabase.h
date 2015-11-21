@@ -1,13 +1,14 @@
 #ifndef STYLES_DATABASE_H
 #define STYLES_DATABASE_H
 
-#include "DboDatabase/AbstractDboDatabase.h"
-#include "Dbo/Style.h"
+#include <unordered_map>
+#include "Objects/PairHash.h"
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/composite_key.hpp>
 #include <boost/multi_index/hashed_index.hpp>
 #include <boost/multi_index/ordered_index.hpp>
-#include <boost/unordered_map.hpp>
+#include "DboDatabase/AbstractDboDatabase.h"
+#include "Dbo/Style.h"
 
 class StylesDatabase : public AbstractDboDatabase
 {
@@ -15,7 +16,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct Style_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			result_type operator()(const std::shared_ptr<StyleData> &StylePtr) const
 			{
 				return StylePtr->id();
 			}
@@ -23,7 +24,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct Style_key_Name
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			result_type operator()(const std::shared_ptr<StyleData> &StylePtr) const
 			{
 				return StylePtr->Name();
 			}
@@ -31,7 +32,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct Style_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<StyleData> &StylePtr) const
+			result_type operator()(const std::shared_ptr<StyleData> &StylePtr) const
 			{
 				return StylePtr->AuthorId();
 			}
@@ -39,7 +40,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct StyleTemplate_key_TemplateName
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
+			result_type operator()(const std::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr->TemplateName;
 			}
@@ -47,7 +48,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct StyleTemplate_key_ModuleId
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
+			result_type operator()(const std::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr->ModuleId;
 			}
@@ -55,7 +56,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct StyleTemplate_key_StyleName
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
+			result_type operator()(const std::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr->StyleName;
 			}
@@ -63,7 +64,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct StyleTemplate_key_AuthorId
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
+			result_type operator()(const std::shared_ptr<StyleTemplateData> &StyleTemplatePtr) const
 			{
 				return StyleTemplatePtr->AuthorId;
 			}
@@ -72,7 +73,7 @@ class StylesDatabase : public AbstractDboDatabase
 		struct ById{};
 		struct ByNameAuthor{};
 		typedef boost::multi_index_container<
-			boost::shared_ptr<StyleData>,
+			std::shared_ptr<StyleData>,
 
 			boost::multi_index::indexed_by<
 				//Index by Stlye id
@@ -84,7 +85,7 @@ class StylesDatabase : public AbstractDboDatabase
 				boost::multi_index::hashed_unique<
 					boost::multi_index::tag<ByNameAuthor>,
 					boost::multi_index::composite_key<
-						boost::shared_ptr<StyleData>,
+						std::shared_ptr<StyleData>,
 						Style_key_Name,
 						Style_key_AuthorId
 					>
@@ -93,13 +94,13 @@ class StylesDatabase : public AbstractDboDatabase
 		> StyleContainers;
 
 		typedef boost::multi_index_container<
-			boost::shared_ptr<StyleTemplateData>,
+			std::shared_ptr<StyleTemplateData>,
 
 			boost::multi_index::indexed_by<
 				//Index by Page Id and Module Id
 				boost::multi_index::hashed_unique<
 					boost::multi_index::composite_key<
-						boost::shared_ptr<StyleTemplateData>,
+						std::shared_ptr<StyleTemplateData>,
 						StyleTemplate_key_TemplateName,
 						StyleTemplate_key_ModuleId,
 						StyleTemplate_key_StyleName,
@@ -113,20 +114,20 @@ class StylesDatabase : public AbstractDboDatabase
 		typedef StyleContainers::index<ByNameAuthor>::type StyleByNameAuthor;
 		typedef StyleTemplateContainers::nth_index<0>::type StyleTemplateType;
 
-		typedef boost::unordered_map< std::pair<std::string, long long>, boost::shared_ptr<TemplateData> > TemplateMaps;
+		typedef std::unordered_map< std::pair<std::string, long long>, std::shared_ptr<TemplateData> > TemplateMaps;
 
 	public:
 		StylesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<const StyleData> GetStylePtr(long long StyleId) const;
-		boost::shared_ptr<const StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
-		boost::shared_ptr<const TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
+		std::shared_ptr<const StyleData> GetStylePtr(long long StyleId) const;
+		std::shared_ptr<const StyleData> GetStylePtr(const std::string &Name, long long AuthorId) const;
+		std::shared_ptr<const TemplateData> GetTemplatePtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const StyleTemplateData> GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const;
 
 		bool GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const;
 		bool GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const;
 		
-		boost::shared_ptr<const StyleData> FirstStylePtr() const;
+		std::shared_ptr<const StyleData> FirstStylePtr() const;
 
 		long long GetLoadDurationinMS() const;
 		std::size_t CountStyles() const;

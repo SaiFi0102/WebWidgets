@@ -29,7 +29,7 @@ void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != ModuleCollection.end();
 		++itr)
 	{
-		modulemap[itr->id()] = boost::shared_ptr<ModuleData>(new ModuleData(*itr));
+		modulemap[itr->id()] = std::shared_ptr<ModuleData>(new ModuleData(*itr));
 	}
 
 	transaction.commit();
@@ -42,13 +42,13 @@ void ModulesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	Wt::log("info") << Name() << ": " << ModuleMap.size() << " entries successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const ModuleData> ModulesDatabase::GetPtr(long long Id) const
+std::shared_ptr<const ModuleData> ModulesDatabase::GetPtr(long long Id) const
 {
 	ReadLock lock(Manager());
 	ModuleMaps::const_iterator itr = ModuleMap.find(Id);
 	if(itr == ModuleMap.end())
 	{
-		return boost::shared_ptr<const ModuleData>();
+		return std::shared_ptr<const ModuleData>();
 	}
 	return itr->second;
 }

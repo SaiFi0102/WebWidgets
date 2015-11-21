@@ -12,7 +12,7 @@
 // 		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
 // 	}
 // 
-// 	app->PageChanged().connect(boost::bind(&PagesMenu::PageChanged, this));
+// 	app->PageChanged().connect(std::bind(&PagesMenu::PageChanged, this));
 // }
 // 
 // void PagesMenu::PageChanged()
@@ -115,13 +115,13 @@
 // 	}
 // }
 // 
-// PagesMenuItem::PagesMenuItem(boost::shared_ptr<const NavigationMenuItemData> ItemPtr, Wt::WMenuItem::LoadPolicy policy)
+// PagesMenuItem::PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemPtr, Wt::WMenuItem::LoadPolicy policy)
 // : Wt::WMenuItem(Wt::WString::tr(ItemPtr->LabelKey, ItemPtr->LabelModuleId), 0, policy), ItemPtr(ItemPtr)
 // {
 // 	WServer *Server = WServer::instance();
 // 	if(ItemPtr->AccessPathId != -1)
 // 	{
-// 		boost::shared_ptr<const PageAccessPathData> AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
+// 		std::shared_ptr<const PageAccessPathData> AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
 // 		if(AccessPathPtr)
 // 		{
 // 			setPathComponent(AccessPathPtr->FullPath);

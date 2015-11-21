@@ -152,8 +152,8 @@ class StyleData : public BaseStyle, public DataSurrogateKey
 		long long _AuthorId;
 
 	public:
-		typedef std::set< boost::shared_ptr<const StyleCssRuleData> > StyleCssRuleSet;
-		typedef std::set< boost::shared_ptr<const StyleSectionData> > StyleSectionSet;
+		typedef std::set< std::shared_ptr<const StyleCssRuleData> > StyleCssRuleSet;
+		typedef std::set< std::shared_ptr<const StyleSectionData> > StyleSectionSet;
 
 		StyleCssRuleSet StyleCssRules;
 		StyleSectionSet StyleSections;
@@ -249,7 +249,7 @@ class TemplateData : public BaseTemplate, public DataSurrogateKey
 		long long _ModuleId;
 
 	public:
-		typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleSet;
+		typedef std::set< std::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleSet;
 		TemplateCssRuleSet TemplateCssRules;
 
 		TemplateData(Wt::Dbo::ptr<Template> Ptr)

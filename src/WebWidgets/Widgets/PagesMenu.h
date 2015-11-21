@@ -7,10 +7,10 @@
 class PagesMenuItem : public Wt::WMenuItem
 {
 	public:
-		PagesMenuItem(boost::shared_ptr<const NavigationMenuItemData> ItemPtr, Wt::WMenuItem::LoadPolicy policy = Wt::WMenuItem::LazyLoading);
+		PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemPtr, Wt::WMenuItem::LoadPolicy policy = Wt::WMenuItem::LazyLoading);
 
 	protected:
-		boost::shared_ptr<const NavigationMenuItemData> ItemPtr;
+		std::shared_ptr<const NavigationMenuItemData> ItemPtr;
 };
 
 class PagesMenu : public Wt::WMenu

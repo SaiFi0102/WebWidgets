@@ -52,19 +52,19 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != AccessHostNameCollection.end();
 		++itr)
 	{
-		accesshostnamecontainer.insert(boost::shared_ptr<AccessHostNameData>(new AccessHostNameData(*itr)));
+		accesshostnamecontainer.insert(std::shared_ptr<AccessHostNameData>(new AccessHostNameData(*itr)));
 	}
 	for(PageAccessPathCollections::const_iterator itr = PageAccessPathCollection.begin();
 		itr != PageAccessPathCollection.end();
 		++itr)
 	{
-		PageAccessPathContainer.insert(boost::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
+		PageAccessPathContainer.insert(std::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
 	}
 	for(LanguageAccessPathCollections::const_iterator itr = LanguageAccessPathCollection.begin();
 		itr != LanguageAccessPathCollection.end();
 		++itr)
 	{
-		LanguageAccessPathContainer.insert(boost::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
+		LanguageAccessPathContainer.insert(std::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
 	}
 
 	//If global access hostname not found
@@ -94,7 +94,7 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		<< LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNamePtr(const std::string &HostName) const
+std::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNamePtr(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
 	AccessHostNameType::const_iterator itr = AccessHostNameContainer.find(HostName);
@@ -119,9 +119,9 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostNameP
 			return *itr;
 		}
 	}
-	return boost::shared_ptr<const AccessHostNameData>();
+	return std::shared_ptr<const AccessHostNameData>();
 }
-boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlobalPtr(const std::string &HostName) const
+std::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlobalPtr(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
 	AccessHostNameType::const_iterator itr = AccessHostNameContainer.find(HostName);
@@ -154,10 +154,10 @@ boost::shared_ptr<const AccessHostNameData> AccessPathsDatabase::AccessHostOrGlo
 			return *itr;
 		}
 	}
-	return boost::shared_ptr<const AccessHostNameData>();
+	return std::shared_ptr<const AccessHostNameData>();
 }
 
-boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(long long Id) const
+std::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(long long Id) const
 {
 	ReadLock lock(Manager());
 	LanguageAccessPathById::const_iterator itr = LanguageAccessPathContainer.get<ById>().find(Id);
@@ -165,9 +165,9 @@ boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAcc
 	{
 		return *itr;
 	}
-	return boost::shared_ptr<const LanguageAccessPathData>();
+	return std::shared_ptr<const LanguageAccessPathData>();
 }
-boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
+std::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const
 {
 	ReadLock lock(Manager());
 	LanguageAccessPathByURL::const_iterator itr = LanguageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath));
@@ -192,10 +192,10 @@ boost::shared_ptr<const LanguageAccessPathData> AccessPathsDatabase::LanguageAcc
 			return *itr;
 		}
 	}
-	return boost::shared_ptr<const LanguageAccessPathData>();
+	return std::shared_ptr<const LanguageAccessPathData>();
 }
 
-boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
+std::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(long long Id) const
 {
 	ReadLock lock(Manager());
 	PageAccessPathById::const_iterator itr = PageAccessPathContainer.get<ById>().find(Id);
@@ -203,10 +203,10 @@ boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathP
 	{
 		return *itr;
 	}
-	return boost::shared_ptr<const PageAccessPathData>();
+	return std::shared_ptr<const PageAccessPathData>();
 }
 
-boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath, long long ParentAccessPathId) const
+std::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath, long long ParentAccessPathId) const
 {
 	ReadLock lock(Manager());
 	PageAccessPathByURL::const_iterator itr = PageAccessPathContainer.get<ByURL>().find(boost::make_tuple(HostName, InternalPath, ParentAccessPathId));
@@ -231,7 +231,7 @@ boost::shared_ptr<const PageAccessPathData> AccessPathsDatabase::PageAccessPathP
 			return *itr;
 		}
 	}
-	return boost::shared_ptr<const PageAccessPathData>();
+	return std::shared_ptr<const PageAccessPathData>();
 }
 
 std::size_t AccessPathsDatabase::CountAccessHostNames() const

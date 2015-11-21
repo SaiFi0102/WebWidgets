@@ -417,5 +417,5 @@ WServer::~WServer()
 
 void WServer::DboDatabaseReloadHandler()
 {
-	postAll(boost::bind(&Application::RefreshDboDatabasePtrs));
+	postAll(std::bind(&Application::RefreshDboDatabasePtrs));
 }

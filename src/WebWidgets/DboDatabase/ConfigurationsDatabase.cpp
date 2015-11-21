@@ -44,7 +44,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != BoolCollection.end();
 		++itr, Count++)
 	{
-		boolmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationBoolData>(new ConfigurationBoolData(*itr));
+		boolmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationBoolData>(new ConfigurationBoolData(*itr));
 	}
 
 	//Double
@@ -52,7 +52,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != DoubleCollection.end();
 		++itr, Count++)
 	{
-		doublemap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationDoubleData>(new ConfigurationDoubleData(*itr));
+		doublemap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationDoubleData>(new ConfigurationDoubleData(*itr));
 	}
 
 	//Enum
@@ -60,7 +60,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != EnumCollection.end();
 		++itr, Count++)
 	{
-		enummap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationEnumData>(new ConfigurationEnumData(*itr));
+		enummap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationEnumData>(new ConfigurationEnumData(*itr));
 	}
 
 	//Float
@@ -68,7 +68,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != FloatCollection.end();
 		++itr, Count++)
 	{
-		floatmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationFloatData>(new ConfigurationFloatData(*itr));;
+		floatmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationFloatData>(new ConfigurationFloatData(*itr));;
 	}
 
 	//Int
@@ -76,7 +76,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != IntCollection.end();
 		++itr, Count++)
 	{
-		intmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationIntData>(new ConfigurationIntData(*itr));;
+		intmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationIntData>(new ConfigurationIntData(*itr));;
 	}
 
 	//LongInt
@@ -84,7 +84,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != LongIntCollection.end();
 		++itr, Count++)
 	{
-		longintmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationLongIntData>(new ConfigurationLongIntData(*itr));
+		longintmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationLongIntData>(new ConfigurationLongIntData(*itr));
 	}
 
 	//String
@@ -92,7 +92,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != StringCollection.end();
 		++itr, Count++)
 	{
-		stringmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = boost::shared_ptr<ConfigurationStringData>(new ConfigurationStringData(*itr));
+		stringmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationStringData>(new ConfigurationStringData(*itr));
 	}
 
 	transaction.commit();
@@ -103,7 +103,7 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	IntMap.swap(intmap);
 	LongIntMap.swap(longintmap);
 	StringMap.swap(stringmap);
-	boost::swap(Count, count);
+	std::swap(Count, count);
 
 	//Time at end
 	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
@@ -112,79 +112,79 @@ void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 	Wt::log("info") << Name() << ": " << Count << " entries successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const ConfigurationBoolData> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationBoolData> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	BoolMaps::const_iterator itr = BoolMap.find(std::make_pair(ModuleId, Name));
 	if(itr == BoolMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationBoolData>();
+		return std::shared_ptr<const ConfigurationBoolData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationDoubleData> ConfigurationsDatabase::GetDoublePtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationDoubleData> ConfigurationsDatabase::GetDoublePtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	DoubleMaps::const_iterator itr = DoubleMap.find(std::make_pair(ModuleId, Name));
 	if(itr == DoubleMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationDoubleData>();
+		return std::shared_ptr<const ConfigurationDoubleData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationEnumData> ConfigurationsDatabase::GetEnumPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationEnumData> ConfigurationsDatabase::GetEnumPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	EnumMaps::const_iterator itr = EnumMap.find(std::make_pair(ModuleId, Name));
 	if(itr == EnumMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationEnumData>();
+		return std::shared_ptr<const ConfigurationEnumData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationFloatData> ConfigurationsDatabase::GetFloatPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationFloatData> ConfigurationsDatabase::GetFloatPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	FloatMaps::const_iterator itr = FloatMap.find(std::make_pair(ModuleId, Name));
 	if(itr == FloatMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationFloatData>();
+		return std::shared_ptr<const ConfigurationFloatData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationIntData> ConfigurationsDatabase::GetIntPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationIntData> ConfigurationsDatabase::GetIntPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	IntMaps::const_iterator itr = IntMap.find(std::make_pair(ModuleId, Name));
 	if(itr == IntMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationIntData>();
+		return std::shared_ptr<const ConfigurationIntData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationLongIntData> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationLongIntData> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	LongIntMaps::const_iterator itr = LongIntMap.find(std::make_pair(ModuleId, Name));
 	if(itr == LongIntMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationLongIntData>();
+		return std::shared_ptr<const ConfigurationLongIntData>();
 	}
 	return itr->second;
 }
 
-boost::shared_ptr<const ConfigurationStringData> ConfigurationsDatabase::GetStringPtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const ConfigurationStringData> ConfigurationsDatabase::GetStringPtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	StringMaps::const_iterator itr = StringMap.find(std::make_pair(ModuleId, Name));
 	if(itr == StringMap.end())
 	{
-		return boost::shared_ptr<const ConfigurationStringData>();
+		return std::shared_ptr<const ConfigurationStringData>();
 	}
 	return itr->second;
 }
@@ -192,7 +192,7 @@ boost::shared_ptr<const ConfigurationStringData> ConfigurationsDatabase::GetStri
 //Boolean getter
 bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId, bool Default) const
 {
-	boost::shared_ptr<const ConfigurationBoolData> BoolPtr = GetBoolPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationBoolData> BoolPtr = GetBoolPtr(Name, ModuleId);
 	if(!BoolPtr)
 	{
 		Wt::log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -204,7 +204,7 @@ bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId
 //Double getter
 double ConfigurationsDatabase::GetDouble(const std::string &Name, long long ModuleId, double Default) const
 {
-	boost::shared_ptr<const ConfigurationDoubleData> DoublePtr = GetDoublePtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationDoubleData> DoublePtr = GetDoublePtr(Name, ModuleId);
 	if(!DoublePtr)
 	{
 		Wt::log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -216,7 +216,7 @@ double ConfigurationsDatabase::GetDouble(const std::string &Name, long long Modu
 //Enum getter
 int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId, int Default) const
 {
-	boost::shared_ptr<const ConfigurationEnumData> EnumPtr = GetEnumPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationEnumData> EnumPtr = GetEnumPtr(Name, ModuleId);
 	if(!EnumPtr)
 	{
 		Wt::log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -228,7 +228,7 @@ int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId,
 //Float getter
 float ConfigurationsDatabase::GetFloat(const std::string &Name, long long ModuleId, float Default) const
 {
-	boost::shared_ptr<const ConfigurationFloatData> FloatPtr = GetFloatPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationFloatData> FloatPtr = GetFloatPtr(Name, ModuleId);
 	if(!FloatPtr)
 	{
 		Wt::log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -240,7 +240,7 @@ float ConfigurationsDatabase::GetFloat(const std::string &Name, long long Module
 //Integer getter
 int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, int Default) const
 {
-	boost::shared_ptr<const ConfigurationIntData> IntPtr = GetIntPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationIntData> IntPtr = GetIntPtr(Name, ModuleId);
 	if(!IntPtr)
 	{
 		Wt::log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -252,7 +252,7 @@ int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, 
 //Long integer getter
 long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long ModuleId, long long Default) const
 {
-	boost::shared_ptr<const ConfigurationLongIntData> LongIntPtr = GetLongIntPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationLongIntData> LongIntPtr = GetLongIntPtr(Name, ModuleId);
 	if(!LongIntPtr)
 	{
 		Wt::log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
@@ -264,7 +264,7 @@ long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long 
 //String getter
 std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long ModuleId, std::string Default) const
 {
-	boost::shared_ptr<const ConfigurationStringData> StringPtr = GetStringPtr(Name, ModuleId);
+	std::shared_ptr<const ConfigurationStringData> StringPtr = GetStringPtr(Name, ModuleId);
 	if(!StringPtr)
 	{
 		Wt::log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;

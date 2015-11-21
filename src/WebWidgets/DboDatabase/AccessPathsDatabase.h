@@ -14,7 +14,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct AccessHostName_key_HostName
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<AccessHostNameData> &AccessHostNamePtr) const
+			result_type operator()(const std::shared_ptr<AccessHostNameData> &AccessHostNamePtr) const
 			{
 				return AccessHostNamePtr->HostName;
 			}
@@ -22,7 +22,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct PageAccessPath_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<PageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<PageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->id();
 			}
@@ -30,7 +30,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct LanguageAccessPath_key_id
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->id();
 			}
@@ -38,7 +38,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct PageAccessPath_key_HostName
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<PageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<PageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->HostName;
 			}
@@ -46,7 +46,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct LanguageAccessPath_key_HostName
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->HostName;
 			}
@@ -54,7 +54,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct PageAccessPath_key_InternalPath
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<PageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<PageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->InternalPath;
 			}
@@ -62,7 +62,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct PageAccessPath_key_ParentAccessPath
 		{
 			typedef long long result_type;
-			result_type operator()(const boost::shared_ptr<PageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<PageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->ParentAccessPathId;
 			}
@@ -70,7 +70,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct LanguageAccessPath_key_InternalPath
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->InternalPath;
 			}
@@ -78,7 +78,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 		struct LanguageAccessPath_key_LanguageCode
 		{
 			typedef std::string result_type;
-			result_type operator()(const boost::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
+			result_type operator()(const std::shared_ptr<LanguageAccessPathData> &AccessPathPtr) const
 			{
 				return AccessPathPtr->LanguageCode;
 			}
@@ -89,7 +89,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 
 		//AccessHostName container
 		typedef boost::multi_index_container<
-			boost::shared_ptr<AccessHostNameData>,
+			std::shared_ptr<AccessHostNameData>,
 			boost::multi_index::indexed_by<
 				boost::multi_index::hashed_unique<AccessHostName_key_HostName>
 			>
@@ -97,7 +97,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 
 		//PageAccessPath container
 		typedef boost::multi_index_container<
-			boost::shared_ptr<PageAccessPathData>,
+			std::shared_ptr<PageAccessPathData>,
 
 			boost::multi_index::indexed_by<
 				//Index by access path id
@@ -109,7 +109,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 				boost::multi_index::hashed_unique<
 					boost::multi_index::tag<ByURL>,
 					boost::multi_index::composite_key<
-						boost::shared_ptr<PageAccessPathData>,
+						std::shared_ptr<PageAccessPathData>,
 						PageAccessPath_key_HostName,
 						PageAccessPath_key_InternalPath,
 						PageAccessPath_key_ParentAccessPath
@@ -120,7 +120,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 
 		//LanguageAccessPath container
 		typedef boost::multi_index_container<
-			boost::shared_ptr<LanguageAccessPathData>,
+			std::shared_ptr<LanguageAccessPathData>,
 
 			boost::multi_index::indexed_by<
 				//Index by access path id
@@ -132,7 +132,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 				boost::multi_index::hashed_unique<
 					boost::multi_index::tag<ByURL>,
 					boost::multi_index::composite_key<
-						boost::shared_ptr<LanguageAccessPathData>,
+						std::shared_ptr<LanguageAccessPathData>,
 						LanguageAccessPath_key_HostName,
 						LanguageAccessPath_key_InternalPath
 					>
@@ -141,7 +141,7 @@ class AccessPathsDatabase : public AbstractDboDatabase
 				boost::multi_index::ordered_non_unique<
 					boost::multi_index::tag<ByLanguageHostname>,
 					boost::multi_index::composite_key<
-						boost::shared_ptr<LanguageAccessPathData>,
+						std::shared_ptr<LanguageAccessPathData>,
 						LanguageAccessPath_key_LanguageCode,
 						LanguageAccessPath_key_HostName
 					>
@@ -159,12 +159,12 @@ class AccessPathsDatabase : public AbstractDboDatabase
 	public:
 		AccessPathsDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr(const std::string &HostName) const;
-		boost::shared_ptr<const AccessHostNameData> AccessHostOrGlobalPtr(const std::string &HostName) const;
-		boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPathPtr(long long Id) const;
-		boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
-		boost::shared_ptr<const PageAccessPathData> PageAccessPathPtr(long long Id) const;
-		boost::shared_ptr<const PageAccessPathData> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath, long long ParentAccessPathId = -1) const;
+		std::shared_ptr<const AccessHostNameData> AccessHostNamePtr(const std::string &HostName) const;
+		std::shared_ptr<const AccessHostNameData> AccessHostOrGlobalPtr(const std::string &HostName) const;
+		std::shared_ptr<const LanguageAccessPathData> LanguageAccessPathPtr(long long Id) const;
+		std::shared_ptr<const LanguageAccessPathData> LanguageAccessPathPtr(const std::string &HostName, const std::string &InternalPath) const;
+		std::shared_ptr<const PageAccessPathData> PageAccessPathPtr(long long Id) const;
+		std::shared_ptr<const PageAccessPathData> PageAccessPathPtr(const std::string &HostName, const std::string &InternalPath, long long ParentAccessPathId = -1) const;
 
 		std::string FirstInternalPath(const std::string &LanguageCode, const std::string &HostName, bool LanguageFromHostname) const;
 

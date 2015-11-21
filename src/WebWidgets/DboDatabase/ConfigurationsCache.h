@@ -17,13 +17,13 @@ class ConfigurationsCache
 	public:
 		ConfigurationsCache(ConfigurationsDatabase *Database);
 
-		boost::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
 
 		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
 		double GetDouble(const std::string &Name, long long ModuleId, double Default) const;

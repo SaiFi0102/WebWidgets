@@ -1,6 +1,6 @@
 #include "Objects/DboCssRule.h"
 
-DboCssRule::DboCssRule(boost::shared_ptr<const StyleCssRuleData> CssRulePtr, Wt::WObject *parent)
+DboCssRule::DboCssRule(std::shared_ptr<const StyleCssRuleData> CssRulePtr, Wt::WObject *parent)
 	: StyleCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(false)
 {
 	if(!CssRulePtr)
@@ -9,7 +9,7 @@ DboCssRule::DboCssRule(boost::shared_ptr<const StyleCssRuleData> CssRulePtr, Wt:
 	}
 }
 
-DboCssRule::DboCssRule(boost::shared_ptr<const TemplateCssRuleData> CssRulePtr, Wt::WObject *parent)
+DboCssRule::DboCssRule(std::shared_ptr<const TemplateCssRuleData> CssRulePtr, Wt::WObject *parent)
 	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(true)
 {
 	if(!CssRulePtr)

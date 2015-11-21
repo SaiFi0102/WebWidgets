@@ -28,7 +28,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != StyleCollection.end();
 		++itr)
 	{
-		stylecontainer.insert(boost::shared_ptr<StyleData>(new StyleData(*itr)));
+		stylecontainer.insert(std::shared_ptr<StyleData>(new StyleData(*itr)));
 	}
 
 	//Templates
@@ -36,7 +36,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != TemplateCollection.end();
 		++itr)
 	{
-		templatemap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = boost::shared_ptr<TemplateData>(new TemplateData(*itr));
+		templatemap[std::make_pair((*itr)->Name(), (*itr)->ModulePtr().id())] = std::shared_ptr<TemplateData>(new TemplateData(*itr));
 	}
 
 	//StyleTemplates
@@ -44,7 +44,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != StyleTemplateCollection.end();
 		++itr)
 	{
-		styletemplatecontainer.get<0>().insert(boost::shared_ptr<StyleTemplateData>(new StyleTemplateData(*itr)));
+		styletemplatecontainer.get<0>().insert(std::shared_ptr<StyleTemplateData>(new StyleTemplateData(*itr)));
 	}
 
 	//StyleCssRules
@@ -55,7 +55,7 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		StyleByNameAuthor::const_iterator i = stylecontainer.get<ByNameAuthor>().find(boost::make_tuple((*itr)->StylePtr->Name(), (*itr)->StylePtr->AuthorPtr().id()));
 		if(i != stylecontainer.get<ByNameAuthor>().end())
 		{
-			(*i)->StyleCssRules.insert(boost::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
+			(*i)->StyleCssRules.insert(std::shared_ptr<StyleCssRuleData>(new StyleCssRuleData(*itr)));
 		}
 		else
 		{
@@ -68,11 +68,11 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != TemplateCssRuleCollection.end();
 		++itr)
 	{
-		//TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
+		//TemplateCssRuleMap[std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id())].insert(std::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
 		TemplateMaps::const_iterator i = templatemap.find(std::make_pair((*itr)->TemplatePtr->Name(), (*itr)->TemplatePtr->ModulePtr().id()));
 		if(i != templatemap.end())
 		{
-			i->second->TemplateCssRules.insert(boost::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
+			i->second->TemplateCssRules.insert(std::shared_ptr<TemplateCssRuleData>(new TemplateCssRuleData(*itr)));
 		}
 		else
 		{
@@ -94,53 +94,53 @@ void StylesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		<< _CountTemplateCssRules << " Template CSS Rules successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(long long StyleId) const
+std::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(long long StyleId) const
 {
 	ReadLock lock(Manager());
 	StyleById::const_iterator itr = StyleContainer.get<ById>().find(StyleId);
 	if(itr == StyleContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<const StyleData>();
+		return std::shared_ptr<const StyleData>();
 	}
 	return *itr;
 }
-boost::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
+std::shared_ptr<const StyleData> StylesDatabase::GetStylePtr(const std::string &Name, long long AuthorId) const
 {
 	ReadLock lock(Manager());
 	StyleByNameAuthor::const_iterator itr = StyleContainer.get<ByNameAuthor>().find(boost::make_tuple(Name, AuthorId));
 	if(itr == StyleContainer.get<ByNameAuthor>().end())
 	{
-		return boost::shared_ptr<const StyleData>();
+		return std::shared_ptr<const StyleData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<const TemplateData> StylesDatabase::GetTemplatePtr(const std::string &Name, long long ModuleId) const
+std::shared_ptr<const TemplateData> StylesDatabase::GetTemplatePtr(const std::string &Name, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	TemplateMaps::const_iterator itr = TemplateMap.find(std::make_pair(Name, ModuleId));
 	if(itr == TemplateMap.end())
 	{
-		return boost::shared_ptr<const TemplateData>();
+		return std::shared_ptr<const TemplateData>();
 	}
 	return itr->second;
 }
 
 
-boost::shared_ptr<const StyleTemplateData> StylesDatabase::GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
+std::shared_ptr<const StyleTemplateData> StylesDatabase::GetStyleTemplatePtr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId) const
 {
 	ReadLock lock(Manager());
 	StyleTemplateType::const_iterator itr = StyleTemplateContainer.find(boost::make_tuple(TemplateName, ModuleId, StyleName, StyleAuthorId));
 	if(itr == StyleTemplateContainer.end())
 	{
-		return boost::shared_ptr<const StyleTemplateData>();
+		return std::shared_ptr<const StyleTemplateData>();
 	}
 	return *itr;
 }
 
 bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId, std::string &result) const
 {
-	boost::shared_ptr<const TemplateData> TemplatePtr = GetTemplatePtr(Name, ModuleId);
+	std::shared_ptr<const TemplateData> TemplatePtr = GetTemplatePtr(Name, ModuleId);
 	if(!TemplatePtr)
 	{
 		Wt::log("warn") << "TemplatePtr not found in StylesDatabase in GetTemplateStr(...). Name: " << Name << ", ModuleId: " << ModuleId;
@@ -152,7 +152,7 @@ bool StylesDatabase::GetTemplateStr(const std::string &Name, long long ModuleId,
 
 bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long long ModuleId, const std::string &StyleName, long long StyleAuthorId, std::string &result) const
 {
-	boost::shared_ptr<const StyleTemplateData> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
+	std::shared_ptr<const StyleTemplateData> StyleTemplatePtr = GetStyleTemplatePtr(TemplateName, ModuleId, StyleName, StyleAuthorId);
 	if(!StyleTemplatePtr)
 	{
 		return false;
@@ -161,13 +161,13 @@ bool StylesDatabase::GetStyleTemplateStr(const std::string &TemplateName, long l
 	return true;
 }
 
-boost::shared_ptr<const StyleData> StylesDatabase::FirstStylePtr() const
+std::shared_ptr<const StyleData> StylesDatabase::FirstStylePtr() const
 {
 	ReadLock lock(Manager());
 	StyleById::const_iterator itr = StyleContainer.get<ById>().begin();
 	if(itr == StyleContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<const StyleData>();
+		return std::shared_ptr<const StyleData>();
 	}
 	return *itr;
 }

@@ -1,9 +1,9 @@
 #ifndef MODULES_DATABASE_H
 #define MODULES_DATABASE_H
 
+#include <unordered_map>
 #include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Module.h"
-#include <boost/unordered_map.hpp>
 
 class ModulesDatabase : public AbstractDboDatabase
 {
@@ -22,14 +22,14 @@ class ModulesDatabase : public AbstractDboDatabase
 
 		ModulesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<const ModuleData> GetPtr(long long Id) const;
+		std::shared_ptr<const ModuleData> GetPtr(long long Id) const;
 		std::size_t CountModules() const;
 		long long GetLoadDurationinMS() const;
 
 		virtual std::string Name() const { return "ModulesDatabase"; }
 
 	protected:
-		typedef boost::unordered_map< long long, boost::shared_ptr<ModuleData> > ModuleMaps;
+		typedef std::unordered_map< long long, std::shared_ptr<ModuleData> > ModuleMaps;
 
 		void FetchAll(Wt::Dbo::Session &DboSession);
 		virtual void Load(Wt::Dbo::Session &DboSession);

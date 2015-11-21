@@ -1,31 +1,32 @@
 #ifndef CONFIGURATIONS_DATABASE_H
 #define CONFIGURATIONS_DATABASE_H
 
+#include <unordered_map>
+#include "Objects/PairHash.h"
 #include "DboDatabase/AbstractDboDatabase.h"
 #include "Dbo/Configuration.h"
-#include <boost/unordered_map.hpp>
 
 class ConfigurationsDatabase : public AbstractDboDatabase
 {
 	protected:
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationBoolData> > BoolMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationDoubleData> > DoubleMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationEnumData> > EnumMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationFloatData> > FloatMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationIntData> > IntMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationLongIntData> > LongIntMaps;
-		typedef boost::unordered_map< std::pair<long long, std::string>, boost::shared_ptr<ConfigurationStringData> > StringMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationBoolData> > BoolMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationDoubleData> > DoubleMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationEnumData> > EnumMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationFloatData> > FloatMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationIntData> > IntMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationLongIntData> > LongIntMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationStringData> > StringMaps;
 
 	public:
 		ConfigurationsDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<const ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		boost::shared_ptr<const ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
+		std::shared_ptr<const ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
 
 		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
 		double GetDouble(const std::string &Name, long long ModuleId, double Default) const;

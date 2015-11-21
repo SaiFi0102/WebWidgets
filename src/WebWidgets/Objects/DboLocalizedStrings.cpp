@@ -102,7 +102,7 @@ bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, lo
 
 	if(app)
 	{
-		boost::shared_ptr<const StyleData> CurrentStyle = app->CurrentStyle();
+		std::shared_ptr<const StyleData> CurrentStyle = app->CurrentStyle();
 		if(!CurrentStyle
 			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorId(), result))
 		{

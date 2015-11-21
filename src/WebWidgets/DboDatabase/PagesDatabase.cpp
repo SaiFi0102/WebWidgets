@@ -26,11 +26,11 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		PageById::iterator i = PageContainer.find(itr->id());
 		if(i != PageContainer.end())
 		{
-			pagecontainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr)), i->PageHandler));
+			pagecontainer.insert(MetaPage(std::shared_ptr<PageData>(new PageData(*itr)), i->PageHandler));
 		}
 		else
 		{
-			pagecontainer.insert(MetaPage(boost::shared_ptr<PageData>(new PageData(*itr))));
+			pagecontainer.insert(MetaPage(std::shared_ptr<PageData>(new PageData(*itr))));
 		}
 	}
 
@@ -57,23 +57,23 @@ void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		<< LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const PageData> PagesDatabase::GetPtr(long long PageId) const
+std::shared_ptr<const PageData> PagesDatabase::GetPtr(long long PageId) const
 {
 	ReadLock lock(Manager());
 	PageById::const_iterator itr = PageContainer.get<ById>().find(PageId);
 	if(itr == PageContainer.get<ById>().end())
 	{
-		return boost::shared_ptr<const PageData>();
+		return std::shared_ptr<const PageData>();
 	}
 	return itr->PagePtr;
 }
-boost::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageName, long long ModuleId) const
+std::shared_ptr<const PageData> PagesDatabase::GetPtr(const std::string &PageName, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	PageByKey::const_iterator itr = PageContainer.get<ByKey>().find(boost::make_tuple(PageName, ModuleId));
 	if(itr == PageContainer.get<ByKey>().end())
 	{
-		return boost::shared_ptr<const PageData>();
+		return std::shared_ptr<const PageData>();
 	}
 	return itr->PagePtr;
 }
@@ -100,15 +100,15 @@ AbstractPage *PagesDatabase::GetPage(const std::string &PageName, long long Modu
 	return itr->PageHandler;
 }
 
-boost::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
+std::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
-	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
+	std::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
 	if(AccessHostNamePtr && AccessHostNamePtr->DefaultPageId != -1)
 	{
 		return GetPtr(AccessHostNamePtr->DefaultPageId);
 	}
-	return boost::shared_ptr<const PageData>();
+	return std::shared_ptr<const PageData>();
 }
 
 std::size_t PagesDatabase::CountPages() const

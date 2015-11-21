@@ -31,14 +31,14 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		PluralStringCollections LanguagePluralCollection = DboSession.find<PluralString>().where("\"Language_Code\" = ?").bind((*itr)->Code());
 
 		//Insert language ptr
-		languagecontainer.get<0>().insert(boost::shared_ptr<LanguageData>(new LanguageData(*itr)));
+		languagecontainer.get<0>().insert(std::shared_ptr<LanguageData>(new LanguageData(*itr)));
 
 		//All single strings of this language
 		for(SingularStringCollections::const_iterator i = LanguageSingleCollection.begin();
 			i != LanguageSingleCollection.end();
 			++i)
 		{
-			languagesinglecontainer.get<0>().insert(boost::shared_ptr<SingularStringData>(new SingularStringData(*i)));
+			languagesinglecontainer.get<0>().insert(std::shared_ptr<SingularStringData>(new SingularStringData(*i)));
 		}
 
 		//All plural strings of this language
@@ -46,7 +46,7 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 			i != LanguagePluralCollection.end();
 			++i)
 		{
-			languagepluralcontainer.get<0>().insert(boost::shared_ptr<PluralStringData>(new PluralStringData(*i)));
+			languagepluralcontainer.get<0>().insert(std::shared_ptr<PluralStringData>(new PluralStringData(*i)));
 		}
 	}
 
@@ -68,46 +68,46 @@ void LanguagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		<< " Languages successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
 }
 
-boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
+std::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromCode(const std::string &Code) const
 {
 	ReadLock lock(Manager());
 	LanguageByCode::const_iterator itr = LanguageContainer.get<0>().find(Code);
 	if(itr == LanguageContainer.get<0>().end())
 	{
-		return boost::shared_ptr<const LanguageData>();
+		return std::shared_ptr<const LanguageData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
+std::shared_ptr<const LanguageData> LanguagesDatabase::GetLanguagePtrFromLanguageAccept(const std::string &LanguageAccept) const
 {
 	ReadLock lock(Manager());
 	LanguageByLanguageAccept::const_iterator itr = LanguageContainer.get<1>().find(LanguageAccept);
 	if(itr == LanguageContainer.get<1>().end())
 	{
-		return boost::shared_ptr<const LanguageData>();
+		return std::shared_ptr<const LanguageData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<const SingularStringData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
+std::shared_ptr<const SingularStringData> LanguagesDatabase::GetSinglePtr(const std::string &Code, const std::string &Key, long long ModuleId) const
 {
 	ReadLock lock(Manager());
 	LanguageSingleType::const_iterator itr = LanguageSingleContainer.get<0>().find(boost::make_tuple(Code, Key, ModuleId));
 	if(itr == LanguageSingleContainer.get<0>().end())
 	{
-		return boost::shared_ptr<const SingularStringData>();
+		return std::shared_ptr<const SingularStringData>();
 	}
 	return *itr;
 }
 
-boost::shared_ptr<const PluralStringData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
+std::shared_ptr<const PluralStringData> LanguagesDatabase::GetPluralPtr(const std::string &Code, const std::string &Key, long long ModuleId, int Case) const
 {
 	ReadLock lock(Manager());
 	LanguagePluralType::const_iterator itr = LanguagePluralContainer.get<0>().find(boost::make_tuple(Code, Key, Case, ModuleId));
 	if(itr == LanguagePluralContainer.get<0>().end())
 	{
-		return boost::shared_ptr<const PluralStringData>();
+		return std::shared_ptr<const PluralStringData>();
 	}
 	return *itr;
 }
@@ -115,7 +115,7 @@ boost::shared_ptr<const PluralStringData> LanguagesDatabase::GetPluralPtr(const 
 std::string LanguagesDatabase::DefaultLanguageCode(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
-	boost::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
+	std::shared_ptr<const AccessHostNameData> AccessHostNamePtr = Server()->AccessPaths()->AccessHostOrGlobalPtr(HostName);
 	if(AccessHostNamePtr)
 	{
 		if(!AccessHostNamePtr->LanguageCode.empty())
@@ -145,7 +145,7 @@ bool LanguagesDatabase::LanguageAcceptExists(const std::string &LanguageAccept) 
 
 bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string &Result) const
 {
-	boost::shared_ptr<const LanguageData> LanguagePtr = GetLanguagePtrFromCode(Code);
+	std::shared_ptr<const LanguageData> LanguagePtr = GetLanguagePtrFromCode(Code);
 	if(!LanguagePtr)
 	{
 		return false;
@@ -156,7 +156,7 @@ bool LanguagesDatabase::GetPluralExpression(const std::string &Code, std::string
 
 bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::string &Key, long long ModuleId, std::string &Result) const
 {
-	boost::shared_ptr<const SingularStringData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
+	std::shared_ptr<const SingularStringData> LanguageSinglePtr = GetSinglePtr(Code, Key, ModuleId);
 	if(!LanguageSinglePtr)
 	{
 		return false;
@@ -167,7 +167,7 @@ bool LanguagesDatabase::GetSingleString(const std::string &Code, const std::stri
 
 bool LanguagesDatabase::GetPluralString(const std::string &Code, const std::string &Key, long long ModuleId, int Case, std::string &Result) const
 {
-	boost::shared_ptr<const PluralStringData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
+	std::shared_ptr<const PluralStringData> LanguagePluralPtr = GetPluralPtr(Code, Key, ModuleId, Case);
 	if(!LanguagePluralPtr)
 	{
 		return false;

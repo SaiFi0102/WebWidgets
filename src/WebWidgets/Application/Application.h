@@ -1,8 +1,9 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <unordered_map>
+#include "Objects/PairHash.h"
 #include <Wt/WApplication>
-#include <boost/unordered_map.hpp>
 #include "Dbo/Style.h"
 
 class ConfigurationsCache;
@@ -20,7 +21,7 @@ class Application : public Wt::WApplication
 		ConfigurationsCache *Configurations() const { return _Configurations; }
 
 		//URL and Internal Paths
-		boost::shared_ptr<const AccessHostNameData> AccessHostName() const { return _AccessHostName; }
+		std::shared_ptr<const AccessHostNameData> AccessHostName() const { return _AccessHostName; }
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
 		std::string ReservedInternalPath() const { return _ReservedInternalPath; }
@@ -38,22 +39,22 @@ class Application : public Wt::WApplication
 		Wt::Signal<bool> &MobileVersionChanged() { return _MobileVersionChanged; }
 
 		//Styling
-		boost::shared_ptr<const StyleData> CurrentStyle() const { return _CurrentStylePtr; }
+		std::shared_ptr<const StyleData> CurrentStyle() const { return _CurrentStylePtr; }
 		//void ChangeStyle(long long StyleId);
 		void ChangeStyle(const std::string &StyleName, long long AuthorId);
 		Wt::Signal<void> &StyleChanged() { return _StyleChanged; }
 		Wt::WCssStyleSheet &UserStyleSheet() { return _UserStyleSheet; }
 
 		//Paging
-		boost::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
-		boost::shared_ptr<const PageAccessPathData> CurrentPageAccessPath() const { return _PageAccessPathPtr; }
+		std::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
+		std::shared_ptr<const PageAccessPathData> CurrentPageAccessPath() const { return _PageAccessPathPtr; }
 		Wt::Signal<void> &PageChanged() { return _PageChanged; }
 
 		//Database reload handler
 		static void RefreshDboDatabasePtrs();
 
 	protected:
-		typedef boost::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
+		typedef std::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 
 		//Internal path change handlers
 		void HandleWtInternalPathChanged();
@@ -70,11 +71,11 @@ class Application : public Wt::WApplication
 		void SetAccessHostNameDefaults();
 
 		//Styling
-		void SetStyle(boost::shared_ptr<const StyleData> StylePtr);
-		void UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr);
+		void SetStyle(std::shared_ptr<const StyleData> StylePtr);
+		void UseTemplateStyleSheet(std::shared_ptr<const TemplateData> TemplatePtr);
 
 		//Paging
-		void SetPage(boost::shared_ptr<const PageData> PagePtr);
+		void SetPage(std::shared_ptr<const PageData> PagePtr);
 
 		Wt::WTemplate *_MainTemplate;
 		Wt::WStackedWidget *_PageStack;
@@ -82,8 +83,8 @@ class Application : public Wt::WApplication
 
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
-		boost::shared_ptr<const AccessHostNameData> _AccessHostName;
-		boost::shared_ptr<const AccessHostNameData> _GlobalAccessHost;
+		std::shared_ptr<const AccessHostNameData> _AccessHostName;
+		std::shared_ptr<const AccessHostNameData> _GlobalAccessHost;
 		bool _LanguageFromHostname; //And independent of internal path
 		bool _SkipReservedPathInterpretation; //Used to skip InterpretReservedInternalPath on internalPathChanged()
 		std::string _ReservedInternalPath;
@@ -97,15 +98,15 @@ class Application : public Wt::WApplication
 		bool _MobileVersionFromInternalPath; //Or in combination with the hostname
 		Wt::Signal<bool> _MobileVersionChanged;
 
-		boost::shared_ptr<const PageData> _HomePagePtr;
-		boost::shared_ptr<const StyleData> _CurrentStylePtr;
-		boost::shared_ptr<const StyleData> _DefaultStylePtr;
+		std::shared_ptr<const PageData> _HomePagePtr;
+		std::shared_ptr<const StyleData> _CurrentStylePtr;
+		std::shared_ptr<const StyleData> _DefaultStylePtr;
 		Wt::Signal<void> _StyleChanged;
 		Wt::WCssStyleSheet _UserStyleSheet;
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
-		boost::shared_ptr<const PageData> _CurrentPagePtr;
-		boost::shared_ptr<const PageAccessPathData> _PageAccessPathPtr;
+		std::shared_ptr<const PageData> _CurrentPagePtr;
+		std::shared_ptr<const PageAccessPathData> _PageAccessPathPtr;
 		Wt::Signal<void> _PageChanged;
 
 		ConfigurationsCache *_Configurations;

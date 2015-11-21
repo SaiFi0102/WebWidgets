@@ -14,11 +14,11 @@ class PagesDatabase : public AbstractDboDatabase
 	protected:
 		struct MetaPage
 		{
-			MetaPage(boost::shared_ptr<PageData> PagePtr, AbstractPage *PageHandler = 0)
+			MetaPage(std::shared_ptr<PageData> PagePtr, AbstractPage *PageHandler = 0)
 				: PagePtr(PagePtr), PageHandler(PageHandler)
 			{ }
 
-			boost::shared_ptr<PageData> PagePtr;
+			std::shared_ptr<PageData> PagePtr;
 			AbstractPage *PageHandler;
 		};
 
@@ -76,11 +76,11 @@ class PagesDatabase : public AbstractDboDatabase
 	public:
 		PagesDatabase(DboDatabaseManager *Manager);
 
-		boost::shared_ptr<const PageData> GetPtr(long long PageId) const;
-		boost::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
+		std::shared_ptr<const PageData> GetPtr(long long PageId) const;
+		std::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
 		AbstractPage *GetPage(long long PageId) const;
 		AbstractPage *GetPage(const std::string &PageName, long long ModuleId) const;
-		boost::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
+		std::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
 
 		void RegisterPageHandler(long long PageId);
 		void RegisterPageHandler(const std::string &PageName, long long ModuleId);

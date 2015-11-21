@@ -58,7 +58,7 @@ Application::Application(const Wt::WEnvironment &env)
 	setInternalPathDefaultValid(true);
 
 	//Connect slots that should run first
-	Wt::WApplication::internalPathChanged().connect(boost::bind(&Application::HandleWtInternalPathChanged, this));
+	Wt::WApplication::internalPathChanged().connect(std::bind(&Application::HandleWtInternalPathChanged, this));
 
 	//Set language from internal path
 	InterpretReservedInternalPath();
@@ -72,7 +72,7 @@ Application::Application(const Wt::WEnvironment &env)
 	_MainTemplate->bindWidget("navigation", _PageMenu);
 
 	//Page change signal/slot and home page
-	internalPathAfterReservedChanged().connect(boost::bind(&Application::InterpretPageInternalPath, this));
+	internalPathAfterReservedChanged().connect(std::bind(&Application::InterpretPageInternalPath, this));
 	InterpretPageInternalPath();
 
 	//User stylesheet
@@ -251,7 +251,7 @@ void Application::setInternalPathAfterReserved(const std::string &path, bool emi
 void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 {
 	WServer *Server = WServer::instance();
-	boost::shared_ptr<const StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
+	std::shared_ptr<const StyleData> StylePtr = Server->Styles()->GetStylePtr(StyleName, AuthorId);
 	if(!StylePtr)
 	{
 		return;
@@ -265,7 +265,7 @@ void Application::ChangeStyle(const std::string &StyleName, long long AuthorId)
 	refresh(); //To reload styletemplates
 }
 
-void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
+void Application::SetStyle(std::shared_ptr<const StyleData> StylePtr)
 {
 	//Remove CSS rules
 	styleSheet().clear();
@@ -292,7 +292,7 @@ void Application::SetStyle(boost::shared_ptr<const StyleData> StylePtr)
 	_StyleChanged.emit();
 }
 
-void Application::SetPage(boost::shared_ptr<const PageData> PagePtr)
+void Application::SetPage(std::shared_ptr<const PageData> PagePtr)
 {
 	WServer *Server = WServer::instance();
 	_CurrentPagePtr = PagePtr;
@@ -322,7 +322,7 @@ void Application::RefreshDboDatabasePtrs()
 	ReadLock Lock(Server->DatabaseManager());
 	//Refresh Templates, Style WCssStyleSheet, Template WCssStyleSheets
 	//Style CssStyleSheet
-	boost::shared_ptr<const StyleData> NewStylePtr;
+	std::shared_ptr<const StyleData> NewStylePtr;
 	if(app->CurrentStyle())
 	{
 		NewStylePtr = Server->Styles()->GetStylePtr(app->CurrentStyle()->id());
@@ -338,13 +338,13 @@ void Application::RefreshDboDatabasePtrs()
 	app->SetStyle(NewStylePtr);
 
 	//Template CssStyleSheets, remove all rules and add new
-	typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
+	typedef std::set< std::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 	for(TemplateStyleSheetMap::iterator itr = app->_TemplateStyleSheets.begin();
 		itr != app->_TemplateStyleSheets.end();
 		++itr)
 	{
 		itr->second.clear();
-		boost::shared_ptr<const TemplateData> TemplatePtr = Server->Styles()->GetTemplatePtr(itr->first.first, itr->first.second);
+		std::shared_ptr<const TemplateData> TemplatePtr = Server->Styles()->GetTemplatePtr(itr->first.first, itr->first.second);
 		if(!TemplatePtr)
 		{
 			continue;
@@ -370,9 +370,9 @@ void Application::RefreshDboDatabasePtrs()
 	app->triggerUpdate();
 }
 
-void Application::UseTemplateStyleSheet(boost::shared_ptr<const TemplateData> TemplatePtr)
+void Application::UseTemplateStyleSheet(std::shared_ptr<const TemplateData> TemplatePtr)
 {
-	typedef std::set< boost::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
+	typedef std::set< std::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleList;
 
 	//Ignore if its an empty ptr
 	if(!TemplatePtr)
@@ -549,7 +549,7 @@ void Application::IRIPAlwaysShow()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
+	std::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
@@ -625,7 +625,7 @@ void Application::IRIPAlwaysShowHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
+	std::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
@@ -695,7 +695,7 @@ void Application::IRIPNoRestrictionHideDef()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
+	std::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
@@ -763,7 +763,7 @@ void Application::IRIPNoRestriction()
 	}
 
 	//Check if internal path includes language access path and set LanguageAccessPath ptr
-	boost::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
+	std::shared_ptr<const LanguageAccessPathData> LanguageAccessPath;
 	if(!Itr->empty())
 	{
 		if(!(LanguageAccessPath = Server->AccessPaths()->LanguageAccessPathPtr(HostName, *Itr)) //Check again if not found(without hostname)
@@ -802,7 +802,7 @@ void Application::InterpretPageInternalPath()
 	ReadLock Lock(Server->DatabaseManager());
 
 	//Check if internal path includes page access path
-	boost::shared_ptr<const PageAccessPathData> PageAccessPathPtr, ParentAccessPathPtr;
+	std::shared_ptr<const PageAccessPathData> PageAccessPathPtr, ParentAccessPathPtr;
 	for(Tokenizer::iterator Itr = Tokens.begin();
 		Itr != Tokens.end();
 		++Itr)
@@ -832,7 +832,7 @@ void Application::InterpretPageInternalPath()
 	}
 	_PageAccessPathPtr = PageAccessPathPtr;
 
-	boost::shared_ptr<const PageData> PagePtr;
+	std::shared_ptr<const PageData> PagePtr;
 	if(PageAccessPathPtr)
 	{
 		PagePtr = Server->Pages()->GetPtr(PageAccessPathPtr->PageId);
@@ -876,15 +876,15 @@ void Application::CreateTestUI()
 	new Wt::WBreak(root());
 	(new Wt::WText("Current language: ", root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto txt = new Wt::WText(locale().name(), root());
-	internalPathChanged().connect(boost::bind<void>([this, ip, ipr](){
+	internalPathChanged().connect(std::bind<void>([this, ip, ipr](){
 		ip->setText(internalPath());
 		ipr->setText(ReservedInternalPath());
 	}));
-	internalPathAfterReservedChanged().connect(boost::bind<void>([this, ipar, iparnp](){
+	internalPathAfterReservedChanged().connect(std::bind<void>([this, ipar, iparnp](){
 		ipar->setText(InternalPathAfterReserved());
 		iparnp->setText(InternalPathAfterReservedNextPart("/"));
 	}));
-	LocaleChanged().connect(boost::bind<void>([this, txt](){
+	LocaleChanged().connect(std::bind<void>([this, txt](){
 		txt->setText(locale().name());
 	}));
 	new Wt::WBreak(root());
@@ -892,14 +892,14 @@ void Application::CreateTestUI()
 	new Wt::WBreak(root());
 	(new Wt::WText(std::string("Mobile Version: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto mvt = new Wt::WText(std::string(IsMobileVersion() ? "On" : "Off"), root());
-	MobileVersionChanged().connect(boost::bind<void>([mvt](bool MobileVersion){
+	MobileVersionChanged().connect(std::bind<void>([mvt](bool MobileVersion){
 		mvt->setText(MobileVersion ? "On" : "Off");
-	}, _1));
+	}, std::placeholders::_1));
 	new Wt::WBreak(root());
 	(new Wt::WText(std::string("Current Page: "), root()))->decorationStyle().font().setWeight(Wt::WFont::Bold);
 	auto cpt = new Wt::WText(Wt::WString(CurrentPage() ? Wt::WString::tr(CurrentPage()->TitleKey, CurrentPage()->TitleModuleId) : "Invalid Page(404)"), root());
 	new Wt::WBreak(root());
-	PageChanged().connect(boost::bind<void>([this, cpt](){
+	PageChanged().connect(std::bind<void>([this, cpt](){
 		cpt->setText(CurrentPage() ? Wt::WString::tr(CurrentPage()->TitleKey, CurrentPage()->TitleModuleId) : "Invalid Page(404)");
 	}));
 
@@ -924,7 +924,7 @@ void Application::CreateTestUI()
 	new Wt::WBreak(root());
 	Wt::WPushButton *rc = new Wt::WPushButton("Reload Configurations", root());
 	new Wt::WBreak(root());
-	rc->clicked().connect(boost::bind<void>([this, Server](){
+	rc->clicked().connect(std::bind<void>([this, Server](){
 		new Wt::WText(std::string("[Server Config; Before Reload()]Log Directory: ") + Server->Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WText(std::string("[Cache Config; Before Reload()]Log Directory: ") + Configurations()->GetStr("LogDirectory", ModulesDatabase::Logging, "./default"), root());
 		new Wt::WBreak(root());
@@ -935,11 +935,11 @@ void Application::CreateTestUI()
 	}));
 
 	Wt::WPushButton *rs = new Wt::WPushButton("Reload Styles", root());
-	rs->clicked().connect(boost::bind<void>([Server](){
+	rs->clicked().connect(std::bind<void>([Server](){
 		Server->DatabaseManager()->Reload();
 	}));
 	Wt::WPushButton *cs = new Wt::WPushButton("Change Style", root());
-	cs->clicked().connect(boost::bind<void>([this, Server](){
+	cs->clicked().connect(std::bind<void>([this, Server](){
 		if(!_CurrentStylePtr)
 		{
 			ChangeStyle("Default", 1);
@@ -956,7 +956,7 @@ void Application::CreateTestUI()
 	}));
 	new Wt::WBreak(root());
 	Wt::WPushButton *rl = new Wt::WPushButton("Reload languages", root());
-	rl->clicked().connect(boost::bind<void>([Server](){
+	rl->clicked().connect(std::bind<void>([Server](){
 		Server->DatabaseManager()->Reload();
 	}));
 	new Wt::WBreak(root());
