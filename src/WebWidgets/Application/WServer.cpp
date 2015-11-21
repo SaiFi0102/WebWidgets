@@ -41,8 +41,8 @@ void WServer::Initialize()
 	{
 		log("info") << "Connecting to database backend";
 
-		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
-		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
+		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
+		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
 		SQLConnection->setProperty("show-queries", "false");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
@@ -81,56 +81,55 @@ void WServer::Initialize()
 	/* *************************************************************************
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
-	bool REINSTALLDBO = true;
-	if(REINSTALLDBO)
+#define REINSTALLDBO 0
+#if REINSTALLDBO
+	//Drop
+	try
 	{
-		//Drop
-		try
-		{
-			_Installer = new DboInstaller(*SQLPool);
-			_Installer->DropTables();
-		}
-		catch(Wt::Dbo::Exception &e)
-		{
-			log("error") << "Database error dropping tables: " <<  e.what();
-		}
-		catch(std::exception &e)
-		{
-			log("error") << "Error dropping tables: " << e.what();
-		}
-
-		//Create
-		try
-		{
-			_Installer->CreateTables();
-		}
-		catch(Wt::Dbo::Exception &e)
-		{
-			log("fatal") << "Database error creating tables: " <<  e.what();
-			throw e;
-		}
-		catch(std::exception &e)
-		{
-			log("fatal") << "Error creating tables: " << e.what();
-			throw e;
-		}
-
-		//Insert
-		try
-		{
-			_Installer->InsertRows();
-		}
-		catch(Wt::Dbo::Exception &e)
-		{
-			log("fatal") << "Database error inserting default data: " <<  e.what();
-			throw e;
-		}
-		catch(std::exception &e)
-		{
-			log("fatal") << "Error inserting default data: " << e.what();
-			throw e;
-		}
+		_Installer = new DboInstaller(*SQLPool);
+		_Installer->DropTables();
 	}
+	catch(Wt::Dbo::Exception &e)
+	{
+		log("error") << "Database error dropping tables: " <<  e.what();
+	}
+	catch(std::exception &e)
+	{
+		log("error") << "Error dropping tables: " << e.what();
+	}
+
+	//Create
+	try
+	{
+		_Installer->CreateTables();
+	}
+	catch(Wt::Dbo::Exception &e)
+	{
+		log("fatal") << "Database error creating tables: " <<  e.what();
+		throw e;
+	}
+	catch(std::exception &e)
+	{
+		log("fatal") << "Error creating tables: " << e.what();
+		throw e;
+	}
+
+	//Insert
+	try
+	{
+		_Installer->InsertRows();
+	}
+	catch(Wt::Dbo::Exception &e)
+	{
+		log("fatal") << "Database error inserting default data: " <<  e.what();
+		throw e;
+	}
+	catch(std::exception &e)
+	{
+		log("fatal") << "Error inserting default data: " << e.what();
+		throw e;
+	}
+#endif
 
 	/* *************************************************************************
 	 * *************************  Load DboDatabases  ***************************
