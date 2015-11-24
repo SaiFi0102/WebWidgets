@@ -2,6 +2,7 @@
 #define WWMENU_WIDGET_H
 
 #include <Wt/WMenu>
+#include <Wt/WMenuItem>
 #include "Dbo/Page.h"
 
 class PagesMenuItem : public Wt::WMenuItem
@@ -10,8 +11,11 @@ class PagesMenuItem : public Wt::WMenuItem
 		PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemPtr);
 		long long ItemId() const { return ItemPtr->Id; };
 
+		virtual std::string pathComponent() const;
+
 	protected:
 		std::shared_ptr<const NavigationMenuItemData> ItemPtr;
+		std::shared_ptr<const PageAccessPathData> AccessPathPtr;
 };
 
 class PagesMenu : public Wt::WMenu

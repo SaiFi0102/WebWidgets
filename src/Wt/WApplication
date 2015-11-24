@@ -947,7 +947,7 @@ public:
    *       to use WString in the future).
    * \endif
    */
-  virtual Signal<std::string>& internalPathChanged();
+  Signal<std::string>& internalPathChanged();
 
   /*! \brief %Signal which indicates that an invalid internal path is navigated.
    */

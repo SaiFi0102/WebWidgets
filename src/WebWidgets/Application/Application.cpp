@@ -25,6 +25,8 @@
 #include <Wt/WMenu>
 #include <WebUtils.h>
 
+//#include <Wt/WBootstrapTheme>
+
 //From https://stackoverflow.com/questions/4654636/how-to-determine-if-a-string-is-a-number-with-c/4654718#4654718
 bool is_number(const std::string &s)
 {
@@ -71,8 +73,6 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//Main navigation menu
 	_PageMenu = new PagesMenu(1);
-	_PageMenu->setInternalPathEnabled();
-	_PageMenu->itemSelected().connect(std::bind(&Application::InterpretPageInternalPath, this));
 
 	//Main template widget
 	_MainTemplate = new Wt::WTemplate(Wt::WString::tstr("main", ModulesDatabase::Styles), root());
@@ -85,6 +85,9 @@ Application::Application(const Wt::WEnvironment &env)
 
 	//User stylesheet
 	//useStyleSheet(_UserStyleSheet);
+
+	//Test theme
+	//setTheme(new Wt::WBootstrapTheme());
 
 	//Initialization duration
 	boost::posix_time::ptime InitEndTime = boost::posix_time::microsec_clock::local_time();
@@ -470,11 +473,6 @@ void Application::InterpretReservedInternalPath()
 		case 4:
 			IRIPNoRestriction();
 		break;
-	}
-
-	if(_OldReservedInternalPath != _ReservedInternalPath)
-	{
-		_PageMenu->setInternalBasePath(_ReservedInternalPath);
 	}
 }
 

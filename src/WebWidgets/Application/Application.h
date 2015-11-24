@@ -27,7 +27,7 @@ class Application : public Wt::WApplication
 		std::string InternalPathAfterReservedNextPart(const std::string &path) const; //path must start with '/'
 		std::string InternalPathAfterReserved() const;
 		std::string ReservedInternalPath() const { return _ReservedInternalPath; }
-		virtual Wt::Signal<std::string> &internalPathChanged();
+		Wt::Signal<std::string> &internalPathChanged();
 		Wt::Signal<std::string> &internalPathAfterReservedChanged() { return _InternalPathAfterReservedChanged; }
 		Wt::Signal<std::string> &reservedInternalPathChanged() { return _ReservedInternalPathChanged; }
 		void setInternalPathAfterReserved(const std::string &path, bool emitChange = false);

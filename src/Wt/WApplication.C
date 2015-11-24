@@ -1265,7 +1265,7 @@ void WApplication::setInternalPath(const std::string& path, bool emitChange)
     changeInternalPath(path);
   else
   {
-	oldInternalPath_ = newInternalPath_;
+	if(path != newInternalPath_) oldInternalPath_ = newInternalPath_;
 	newInternalPath_ = path;
   }
 
@@ -1288,7 +1288,7 @@ bool WApplication::changeInternalPath(const std::string& aPath)
   std::string path = Utils::prepend(aPath, '/');
 
   if (path != internalPath()) {
-	oldInternalPath_ = newInternalPath_;
+	if(path != newInternalPath_) oldInternalPath_ = newInternalPath_;
     renderedInternalPath_ = newInternalPath_ = path;
     internalPathValid_ = internalPathDefaultValid_;
     internalPathChanged_.emit(newInternalPath_);

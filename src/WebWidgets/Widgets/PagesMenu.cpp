@@ -12,6 +12,7 @@ PagesMenu::PagesMenu(long long MenuId, Wt::WStackedWidget *contentsStack, Wt::WC
 	if(!Server)
 		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
 
+	setInternalPathEnabled();
 	Server->NavigationMenus()->PopulateMenuItems(this);
 }
 
@@ -22,6 +23,7 @@ PagesMenu::PagesMenu(long long MenuId, Wt::WContainerWidget *parent)
 	if(!Server)
 		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
 
+	setInternalPathEnabled();
 	Server->NavigationMenus()->PopulateMenuItems(this);
 }
 
@@ -32,6 +34,7 @@ PagesMenu::PagesMenu(long long MenuId, bool doNotLoad)
 	if(!Server)
 		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
 
+	setInternalPathEnabled();
 	if(!doNotLoad)
 		Server->NavigationMenus()->PopulateMenuItems(this);
 }
@@ -67,11 +70,23 @@ PagesMenuItem::PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemP
 {
 	WServer *Server = WServer::instance();
 	if(ItemPtr->AccessPathId != -1)
+		AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
+}
+
+std::string PagesMenuItem::pathComponent() const
+{
+	if(AccessPathPtr && parentMenu())
 	{
-		std::shared_ptr<const PageAccessPathData> AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
-		if(AccessPathPtr)
-			setPathComponent(AccessPathPtr->FullPath);
+		std::string NewPath = AccessPathPtr->FullPath;
+		std::string BasePath = parentMenu()->internalBasePath().substr(1);
+		size_t pos = NewPath.find(BasePath.c_str(), 0, BasePath.size());
+		if(pos != std::string::npos)
+			NewPath.erase(0, BasePath.size());
+
+		return NewPath;
 	}
+
+	return Wt::WMenuItem::pathComponent();
 }
 
 // void PagesMenu::select(int index, bool changePath)
