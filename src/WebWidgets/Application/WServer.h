@@ -19,6 +19,7 @@ class LanguagesDatabase;
 class StylesDatabase;
 class PagesDatabase;
 class AccessPathsDatabase;
+class NavigationMenusDatabase;
 class DboDatabaseManager;
 
 typedef std::vector<const Wt::Auth::OAuthService *> OAuthServiceMap;
@@ -36,6 +37,7 @@ class WServer : public Wt::WServer
 		StylesDatabase *Styles() const { return _Styles; }
 		PagesDatabase *Pages() const { return _Pages; }
 		AccessPathsDatabase *AccessPaths() const { return _AccessPaths; }
+		NavigationMenusDatabase *NavigationMenus() const { return _NavigationMenus; }
 
 		const Wt::Auth::AuthService &GetAuthService() const { return AuthService; }
 		const Wt::Auth::PasswordService &GetPasswordService() const { return PasswordService; }
@@ -63,6 +65,7 @@ class WServer : public Wt::WServer
 		StylesDatabase *_Styles;
 		PagesDatabase *_Pages;
 		AccessPathsDatabase *_AccessPaths;
+		NavigationMenusDatabase *_NavigationMenus;
 
 		Wt::rapidxml::xml_document<> XmlDoc;
 		boost::posix_time::ptime PTBeforeLoad;

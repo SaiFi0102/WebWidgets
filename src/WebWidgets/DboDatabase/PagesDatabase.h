@@ -75,6 +75,7 @@ class PagesDatabase : public AbstractDboDatabase
 
 	public:
 		PagesDatabase(DboDatabaseManager *Manager);
+		~PagesDatabase();
 
 		std::shared_ptr<const PageData> GetPtr(long long PageId) const;
 		std::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
@@ -82,8 +83,8 @@ class PagesDatabase : public AbstractDboDatabase
 		AbstractPage *GetPage(const std::string &PageName, long long ModuleId) const;
 		std::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
 
-		void RegisterPageHandler(long long PageId);
-		void RegisterPageHandler(const std::string &PageName, long long ModuleId);
+		void RegisterPageHandler(long long PageId, AbstractPage *handler);
+		void RegisterPageHandler(const std::string &PageName, long long ModuleId, AbstractPage *handler);
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;

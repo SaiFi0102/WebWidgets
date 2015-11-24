@@ -7,7 +7,10 @@
 #include "DboDatabase/StylesDatabase.h"
 #include "DboDatabase/PagesDatabase.h"
 #include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/NavigationMenusDatabase.h"
 #include "Objects/DboLocalizedStrings.h"
+
+#include "Pages/TestPage.h"
 
 #include <fstream>
 #include <3rdparty/rapidxml/rapidxml_print.hpp>
@@ -26,7 +29,7 @@
 
 WServer::WServer(const std::string &wtApplicationPath, const std::string &wtConfigurationFile)
 	: Wt::WServer(wtApplicationPath, wtConfigurationFile), PasswordService(AuthService),
-	SQLPool(0), _AccessPaths(0), _Configurations(0), _DboManager(0),
+	SQLPool(0), _AccessPaths(0), _Configurations(0), _DboManager(0), _NavigationMenus(0),
 	_Installer(0), _Languages(0), _Modules(0), _Pages(0), _Styles(0)
 { }
 void WServer::Initialize()
@@ -43,7 +46,7 @@ void WServer::Initialize()
 
 		Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::MySQL("wt", "root", "", "127.0.0.1");
 		//Wt::Dbo::SqlConnection *SQLConnection = new Wt::Dbo::backend::Sqlite3(":memory:");
-		SQLConnection->setProperty("show-queries", "false");
+		SQLConnection->setProperty("show-queries", "true");
 		SQLPool = new Wt::Dbo::FixedSqlConnectionPool(SQLConnection, 1);
 
 		log("success") << "Successfully connected to database";
@@ -71,6 +74,7 @@ void WServer::Initialize()
 		_Styles = new StylesDatabase(_DboManager);
 		_Pages = new PagesDatabase(_DboManager);
 		_AccessPaths = new AccessPathsDatabase(_DboManager);
+		_NavigationMenus = new NavigationMenusDatabase(_DboManager);
 	}
 	catch(std::exception &e)
 	{
@@ -82,7 +86,7 @@ void WServer::Initialize()
 	 * ***************************  Create Tables  *****************************
 	 * *************************************************************************/
 #define REINSTALLDBO 0
-#if REINSTALLDBO
+#if REINSTALLDBO == 1
 	//Drop
 	try
 	{
@@ -134,24 +138,26 @@ void WServer::Initialize()
 	/* *************************************************************************
 	 * *************************  Load DboDatabases  ***************************
 	 * *************************************************************************/
-	try
-	{
+// 	try
+// 	{
 		log("info") << "Loading DboDatabaseManager";
 		_DboManager->Load();
-	}
-	catch(Wt::Dbo::Exception &e)
-	{
-		log("fatal") << "Database error loading DboDatabaseManager: " << e.what();
-		throw e;
-	}
-	catch(std::exception &e)
-	{
-		log("fatal") << "Error loading DboDatabaseManager: " << e.what();
-		throw e;
-	}
+// 	}
+// 	catch(Wt::Dbo::Exception &e)
+// 	{
+// 		log("fatal") << "Database error loading DboDatabaseManager: " << e.what();
+// 		throw e;
+// 	}
+// 	catch(std::exception &e)
+// 	{
+// 		log("fatal") << "Error loading DboDatabaseManager: " << e.what();
+// 		throw e;
+// 	}
 
 	//Server localized strings
 	setLocalizedStrings(new DboLocalizedStrings(this));
+
+	Pages()->RegisterPageHandler("home", ModulesDatabase::Navigation, new TestPage());
 
 	/* *************************************************************************
 	 * *********************  Create temporary XML file  ***********************

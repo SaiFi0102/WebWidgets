@@ -21,7 +21,7 @@
 // 		}
 // 		static const char *TableName()
 // 		{
-// 			return "widgets";
+// 			return "widget";
 // 		}
 // 
 // 	private:

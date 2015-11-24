@@ -64,29 +64,29 @@ void DboDatabaseManager::Load()
 			itr != DatabaseSet.end();
 			++itr)
 		{
-			try
-			{
+// 			try
+// 			{
 				Wt::log("info") << "Loading " << (*itr)->Name();
 				(*itr)->Load((*itr)->_DboSession);
 				(*itr)->_IsLoaded = true;
 				Wt::log("success") << "Successfully loaded " << (*itr)->Name();
-			}
-			catch(Wt::Dbo::Exception &e)
-			{
-				Wt::log("error") << "Database error loading " << (*itr)->Name() << ": " << e.what();
-				if((*itr)->IsVital())
-				{
-					throw e;
-				}
-			}
-			catch(std::exception &e)
-			{
-				Wt::log("error") << "Error loading " << (*itr)->Name() << ": " << e.what();
-				if((*itr)->IsVital())
-				{
-					throw e;
-				}
-			}
+// 			}
+// 			catch(Wt::Dbo::Exception &e)
+// 			{
+// 				Wt::log("error") << "Database error loading " << (*itr)->Name() << ": " << e.what();
+// 				if((*itr)->IsVital())
+// 				{
+// 					throw e;
+// 				}
+// 			}
+// 			catch(std::exception &e)
+// 			{
+// 				Wt::log("error") << "Error loading " << (*itr)->Name() << ": " << e.what();
+// 				if((*itr)->IsVital())
+// 				{
+// 					throw e;
+// 				}
+// 			}
 		}
 	}
 	else

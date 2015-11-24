@@ -5,6 +5,7 @@
 #include "Dbo/Language.h"
 #include "Dbo/Page.h"
 #include "Dbo/Style.h"
+#include "Dbo/NavigationMenu.h"
 
 class AccessHostName
 {
@@ -18,7 +19,7 @@ class AccessHostName
 
 		PageAccessPathCollections PageAccessPathCollection;
 		LanguageAccessPathCollections LanguageAccessPathCollection;
-		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
+		NavigationMenuItemCollections ShownOnPageMenuItemCollection;
 
 		AccessHostName(const std::string &HostName = "")
 			: _HostName(HostName), MobileMode(false)
@@ -34,11 +35,11 @@ class AccessHostName
 			Wt::Dbo::field(a, MobileInternalPath, "MobileInternalPath", 255);
 			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
 			Wt::Dbo::hasMany(a, LanguageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
-			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnAccessHost");
+			Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "accesshost_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 		}
 		static const char *TableName()
 		{
-			return "accesshostnames";
+			return "accesshostname";
 		}
 
 	protected:
@@ -83,8 +84,8 @@ class PageAccessPath : public BaseAccessPath
 {
 	public:
 		Wt::Dbo::ptr<Page> PagePtr;
-		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
-		//NavigationMenuItemCollections PageMenuItemCollection;
+		NavigationMenuItemCollections PageMenuItemCollection;
+		MenuItemOnPageAccessPathCollections MenuItemOnPageAccessPathCollection;
 
 		Wt::Dbo::ptr<PageAccessPath> ParentAccessPathPtr() const { return _ParentAccessPathPtr; }
 		PageAccessPathCollections ChildrenAccessPaths;
@@ -100,15 +101,15 @@ class PageAccessPath : public BaseAccessPath
 			Wt::Dbo::belongsTo(a, _AccessHostNamePtr, "Access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
 			Wt::Dbo::field(a, _InternalPath, "InternalPath", 255);
 			Wt::Dbo::belongsTo(a, PagePtr, "Page", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnAccessPath");
-			//Wt::Dbo::hasMany(a, PageMenuItemCollection, Wt::Dbo::ManyToOne, "AccessPath");
+			Wt::Dbo::hasMany(a, PageMenuItemCollection, Wt::Dbo::ManyToOne, "AccessPath");
+			Wt::Dbo::hasMany(a, MenuItemOnPageAccessPathCollection, Wt::Dbo::ManyToOne, "PageAccessPath");
 
 			Wt::Dbo::hasMany(a, ChildrenAccessPaths, Wt::Dbo::ManyToOne, "Parent_AccessPath");
 			Wt::Dbo::belongsTo(a, _ParentAccessPathPtr, "Parent_AccessPath", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
 		}
 		static const char *TableName()
 		{
-			return "pageaccesspaths";
+			return "pageaccesspath";
 		}
 
 	protected:
@@ -144,7 +145,7 @@ class LanguageAccessPath : public BaseAccessPath
 		}
 		static const char *TableName()
 		{
-			return "languageaccesspaths";
+			return "languageaccesspath";
 		}
 };
 class LanguageAccessPathData : public DataSurrogateKey

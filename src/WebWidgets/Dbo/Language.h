@@ -3,6 +3,7 @@
 
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
+#include "Dbo/NavigationMenu.h"
 #include <Wt/WString>
 #include <Wt/Dbo/WtSqlTraits>
 
@@ -45,6 +46,8 @@ class Language : public BaseLanguage
 		SingularStringCollections SingularStringCollection;
 		PluralStringCollections PluralStringCollection;
 
+		NavigationMenuItemCollections ShownOnPageMenuItemCollection;
+
 		template<class Action>void persist(Action &a)
 		{
 			Wt::Dbo::id(a, _Code,				"Code", 2);
@@ -59,10 +62,11 @@ class Language : public BaseLanguage
 			Wt::Dbo::hasMany(a, LanguageAccessPathCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, SingularStringCollection, Wt::Dbo::ManyToOne, "Language");
 			Wt::Dbo::hasMany(a, PluralStringCollection, Wt::Dbo::ManyToOne, "Language");
+			Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "language_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 		}
 		static const char *TableName()
 		{
-			return "languages";
+			return "language";
 		}
 };
 class LanguageData : public BaseLanguage
@@ -85,7 +89,6 @@ class SingularKey
 		ConfigurationCollections ConfTitleCollection;
 		ConfigurationCollections ConfDetailsCollection;
 		ConfigurationCollections ConfExpertWarningCollection;
-		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
 
 		SingularKey() { }
 		SingularKey(const std::string &Key, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
@@ -104,11 +107,10 @@ class SingularKey
 			Wt::Dbo::hasMany(a, ConfTitleCollection, Wt::Dbo::ManyToOne, "TitleKey");
 			Wt::Dbo::hasMany(a, ConfDetailsCollection, Wt::Dbo::ManyToOne, "DetailsKey");
 			Wt::Dbo::hasMany(a, ConfExpertWarningCollection, Wt::Dbo::ManyToOne, "ExpertWarningKey");
-			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnLanguage");
 		}
 		static const char *TableName()
 		{
-			return "languagesingularkeys";
+			return "languagesingularkey";
 		}
 };
 
@@ -147,7 +149,7 @@ class SingularString : public BaseSingularString
 		}
 		static const char *TableName()
 		{
-			return "languagesingularstrings";
+			return "languagesingularstring";
 		}
 };
 class SingularStringData : public BaseSingularString, public DataSurrogateKey
@@ -194,7 +196,7 @@ class PluralKey
 		}
 		static const char *TableName()
 		{
-			return "languagepluralkeys";
+			return "languagepluralkey";
 		}
 };
 
@@ -239,7 +241,7 @@ class PluralString : public BasePluralString
 		}
 		static const char *TableName()
 		{
-			return "languagepluralstrings";
+			return "languagepluralstring";
 		}
 };
 class PluralStringData : public BasePluralString, public DataSurrogateKey

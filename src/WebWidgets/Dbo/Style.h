@@ -4,6 +4,7 @@
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
 #include "Dbo/Author.h"
+#include "Dbo/NavigationMenu.h"
 
 class BaseStyle
 {
@@ -31,7 +32,7 @@ class Style : public BaseStyle
 		StyleTemplateCollections TemplateCollection;
 		StyleSectionCollections SectionCollection;
 		AccessHostNameCollections AccessHostNameCollection;
-		//NavigationMenuItemCollections ShownOnPageMenuItemCollection;
+		NavigationMenuItemCollections ShownOnPageMenuItemCollection;
 
 		Style() { }
 		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
@@ -52,11 +53,11 @@ class Style : public BaseStyle
 			Wt::Dbo::hasMany(a, TemplateCollection, Wt::Dbo::ManyToOne, "Style");
 			Wt::Dbo::hasMany(a, SectionCollection, Wt::Dbo::ManyToOne, "Style");
 			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "Style");
-			//Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnStyle");
+			Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "style_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
 		}
 		static const char *TableName()
 		{
-			return "styles";
+			return "style";
 		}
 };
 
@@ -101,7 +102,7 @@ class StyleSection : public BaseStyleSection
 		}
 		static const char *TableName()
 		{
-			return "stylesections";
+			return "stylesection";
 		}
 };
 class StyleSectionData : public BaseStyleSection, public DataSurrogateKey
@@ -133,7 +134,7 @@ class StyleCssRule : public BaseStyleCssRule
 		}
 		static const char *TableName()
 		{
-			return "stylecssrules";
+			return "stylecssrule";
 		}
 };
 class StyleCssRuleData : public BaseStyleCssRule, public DataSurrogateKey
@@ -184,7 +185,7 @@ class TemplateCssRule : public BaseTemplateCssRule
 		}
 		static const char *TableName()
 		{
-			return "templatecssrules";
+			return "templatecssrule";
 		}
 };
 class TemplateCssRuleData : public BaseTemplateCssRule, public DataSurrogateKey
@@ -240,7 +241,7 @@ class Template : public BaseTemplate
 		}
 		static const char *TableName()
 		{
-			return "templates";
+			return "template";
 		}
 };
 class TemplateData : public BaseTemplate, public DataSurrogateKey
@@ -287,7 +288,7 @@ class StyleTemplate : public BaseStyleTemplate
 		}
 		static const char *TableName()
 		{
-			return "styletemplates";
+			return "styletemplate";
 		}
 };
 class StyleTemplateData : public BaseStyleTemplate, public DataSurrogateKey

@@ -73,7 +73,7 @@ class Configuration
 		}
 		static const char *TableName()
 		{
-			return "configurations";
+			return "configuration";
 		}
 };
 
@@ -114,7 +114,7 @@ class ConfigurationBool : public BaseConfigurationBool
 		}
 		static const char *TableName()
 		{
-			return "configurationbools";
+			return "configurationbool";
 		}
 };
 class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
@@ -151,7 +151,7 @@ class ConfigurationDouble : public BaseConfigurationDouble
 		}
 		static const char *TableName()
 		{
-			return "configurationdoubles";
+			return "configurationdouble";
 		}
 };
 class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
@@ -181,7 +181,7 @@ class ConfigurationEnumValue
 		}
 		static const char *TableName()
 		{
-			return "configurationenumvalues";
+			return "configurationenumvalue";
 		}
 };
 
@@ -210,7 +210,7 @@ class ConfigurationEnum : public BaseConfigurationEnum
 		}
 		static const char *TableName()
 		{
-			return "configurationenums";
+			return "configurationenum";
 		}
 };
 class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
@@ -247,7 +247,7 @@ class ConfigurationFloat : public BaseConfigurationFloat
 		}
 		static const char *TableName()
 		{
-			return "configurationfloats";
+			return "configurationfloat";
 		}
 };
 class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
@@ -284,7 +284,7 @@ class ConfigurationInt : public BaseConfigurationInt
 		}
 		static const char *TableName()
 		{
-			return "configurationints";
+			return "configurationint";
 		}
 };
 class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
@@ -321,7 +321,7 @@ class ConfigurationLongInt : public BaseConfigurationLongInt
 		}
 		static const char *TableName()
 		{
-			return "configurationlongints";
+			return "configurationlongint";
 		}
 };
 class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
@@ -360,7 +360,7 @@ class ConfigurationString : public BaseConfigurationString
 		}
 		static const char *TableName()
 		{
-			return "configurationstrings";
+			return "configurationstring";
 		}
 };
 class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey

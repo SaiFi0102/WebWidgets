@@ -34,7 +34,7 @@ class Author
 		}
 		static const char *TableName()
 		{
-			return "authors";
+			return "author";
 		}
 	private:
 		long long _id;

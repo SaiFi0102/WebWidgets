@@ -58,13 +58,13 @@ void AccessPathsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 		itr != PageAccessPathCollection.end();
 		++itr)
 	{
-		PageAccessPathContainer.insert(std::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
+		pageaccesspathcontainer.insert(std::shared_ptr<PageAccessPathData>(new PageAccessPathData(*itr)));
 	}
 	for(LanguageAccessPathCollections::const_iterator itr = LanguageAccessPathCollection.begin();
 		itr != LanguageAccessPathCollection.end();
 		++itr)
 	{
-		LanguageAccessPathContainer.insert(std::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
+		languageaccesspathcontainer.insert(std::shared_ptr<LanguageAccessPathData>(new LanguageAccessPathData(*itr)));
 	}
 
 	//If global access hostname not found

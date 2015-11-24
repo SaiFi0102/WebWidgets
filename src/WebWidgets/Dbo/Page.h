@@ -3,6 +3,7 @@
 
 #include "Dbo/DboTraits.h"
 #include "Dbo/Module.h"
+#include "Dbo/NavigationMenu.h"
 
 class BasePage
 {
@@ -25,8 +26,7 @@ class Page : public BasePage
 	public:
 		PageAccessPathCollections PageAccessPathCollection;
 		AccessHostNameCollections AccessHostNameCollection;
-		//NavigationMenuItemCollections PageMenuItemCollection;
-		//NavigationMenuItemCollections ShowOnPageMenuItemCollection;
+		MenuItemOnPageCollections MenuItemOnPageCollection;
 
 		Wt::Dbo::ptr<SingularKey> TitleKey;
 
@@ -51,15 +51,14 @@ class Page : public BasePage
 
 			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Page");
 			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "DefaultPage");
-			//Wt::Dbo::hasMany(a, PageMenuItemCollection, Wt::Dbo::ManyToOne, "Page");
-			//Wt::Dbo::hasMany(a, ShowOnPageMenuItemCollection, Wt::Dbo::ManyToOne, "ShowOnPage");
+			Wt::Dbo::hasMany(a, MenuItemOnPageCollection, Wt::Dbo::ManyToOne, "Page");
 
 			Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
 			Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
 		}
 		static const char *TableName()
 		{
-			return "pages";
+			return "page";
 		}
 
 	private:

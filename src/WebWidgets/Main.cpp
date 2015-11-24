@@ -7,8 +7,8 @@ int main(int argc, char **argv)
 	/* *************************************************************************
 	 * *************************  Start Web Server *****************************
 	 * *************************************************************************/
-	try
-	{
+// 	try
+// 	{
 		//Initialize Server
 		WServer Server = WServer(argv[0], "wt_config.xml");
 		Server.Initialize();
@@ -25,15 +25,15 @@ int main(int argc, char **argv)
 			Server.stop();
 			Wt::log("info") << "Shutdown (Signal = " << sig << ")";
 		}
-	}
-	catch(Wt::WServer::Exception &e)
-	{
-		Wt::log("fatal") << "Error starting the server: " << e.what();
-		exit(EXIT_FAILURE);
-	}
-	catch(std::exception &e)
-	{
-		Wt::log("fatal") << "Server exception error: " << e.what();
-		exit(EXIT_FAILURE);
-	}
+// 	}
+// 	catch(Wt::WServer::Exception &e)
+// 	{
+// 		Wt::log("fatal") << "Error starting the server: " << e.what();
+// 		exit(EXIT_FAILURE);
+// 	}
+// 	catch(std::exception &e)
+// 	{
+// 		Wt::log("fatal") << "Server exception error: " << e.what();
+// 		exit(EXIT_FAILURE);
+// 	}
 }

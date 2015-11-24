@@ -3,6 +3,9 @@
 
 #include <Wt/Dbo/Dbo>
 
+struct MenuItemOnPageKey;
+struct MenuItemOnPageAccessPathKey;
+
 class Module;
 class Configuration;
 class ConfigurationBool;
@@ -16,6 +19,8 @@ class ConfigurationEnumValue;
 class Page;
 class NavigationMenu;
 class NavigationMenuItem;
+class MenuItemOnPage;
+class MenuItemOnPageAccessPath;
 class Template;
 class Language;
 class SingularKey;
@@ -46,6 +51,8 @@ typedef Wt::Dbo::collection< Wt::Dbo::ptr<ConfigurationEnumValue> > EnumValueCol
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<Page> > PageCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<NavigationMenu> > NavigationMenuCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<NavigationMenuItem> > NavigationMenuItemCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<MenuItemOnPage> > MenuItemOnPageCollections;
+typedef Wt::Dbo::collection< Wt::Dbo::ptr<MenuItemOnPageAccessPath> > MenuItemOnPageAccessPathCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<Template> > TemplateCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<Language> > LanguageCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<SingularKey> > SingularKeyCollections;
@@ -62,91 +69,127 @@ typedef Wt::Dbo::collection< Wt::Dbo::ptr<TemplateCssRule> > TemplateCssRuleColl
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleTemplate> > StyleTemplateCollections;
 typedef Wt::Dbo::collection< Wt::Dbo::ptr<StyleSection> > StyleSectionCollections;
 
-template<>
-struct Wt::Dbo::dbo_traits<Author> : public Wt::Dbo::dbo_default_traits
+namespace Wt
 {
-	static const char *surrogateIdField() { return 0; }
-};
-template<>
-struct Wt::Dbo::dbo_traits<Module> : public Wt::Dbo::dbo_default_traits
-{
-	static const char *surrogateIdField() { return 0; }
-};
+	namespace Dbo
+	{
+		template<>
+		struct dbo_traits<Author> : public dbo_default_traits
+		{
+			static const char *surrogateIdField() { return 0; }
+		};
+		template<>
+		struct dbo_traits<Module> : public dbo_default_traits
+		{
+			static const char *surrogateIdField() { return 0; }
+		};
 
-//Overloaded dbo_traits for ConfigurationBool DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationBool> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationDouble DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationDouble> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationEnum DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationEnum> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationFloat DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationFloat> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationInt DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationInt> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationLongInt DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationLongInt> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
-//Overloaded dbo_traits for ConfigurationString DBO
-template<>
-struct Wt::Dbo::dbo_traits<ConfigurationString> : public Wt::Dbo::dbo_default_traits
-{
-	typedef Wt::Dbo::ptr<::Configuration> IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
+		//ConfigurationBool
+		template<>
+		struct dbo_traits<ConfigurationBool> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationDouble
+		template<>
+		struct dbo_traits<ConfigurationDouble> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationEnum
+		template<>
+		struct dbo_traits<ConfigurationEnum> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationFloat
+		template<>
+		struct dbo_traits<ConfigurationFloat> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationInt
+		template<>
+		struct dbo_traits<ConfigurationInt> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationLongInt
+		template<>
+		struct dbo_traits<ConfigurationLongInt> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
+		//ConfigurationString
+		template<>
+		struct dbo_traits<ConfigurationString> : public dbo_default_traits
+		{
+			typedef Wt::Dbo::ptr<::Configuration> IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
 
-//Overloaded dbo_traits for Language DBO
-template<>
-struct Wt::Dbo::dbo_traits<Language> : public Wt::Dbo::dbo_default_traits
-{
-	typedef std::string IdType;
-	static IdType invalidId() { return IdType(); }
-	static const char *surrogateIdField() { return 0; }
-};
+		//Language
+		template<>
+		struct dbo_traits<Language> : public dbo_default_traits
+		{
+			typedef std::string IdType;
+			static IdType invalidId() { return IdType(); }
+			static const char *surrogateIdField() { return 0; }
+		};
 
-//Overloaded dbo_traits for AccessHostName DBO
-template<>
-struct Wt::Dbo::dbo_traits<AccessHostName> : public Wt::Dbo::dbo_default_traits
-{
-	typedef std::string IdType;
-	static IdType invalidId() { return "!"; }
-	static const char *surrogateIdField() { return 0; }
-};
+		//AccessHostName
+		template<>
+		struct dbo_traits<AccessHostName> : public dbo_default_traits
+		{
+			typedef std::string IdType;
+			static IdType invalidId() { return "!"; }
+			static const char *surrogateIdField() { return 0; }
+		};
+
+		//MenuItemPage custom ManyToMany
+		template <class Action>
+		void field(Action &action, MenuItemOnPageKey &key, const std::string &, int size = -1)
+		{
+			Wt::Dbo::belongsTo(action, key.MenuItemPtr, "NavigationMenuItem", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(action, key.PagePtr, "Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+		}
+		template<>
+		struct dbo_traits<MenuItemOnPage> : public dbo_default_traits
+		{
+			typedef MenuItemOnPageKey IdType;
+			static IdType invalidId();
+			static const char *surrogateIdField() { return 0; }
+		};
+
+		//MenuItemPageAccessPath custom ManyToMany
+		template <class Action>
+		void field(Action &action, MenuItemOnPageAccessPathKey &key, const std::string &, int size = -1)
+		{
+			Wt::Dbo::belongsTo(action, key.MenuItemPtr, "NavigationMenuItem", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			Wt::Dbo::belongsTo(action, key.AccessPathPtr, "PageAccessPath", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+		}
+		template<>
+		struct dbo_traits<MenuItemOnPageAccessPath> : public dbo_default_traits
+		{
+			typedef MenuItemOnPageAccessPathKey IdType;
+			static IdType invalidId();
+			static const char *surrogateIdField() { return 0; }
+		};
+	}
+}
 
 class DataSurrogateKey
 {
@@ -182,8 +225,10 @@ class DataSurrogateKey
 	DboSession.mapClass<PluralKey>(PluralKey::TableName()); \
 	DboSession.mapClass<PluralString>(PluralString::TableName()); \
 	DboSession.mapClass<Page>(Page::TableName()); \
-/*	DboSession.mapClass<NavigationMenu>(NavigationMenu::TableName()); \
-//	DboSession.mapClass<NavigationMenuItem>(NavigationMenuItem::TableName()); */\
+	DboSession.mapClass<NavigationMenu>(NavigationMenu::TableName()); \
+	DboSession.mapClass<NavigationMenuItem>(NavigationMenuItem::TableName()); \
+	DboSession.mapClass<MenuItemOnPage>(MenuItemOnPage::TableName()); \
+	DboSession.mapClass<MenuItemOnPageAccessPath>(MenuItemOnPageAccessPath::TableName()); \
 	DboSession.mapClass<Template>(Template::TableName()); \
 	DboSession.mapClass<Style>(Style::TableName()); \
 	DboSession.mapClass<StyleSection>(StyleSection::TableName()); \

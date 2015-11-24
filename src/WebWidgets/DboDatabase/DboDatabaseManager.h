@@ -40,6 +40,7 @@ class DboDatabaseManager
 
 	private:
 		friend class ReadLock;
+		friend class WriteLock;
 };
 
 #endif

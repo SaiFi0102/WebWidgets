@@ -7,6 +7,8 @@
 #include "Dbo/Style.h"
 
 class ConfigurationsCache;
+class PagesMenu;
+class PagesStackWidget;
 
 class Application : public Wt::WApplication
 {
@@ -78,8 +80,8 @@ class Application : public Wt::WApplication
 		void SetPage(std::shared_ptr<const PageData> PagePtr);
 
 		Wt::WTemplate *_MainTemplate;
-		Wt::WStackedWidget *_PageStack;
-		Wt::WMenu *_PageMenu;
+		PagesStackWidget *_PageStack;
+		PagesMenu *_PageMenu;
 
 		Wt::WLocale _ClientLocale;
 		Wt::WLocale _SessionDefaultLocale;
@@ -114,9 +116,9 @@ class Application : public Wt::WApplication
 		boost::posix_time::ptime StartTime;
 
 		friend class DboLocalizedStrings;
+		friend class TestPage;
 
-	private:
-		void CreateTestUI();
+	//private:
 };
 
 #endif

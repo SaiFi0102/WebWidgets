@@ -1,8 +1,8 @@
 #include "Dbo/NavigationMenu.h"
-#include "Dbo/Language.h"
 
-NavigationMenuItemData::NavigationMenuItemData(Wt::Dbo::ptr<NavigationMenuItem> Ptr)
-	: MenuId(Ptr->MenuPtr.id()),
+NavigationMenuItemData::NavigationMenuItemData(const Wt::Dbo::ptr<NavigationMenuItem> &Ptr)
+	: Id(Ptr.id()),
+	MenuId(Ptr->MenuPtr.id()),
 	Order(Ptr->Order),
 	LabelKey(Ptr->LabelKey->Key()),
 	LabelModuleId(Ptr->LabelKey->ModulePtr().id()),
@@ -10,10 +10,26 @@ NavigationMenuItemData::NavigationMenuItemData(Wt::Dbo::ptr<NavigationMenuItem> 
 	WildcardData(Ptr->WildcardData),
 	ParentItemId(Ptr->ParentItem.id()),
 	Target(Ptr->Target),
-	ShowOnPageId(Ptr->ShowOnPage.id()),
-	ShowOnChildrenPages(Ptr->ShowOnChildrenPages),
-	ShowOnAccessPathId(Ptr->ShowOnAccessPath.id()),
-	ShowOnAccessHostName(Ptr->ShowOnAccessHost.id()),
-	ShowOnLanguageCode(Ptr->ShowOnLanguage.id()),
-	ShowOnStyleId(Ptr->ShowOnStyle.id())
+	Preload(Ptr->Preload),
+	BlacklistBits(Ptr->BlacklistBits)
 { }
+
+Wt::Dbo::dbo_traits<MenuItemOnPage>::IdType Wt::Dbo::dbo_traits<MenuItemOnPage>::invalidId()
+{
+	return IdType();
+}
+
+Wt::Dbo::dbo_traits<MenuItemOnPageAccessPath>::IdType Wt::Dbo::dbo_traits<MenuItemOnPageAccessPath>::invalidId()
+{
+	return IdType();
+}
+
+std::ostream & operator<<(std::ostream &o, const MenuItemOnPageKey &c)
+{
+	return o << "(" << c.MenuItemPtr << ", " << c.PagePtr << ")";
+}
+
+std::ostream & operator<<(std::ostream &o, const MenuItemOnPageAccessPathKey &c)
+{
+	return o << "(" << c.MenuItemPtr << ", " << c.AccessPathPtr << ")";
+}

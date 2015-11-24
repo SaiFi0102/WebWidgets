@@ -53,7 +53,7 @@ class Module : public BaseModule
 		}
 		static const char *TableName()
 		{
-			return "modules";
+			return "module";
 		}
 };
 

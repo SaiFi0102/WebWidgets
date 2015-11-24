@@ -7,11 +7,11 @@ PageAccessPathData::PageAccessPathData(Wt::Dbo::ptr<PageAccessPath> Ptr)
 	PageId(Ptr->PagePtr.id()),
 	ParentAccessPathId(Ptr->ParentAccessPathPtr().id())
 {
-	FullPath = "/" + InternalPath;
+	FullPath = InternalPath;
 	Wt::Dbo::ptr<PageAccessPath> ParentAccessPathPtr = Ptr->ParentAccessPathPtr();
 	while(ParentAccessPathPtr)
 	{
-		FullPath.insert(0, "/" + ParentAccessPathPtr->InternalPath());
+		FullPath.insert(0, ParentAccessPathPtr->InternalPath() + "/");
 		ParentAccessPathPtr = ParentAccessPathPtr->ParentAccessPathPtr();
 	}
 }

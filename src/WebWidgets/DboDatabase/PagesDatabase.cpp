@@ -8,6 +8,14 @@ PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
 	: AbstractDboDatabase(Manager)
 { }
 
+PagesDatabase::~PagesDatabase()
+{
+	for(const auto &page : PageContainer)
+	{
+		delete page.PageHandler;
+	}
+}
+
 void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
 {
 	//Time at start
@@ -109,6 +117,36 @@ std::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &Ho
 		return GetPtr(AccessHostNamePtr->DefaultPageId);
 	}
 	return std::shared_ptr<const PageData>();
+}
+
+void PagesDatabase::RegisterPageHandler(long long PageId, AbstractPage *handler)
+{
+	WriteLock lock(Manager());
+	PageById::iterator itr = PageContainer.get<ById>().find(PageId);
+	if(itr == PageContainer.get<ById>().end())
+		return;
+
+	if(itr->PageHandler)
+		return;
+
+	PageContainer.get<ById>().modify(itr, [handler](MetaPage &page) {
+		page.PageHandler = handler;
+	});
+}
+
+void PagesDatabase::RegisterPageHandler(const std::string &PageName, long long ModuleId, AbstractPage *handler)
+{
+	WriteLock lock(Manager());
+	PageByKey::iterator itr = PageContainer.get<ByKey>().find(boost::make_tuple(PageName, ModuleId));
+	if(itr == PageContainer.get<ByKey>().end())
+		return;
+
+	if(itr->PageHandler)
+		return;
+
+	PageContainer.get<ByKey>().modify(itr, [handler](MetaPage &page) {
+		page.PageHandler = handler;
+	});
 }
 
 std::size_t PagesDatabase::CountPages() const

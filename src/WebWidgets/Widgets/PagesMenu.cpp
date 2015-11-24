@@ -1,38 +1,84 @@
-// #include "Widgets/PagesMenu.h"
-// #include "Application/Application.h"
-// #include "Application/WServer.h"
-// #include "DboDatabase/AccessPathsDatabase.h"
-// 
-// PagesMenu::PagesMenu(Wt::WStackedWidget *contentsStack, Wt::WContainerWidget *parent)
-// : Wt::WMenu(contentsStack, parent)
-// {
-// 	Application *app = Application::instance();
-// 	if(!app)
-// 	{
-// 		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
-// 	}
-// 
-// 	app->PageChanged().connect(std::bind(&PagesMenu::PageChanged, this));
-// }
-// 
-// void PagesMenu::PageChanged()
-// {
-// 	Application *app = Application::instance();
-// 	if(!app)
-// 	{
-// 		return;
-// 	}
-// 
-// 	app->CurrentPage();
-// }
-// 
+#include "Widgets/PagesMenu.h"
+#include "Application/Application.h"
+#include "Application/WServer.h"
+#include "DboDatabase/AccessPathsDatabase.h"
+#include "DboDatabase/NavigationMenusDatabase.h"
+#include <WebUtils.h>
+
+PagesMenu::PagesMenu(long long MenuId, Wt::WStackedWidget *contentsStack, Wt::WContainerWidget *parent)
+: Wt::WMenu(contentsStack, parent), _MenuId(MenuId)
+{
+	WServer *Server = WServer::instance();
+	if(!Server)
+		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
+
+	Server->NavigationMenus()->PopulateMenuItems(this);
+}
+
+PagesMenu::PagesMenu(long long MenuId, Wt::WContainerWidget *parent)
+: Wt::WMenu(parent), _MenuId(MenuId)
+{
+	WServer *Server = WServer::instance();
+	if(!Server)
+		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
+
+	Server->NavigationMenus()->PopulateMenuItems(this);
+}
+
+PagesMenu::PagesMenu(long long MenuId, bool doNotLoad)
+: _MenuId(MenuId)
+{
+	WServer *Server = WServer::instance();
+	if(!Server)
+		throw std::runtime_error("PagesMenu constructed outside of Wt loop");
+
+	if(!doNotLoad)
+		Server->NavigationMenus()->PopulateMenuItems(this);
+}
+
+void PagesMenu::HandleReservedInternalPathChanged()
+{
+	Application *app = Application::instance();
+	if(!app)
+		return;
+
+	setInternalBasePath(app->ReservedInternalPath() + _BasePathAfterReserved);
+}
+
+void PagesMenu::setInternalPathEnabled(const std::string& basePath /*= ""*/)
+{
+	Application *app = Application::instance();
+	if(!app)
+		return;
+
+	_BasePathAfterReserved = Wt::Utils::append(basePath, '/');
+	if(_BasePathAfterReserved[0] == '/')
+		_BasePathAfterReserved.erase(0);
+
+	if(!internalPathEnabled())
+		app->reservedInternalPathChanged().connect(std::bind(&PagesMenu::HandleReservedInternalPathChanged, this));
+
+	Wt::WMenu::setInternalPathEnabled(app->ReservedInternalPath() + _BasePathAfterReserved);
+}
+
+PagesMenuItem::PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemPtr)
+: Wt::WMenuItem(Wt::WString::tr(ItemPtr->LabelKey, ItemPtr->LabelModuleId), 0, ItemPtr->Preload ? Wt::WMenuItem::PreLoading : Wt::WMenuItem::LazyLoading),
+	ItemPtr(ItemPtr)
+{
+	WServer *Server = WServer::instance();
+	if(ItemPtr->AccessPathId != -1)
+	{
+		std::shared_ptr<const PageAccessPathData> AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
+		if(AccessPathPtr)
+			setPathComponent(AccessPathPtr->FullPath);
+	}
+}
+
 // void PagesMenu::select(int index, bool changePath)
 // {
 // 	Application *app = Application::instance();
 // 	if(!app)
-// 	{
 // 		return;
-// 	}
 // 
 // 	int last = currentIndex();
 // 	setCurrent(index);
@@ -111,20 +157,6 @@
 // 				else
 // 					select(-1);
 // 			}
-// 		}
-// 	}
-// }
-// 
-// PagesMenuItem::PagesMenuItem(std::shared_ptr<const NavigationMenuItemData> ItemPtr, Wt::WMenuItem::LoadPolicy policy)
-// : Wt::WMenuItem(Wt::WString::tr(ItemPtr->LabelKey, ItemPtr->LabelModuleId), 0, policy), ItemPtr(ItemPtr)
-// {
-// 	WServer *Server = WServer::instance();
-// 	if(ItemPtr->AccessPathId != -1)
-// 	{
-// 		std::shared_ptr<const PageAccessPathData> AccessPathPtr = Server->AccessPaths()->PageAccessPathPtr(ItemPtr->AccessPathId);
-// 		if(AccessPathPtr)
-// 		{
-// 			setPathComponent(AccessPathPtr->FullPath);
 // 		}
 // 	}
 // }
