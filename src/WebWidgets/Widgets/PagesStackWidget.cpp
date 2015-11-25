@@ -23,9 +23,47 @@ void PagesStackWidget::HandlePageChanged()
 		return;
 
 	auto PagePtr = app->CurrentPage();
-	if(!PagePtr)
-		return; //404
 
+	//404 page not found
+	if(!PagePtr)
+	{
+		AbstractPage *Page404Handler;
+		auto ValidParentPagePtr = app->ValidParentPage();
+		long long PageId = -1;
+
+		if(ValidParentPagePtr)
+		{
+			Page404Handler = server->Pages()->GetPage(ValidParentPagePtr->id());
+			if(Page404Handler && Page404Handler->Get404Page())
+			{
+				Page404Handler = Page404Handler->Get404Page();
+				PageId = ValidParentPagePtr->id();
+			}
+			else
+				Page404Handler = server->Pages()->Get404Page();
+		}
+		else
+			Page404Handler = server->Pages()->Get404Page();
+
+		//Lazy load 404 page content
+		if(Page404Handler)
+		{
+			auto itr = index404Map.find(PageId);
+			if(itr == index404Map.end())
+			{
+				Wt::WWidget *content = Page404Handler->CreateContent();
+				addWidget(content);
+				itr = index404Map.insert(std::make_pair(PageId, indexOf(content))).first;
+			}
+			setCurrentIndex(itr->second);
+		}
+		else
+			setCurrentIndex(-1);
+
+		return;
+	}
+
+	//Page found, lazy load page content
 	auto itr = indexMap.find(PagePtr->id());
 	if(itr == indexMap.end())
 	{

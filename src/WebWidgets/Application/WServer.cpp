@@ -157,7 +157,9 @@ void WServer::Initialize()
 	//Server localized strings
 	setLocalizedStrings(new DboLocalizedStrings(this));
 
+	Pages()->Register404PageHandler(new Default404Page());
 	Pages()->RegisterPageHandler("home", ModulesDatabase::Navigation, new TestPage());
+	Pages()->RegisterPageHandler("sitemap", ModulesDatabase::Navigation, new AnotherPage());
 
 	/* *************************************************************************
 	 * *********************  Create temporary XML file  ***********************

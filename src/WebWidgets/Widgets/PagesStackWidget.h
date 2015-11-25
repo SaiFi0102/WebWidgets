@@ -12,6 +12,7 @@ class PagesStackWidget : public Wt::WStackedWidget
 	private:
 		typedef std::unordered_map<long long, int> PageIdIndexMap;
 		PageIdIndexMap indexMap;
+		PageIdIndexMap index404Map;
 
 		void HandlePageChanged();
 };

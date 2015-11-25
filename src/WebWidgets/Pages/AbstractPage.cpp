@@ -1,4 +1,6 @@
 #include "Pages/AbstractPage.h"
+#include <Wt/WText>
+#include <Wt/WContainerWidget>
 
 void PageSections::Add(Wt::WWidget *Widget, StyleSection::HorizontalOrientation HO, StyleSection::VerticalOrientation VO)
 {
@@ -15,4 +17,11 @@ bool PageSections::Remove(Wt::WWidget *Widget, StyleSection::HorizontalOrientati
 		return _SectionMap.erase(std::make_pair(HO, VO)) != 0;
 	}
 	return false;
+}
+
+Wt::WWidget *Default404Page::CreateContent()
+{
+	Wt::WContainerWidget *widget = new Wt::WContainerWidget();
+	new Wt::WText("!!!404!!!", widget);
+	return widget;
 }

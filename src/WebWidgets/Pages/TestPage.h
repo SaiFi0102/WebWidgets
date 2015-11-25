@@ -13,6 +13,27 @@
 #include <Wt/WAnchor>
 #include <Wt/WPushButton>
 #include <Wt/WTemplate>
+class Another404Page : public AbstractPage
+{
+	virtual Wt::WWidget *CreateContent()
+	{
+		return new Wt::WText("!!!NNNNNNNNNNNNNNNNOLA!!!");
+	}
+};
+
+class AnotherPage : public AbstractPage
+{
+public:
+	AnotherPage()
+	{
+		Set404Page(new Another404Page());
+	}
+protected:
+	virtual Wt::WWidget *CreateContent()
+	{
+		return new Wt::WText("OLA!!!");
+	}
+};
 
 class TestPage : public AbstractPage
 {

@@ -300,10 +300,11 @@ void Application::SetStyle(std::shared_ptr<const StyleData> StylePtr)
 	_StyleChanged.emit();
 }
 
-void Application::SetPage(std::shared_ptr<const PageData> PagePtr)
+void Application::SetPage(std::shared_ptr<const PageData> PagePtr, std::shared_ptr<const PageData> ValidParentPagePtr)
 {
 	WServer *Server = WServer::instance();
 	_CurrentPagePtr = PagePtr;
+	_ValidParentPagePtr = ValidParentPagePtr;
 
 	AbstractPage *PageHandler = Server->Pages()->GetPage(_CurrentPagePtr ? _CurrentPagePtr->id() : -1);
 	if(!_CurrentPagePtr || !PageHandler)
@@ -829,13 +830,13 @@ void Application::InterpretPageInternalPath()
 		}
 		if(!PageAccessPathPtr)
 		{
-			PageAccessPathPtr = 0;
+			PageAccessPathPtr = nullptr;
 			break;
 		}
 	}
 	_PageAccessPathPtr = PageAccessPathPtr;
 
-	std::shared_ptr<const PageData> PagePtr;
+	std::shared_ptr<const PageData> PagePtr, ValidParentPagePtr;
 	if(PageAccessPathPtr)
 	{
 		PagePtr = Server->Pages()->GetPtr(PageAccessPathPtr->PageId);
@@ -845,16 +846,22 @@ void Application::InterpretPageInternalPath()
 		PagePtr = _HomePagePtr;
 	}
 
+	//ParentAccessPathPtr points to the last valid parent page access path ptr
+	if(ParentAccessPathPtr)
+	{
+		ValidParentPagePtr = Server->Pages()->GetPtr(ParentAccessPathPtr->PageId);
+	}
+
 	if(PagePtr)
 	{
 		if(!_CurrentPagePtr || PagePtr->id() != _CurrentPagePtr->id())
 		{
-			SetPage(PagePtr);
+			SetPage(PagePtr, ValidParentPagePtr);
 		}
 	}
 	else
 	{
-		SetPage(0);
+		SetPage(nullptr, ValidParentPagePtr);
 	}
 }
 

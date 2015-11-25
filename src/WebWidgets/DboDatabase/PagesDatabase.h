@@ -81,10 +81,12 @@ class PagesDatabase : public AbstractDboDatabase
 		std::shared_ptr<const PageData> GetPtr(const std::string &PageName, long long ModuleId) const;
 		AbstractPage *GetPage(long long PageId) const;
 		AbstractPage *GetPage(const std::string &PageName, long long ModuleId) const;
+		AbstractPage *Get404Page() const;
 		std::shared_ptr<const PageData> HomePagePtr(const std::string &HostName) const;
 
 		void RegisterPageHandler(long long PageId, AbstractPage *handler);
 		void RegisterPageHandler(const std::string &PageName, long long ModuleId, AbstractPage *handler);
+		void Register404PageHandler(AbstractPage *handler);
 
 		std::size_t CountPages() const;
 		long long GetLoadDurationinMS() const;
@@ -99,6 +101,7 @@ class PagesDatabase : public AbstractDboDatabase
 		virtual bool IsVital() const { return true; }
 
 		PageContainers PageContainer;
+		AbstractPage *Page404Handler;
 		boost::posix_time::time_duration LoadDuration;
 };
 

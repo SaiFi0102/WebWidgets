@@ -5,7 +5,7 @@
 #include "Pages/AbstractPage.h"
 
 PagesDatabase::PagesDatabase(DboDatabaseManager *Manager)
-	: AbstractDboDatabase(Manager)
+: AbstractDboDatabase(Manager), Page404Handler(0)
 { }
 
 PagesDatabase::~PagesDatabase()
@@ -14,6 +14,7 @@ PagesDatabase::~PagesDatabase()
 	{
 		delete page.PageHandler;
 	}
+	delete Page404Handler;
 }
 
 void PagesDatabase::FetchAll(Wt::Dbo::Session &DboSession)
@@ -108,6 +109,12 @@ AbstractPage *PagesDatabase::GetPage(const std::string &PageName, long long Modu
 	return itr->PageHandler;
 }
 
+AbstractPage * PagesDatabase::Get404Page() const
+{
+	ReadLock lock(Manager());
+	return Page404Handler;
+}
+
 std::shared_ptr<const PageData> PagesDatabase::HomePagePtr(const std::string &HostName) const
 {
 	ReadLock lock(Manager());
@@ -147,6 +154,18 @@ void PagesDatabase::RegisterPageHandler(const std::string &PageName, long long M
 	PageContainer.get<ByKey>().modify(itr, [handler](MetaPage &page) {
 		page.PageHandler = handler;
 	});
+}
+
+void PagesDatabase::Register404PageHandler(AbstractPage *handler)
+{
+	if(!handler)
+		return;
+
+	WriteLock lock(Manager());
+	if(Page404Handler)
+		delete Page404Handler;
+
+	Page404Handler = handler;
 }
 
 std::size_t PagesDatabase::CountPages() const

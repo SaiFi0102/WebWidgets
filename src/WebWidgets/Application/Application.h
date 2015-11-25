@@ -49,6 +49,7 @@ class Application : public Wt::WApplication
 
 		//Paging
 		std::shared_ptr<const PageData> CurrentPage() const { return _CurrentPagePtr; }
+		std::shared_ptr<const PageData> ValidParentPage() const { return _ValidParentPagePtr; }
 		std::shared_ptr<const PageAccessPathData> CurrentPageAccessPath() const { return _PageAccessPathPtr; }
 		Wt::Signal<void> &PageChanged() { return _PageChanged; }
 
@@ -77,7 +78,7 @@ class Application : public Wt::WApplication
 		void UseTemplateStyleSheet(std::shared_ptr<const TemplateData> TemplatePtr);
 
 		//Paging
-		void SetPage(std::shared_ptr<const PageData> PagePtr);
+		void SetPage(std::shared_ptr<const PageData> PagePtr, std::shared_ptr<const PageData> ValidParentPagePtr);
 
 		Wt::WTemplate *_MainTemplate;
 		PagesStackWidget *_PageStack;
@@ -108,6 +109,7 @@ class Application : public Wt::WApplication
 		TemplateStyleSheetMap _TemplateStyleSheets;
 
 		std::shared_ptr<const PageData> _CurrentPagePtr;
+		std::shared_ptr<const PageData> _ValidParentPagePtr;
 		std::shared_ptr<const PageAccessPathData> _PageAccessPathPtr;
 		Wt::Signal<void> _PageChanged;
 
