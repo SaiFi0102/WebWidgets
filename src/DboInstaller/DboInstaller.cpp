@@ -24,6 +24,23 @@ void DboInstaller::mapClasses()
  	MAP_USER_DBO_TREE(dboSession)
 }
 
+Dbo::ptr<Dbo::SingularKey> DboInstaller::addSingularKeyString(Dbo::ptr<Dbo::Language> languagePtr, const std::string &key, Dbo::ptr<Dbo::Module> keyModulePtr, const std::string &string, bool isEmail /*= false*/)
+{
+	auto fitr = _languageKeyToPtrMap.find(std::make_pair(key, keyModulePtr));
+
+	Dbo::ptr<Dbo::SingularKey> keyPtr;
+	if(fitr == _languageKeyToPtrMap.end())
+	{
+		keyPtr = dboSession.add(new Dbo::SingularKey(key, keyModulePtr));
+		_languageKeyToPtrMap[std::make_pair(key, keyModulePtr)] = keyPtr;
+	}
+	else
+		keyPtr = fitr->second;
+
+	dboSession.add(new Dbo::SingularString(keyPtr, string, languagePtr, isEmail));
+	return keyPtr;
+}
+
 void DboInstaller::createTables()
 {
 	Wt::Dbo::Transaction transaction(dboSession);
@@ -198,15 +215,8 @@ void DboInstaller::insertTestData()
 	testStyleTpl->templateStr = "styletpl(Test style)";
 	dboSession.add(testStyleTpl);
 
-	auto defaultStyleCssRule = new Dbo::StyleCssRule(O.DefaultStyle);
-	defaultStyleCssRule->selector = "body";
-	defaultStyleCssRule->declarations = "background:#ffffff;color:#000000;";
-	dboSession.add(defaultStyleCssRule);
-
-	auto testStyleCssRule = new Dbo::StyleCssRule(testStylePtr);
-	testStyleCssRule->selector = "body";
-	testStyleCssRule->declarations = "background:#000000;color:#ffffff;";
-	dboSession.add(testStyleCssRule);
+	dboSession.add(new Dbo::StyleCssRule(O.DefaultStyle, "body", "background:#ffffff;color:#000000;"));
+	dboSession.add(new Dbo::StyleCssRule(testStylePtr, "body", "background:#000000;color:#ffffff;"));
 
 	O.FrenchLanguage.modify()->installed = true;
 	auto frenchAccessPath = new Dbo::LanguageAccessPath(O.GlobalAccessHost, "fr");

@@ -64,22 +64,7 @@ namespace WW
 		protected:
 			void mapClasses();
 
-			Dbo::ptr<Dbo::SingularKey> addSingularKeyString(Dbo::ptr<Dbo::Language> languagePtr, const std::string &key, Dbo::ptr<Dbo::Module> keyModulePtr, const std::string &string, bool isEmail = false)
-			{
-				auto fitr = _languageKeyToPtrMap.find(std::make_pair(key, keyModulePtr));
-
-				Dbo::ptr<Dbo::SingularKey> keyPtr;
-				if (fitr == _languageKeyToPtrMap.end())
-				{
-					keyPtr = dboSession.add(new Dbo::SingularKey(key, keyModulePtr));
-					_languageKeyToPtrMap[std::make_pair(key, keyModulePtr)] = keyPtr;
-				}
-				else
-					keyPtr = fitr->second;
-
-				dboSession.add(new Dbo::SingularString(keyPtr, string, languagePtr, isEmail));
-				return keyPtr;
-			}
+			Dbo::ptr<Dbo::SingularKey> addSingularKeyString(Dbo::ptr<Dbo::Language> languagePtr, const std::string &key, Dbo::ptr<Dbo::Module> keyModulePtr, const std::string &string, bool isEmail = false);
 
 			void insertAuthorModules();
 			void insertConfigurations();

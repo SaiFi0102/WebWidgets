@@ -109,18 +109,27 @@ namespace WW
 // 				}
 // 		};
 
-		class BaseStyleCssRule
+		class BaseCssRule
 		{
 		public:
+			BaseCssRule() = default;
+			BaseCssRule(const std::string &selector, const std::string &declarations)
+				: selector(selector), declarations(declarations)
+			{ }
+
 			std::string selector;
 			std::string declarations;
 		};
-		class StyleCssRule : public BaseStyleCssRule
+
+		class StyleCssRule : public BaseCssRule
 		{
 		public:
 			StyleCssRule() = default;
 			StyleCssRule(ptr<Style> stylePtr)
 				: stylePtr(stylePtr)
+			{ }
+			StyleCssRule(ptr<Style> stylePtr, const std::string &selector, const std::string &declarations)
+				: stylePtr(stylePtr), BaseCssRule(selector, declarations)
 			{ }
 
 			ptr<Style> stylePtr;
@@ -137,15 +146,17 @@ namespace WW
 			}
 		};
 
-		class BaseTemplateCssRule
+		class TemplateCssRule : public BaseCssRule
 		{
 		public:
-			std::string selector;
-			std::string declarations;
-		};
-		class TemplateCssRule : public BaseTemplateCssRule
-		{
-		public:
+			TemplateCssRule() = default;
+			TemplateCssRule(ptr<Template> templatePtr)
+				: templatePtr(templatePtr)
+			{ }
+			TemplateCssRule(ptr<Template> templatePtr, const std::string &selector, const std::string &declarations)
+				: templatePtr(templatePtr), BaseCssRule(selector, declarations)
+			{ }
+
 			ptr<Template> templatePtr;
 
 			template<class Action>void persist(Action &a)
@@ -245,13 +256,13 @@ namespace WW
 	namespace Ddo
 	{
 
-		class StyleCssRule : public Dbo::BaseStyleCssRule, public SurrogateKey
+		class StyleCssRule : public Dbo::BaseCssRule, public SurrogateKey
 		{
 		public:
 			long long styleId;
 
 			StyleCssRule(Dbo::ptr<Dbo::StyleCssRule> ptr)
-				: SurrogateKey(ptr.id()), Dbo::BaseStyleCssRule(*ptr), styleId(ptr->stylePtr.id())
+				: SurrogateKey(ptr.id()), Dbo::BaseCssRule(*ptr), styleId(ptr->stylePtr.id())
 			{ }
 		};
 
@@ -274,13 +285,13 @@ namespace WW
 			long long authorId() const { return _authorId; }
 		};
 
-		class TemplateCssRule : public Dbo::BaseTemplateCssRule, public SurrogateKey
+		class TemplateCssRule : public Dbo::BaseCssRule, public SurrogateKey
 		{
 		public:
 			long long templateId;
 
 			TemplateCssRule(Dbo::ptr<Dbo::TemplateCssRule> ptr)
-				: SurrogateKey(ptr.id()), Dbo::BaseTemplateCssRule(*ptr), templateId(ptr->templatePtr.id())
+				: SurrogateKey(ptr.id()), Dbo::BaseCssRule(*ptr), templateId(ptr->templatePtr.id())
 			{ }
 		};
 
