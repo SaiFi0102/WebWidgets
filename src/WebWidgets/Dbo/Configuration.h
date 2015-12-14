@@ -1,374 +1,438 @@
-#ifndef CONFIGURATION_DBO_H
-#define CONFIGURATION_DBO_H
+#ifndef WW_DBO_CONFIGURATION_H
+#define WW_DBO_CONFIGURATION_H
 
 #include <ostream>
-#include "DboTraits.h"
-#include "Dbo/Module.h"
+#include "ModuleTreeDbos.h"
 
-//Configuration DBO class
-class Configuration
+namespace WW
 {
-	public:
-		enum ValueTypes
+	namespace Dbo
+	{
+
+		//Configuration DBO class
+		class Configuration
 		{
-			Bool	= 0,
-			Double	= 1,
-			Enum	= 2,
-			Float	= 3,
-			Int		= 4,
-			LongInt	= 5,
-			String	= 6,
+		public:
+			enum ValueTypes
+			{
+				Bool = 0,
+				Double = 1,
+				Enum = 2,
+				Float = 3,
+				Int = 4,
+				LongInt = 5,
+				String = 6,
+			};
+
+		protected:
+			ptr<Module> _modulePtr;
+			std::string _name;
+			ValueTypes _type = Bool;
+
+		public:
+			ptr<SingularKey> titleKey;
+			ptr<SingularKey> detailsKey;
+			ptr<SingularKey> expertWarningKey;
+			bool restartRequired = false;
+
+			//hasOne relations
+			Wt::Dbo::weak_ptr<ConfigurationBool>	boolPtr;
+			Wt::Dbo::weak_ptr<ConfigurationDouble>	doublePtr;
+			Wt::Dbo::weak_ptr<ConfigurationEnum>	enumPtr;
+			Wt::Dbo::weak_ptr<ConfigurationFloat>	floatPtr;
+			Wt::Dbo::weak_ptr<ConfigurationInt>		intPtr;
+			Wt::Dbo::weak_ptr<ConfigurationLongInt>	longIntPtr;
+			Wt::Dbo::weak_ptr<ConfigurationString>	stringPtr;
+
+			Configuration() = default;
+			Configuration(const std::string &name, ptr<Module> modulePtr, ValueTypes type)
+				: _name(name), _type(type), _modulePtr(modulePtr)
+			{ }
+
+			ptr<Module> modulePtr() const { return _modulePtr; };
+			std::string name() const { return _name; };
+			ValueTypes type() const { return _type; };
+
+			//Persistence Method
+			template<class Action>
+			void persist(Action &a)
+			{
+				Wt::Dbo::field(a, _name, "name", 50);
+				Wt::Dbo::belongsTo(a, _modulePtr, "module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, _type, "type");
+				Wt::Dbo::belongsTo(a, titleKey, "titleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::belongsTo(a, detailsKey, "detailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::belongsTo(a, expertWarningKey, "expertWarningKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::field(a, restartRequired, "restartRequired");
+
+				Wt::Dbo::hasOne(a, boolPtr, "configuration");
+				Wt::Dbo::hasOne(a, doublePtr, "configuration");
+				Wt::Dbo::hasOne(a, enumPtr, "configuration");
+				Wt::Dbo::hasOne(a, floatPtr, "configuration");
+				Wt::Dbo::hasOne(a, intPtr, "configuration");
+				Wt::Dbo::hasOne(a, longIntPtr, "configuration");
+				Wt::Dbo::hasOne(a, stringPtr, "configuration");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configuration";
+			}
 		};
 
-	protected:
-		Wt::Dbo::ptr<Module> _ModulePtr;
-		std::string _Name;
-		ValueTypes _Type;
-		
-	public:
-		Wt::Dbo::ptr<SingularKey> TitleKey;
-		Wt::Dbo::ptr<SingularKey> DetailsKey;
-		Wt::Dbo::ptr<SingularKey> ExpertWarningKey;
-		bool RestartRequired;
-
-		//hasOne relations
-		Wt::Dbo::weak_ptr<ConfigurationBool>	BoolPtr;
-		Wt::Dbo::weak_ptr<ConfigurationDouble>	DoublePtr;
-		Wt::Dbo::weak_ptr<ConfigurationEnum>	EnumPtr;
-		Wt::Dbo::weak_ptr<ConfigurationFloat>	FloatPtr;
-		Wt::Dbo::weak_ptr<ConfigurationInt>		IntPtr;
-		Wt::Dbo::weak_ptr<ConfigurationLongInt>	LongIntPtr;
-		Wt::Dbo::weak_ptr<ConfigurationString>	StringPtr;
-
-		Configuration()
-			: _Type(Bool)
-		{ }
-		Configuration(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr, ValueTypes Type)
-			: _Name(Name), _Type(Type), _ModulePtr(ModulePtr)
-		{ }
-
-		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
-		std::string Name() const { return _Name; };
-		ValueTypes Type() const { return _Type; };
-
-		//Persistence Method
-		template<class Action>
-		void persist(Action &a)
+		//ConfigurationBool DBO Class
+		class BaseConfigurationBool
 		{
-			Wt::Dbo::field(a, _Name, "Name", 50);
-			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, _Type, "Type");
-			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::belongsTo(a, ExpertWarningKey, "ExpertWarningKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::field(a, RestartRequired, "RestartRequired");
-
-			Wt::Dbo::hasOne(a, BoolPtr, "Configuration");
-			Wt::Dbo::hasOne(a, DoublePtr, "Configuration");
-			Wt::Dbo::hasOne(a, EnumPtr, "Configuration");
-			Wt::Dbo::hasOne(a, FloatPtr, "Configuration");
-			Wt::Dbo::hasOne(a, IntPtr, "Configuration");
-			Wt::Dbo::hasOne(a, LongIntPtr, "Configuration");
-			Wt::Dbo::hasOne(a, StringPtr, "Configuration");
-		}
-		static const char *TableName()
+		public:
+			bool value = false;
+			bool defaultValue = false;
+			boost::optional<bool> recommendedValue;
+		};
+		class ConfigurationBool : public BaseConfigurationBool
 		{
-			return "configuration";
-		}
-};
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
 
-class ConfigurationDataKey
-{
-	protected:
-		std::string _Name;
-		long long _ModuleId;
+		public:
+			ConfigurationBool() = default;
+			ConfigurationBool(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
 
-		ConfigurationDataKey(const std::string &Name, long long ModuleId)
-			: _Name(Name), _ModuleId(ModuleId)
-		{}
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationbool";
+			}
+		};
 
-	public:
-		std::string Name() const { return _Name; };
-		long long ModuleId() const { return _ModuleId; };
-};
-
-//ConfigurationBool DBO Class
-class BaseConfigurationBool
-{
-	public:
-		bool Value;
-		bool DefaultValue;
-		boost::optional<bool> RecommendedValue;
-};
-class ConfigurationBool : public BaseConfigurationBool
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
-
-		template<class Action>void persist(Action &a)
+		//ConfigurationDouble DBO Class
+		class BaseConfigurationDouble
 		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
-		}
-		static const char *TableName()
+		public:
+			double value = -1;
+			double defaultValue = -1;
+			boost::optional<double> recommendedValue;
+			boost::optional<double> minValue;
+			boost::optional<double> maxValue;
+		};
+		class ConfigurationDouble : public BaseConfigurationDouble
 		{
-			return "configurationbool";
-		}
-};
-class ConfigurationBoolData : public BaseConfigurationBool, public ConfigurationDataKey
-{
-	public:
-		ConfigurationBoolData(Wt::Dbo::ptr<ConfigurationBool> Ptr)
-			: BaseConfigurationBool(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
 
-//ConfigurationDouble DBO Class
-class BaseConfigurationDouble
-{
-	public:
-		double Value;
-		double DefaultValue;
-		boost::optional<double> RecommendedValue;
-		boost::optional<double> MinValue;
-		boost::optional<double> MaxValue;
-};
-class ConfigurationDouble : public BaseConfigurationDouble
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
+		public:
+			ConfigurationDouble() = default;
+			ConfigurationDouble(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
 
-		template<class Action>void persist(Action &a)
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+				Wt::Dbo::field(a, minValue, "minValue");
+				Wt::Dbo::field(a, maxValue, "maxValue");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationdouble";
+			}
+		};
+
+		class ConfigurationEnumValue
 		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue,	"RecommendedValue");
-			Wt::Dbo::field(a, MinValue,			"MinValue");
-			Wt::Dbo::field(a, MaxValue,			"MaxValue");
-		}
-		static const char *TableName()
-		{
-			return "configurationdouble";
-		}
-};
-class ConfigurationDoubleData : public BaseConfigurationDouble, public ConfigurationDataKey
-{
-	public:
-		ConfigurationDoubleData(Wt::Dbo::ptr<ConfigurationDouble> Ptr)
-			: BaseConfigurationDouble(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+		public:
+			ptr<SingularKey> titleKey;
+			ptr<SingularKey> detailsKey;
+			ptr<ConfigurationEnum> enumPtr; //belongsTo
+			int value = -1;
 
-class ConfigurationEnumValue
-{
-	public:
-		Wt::Dbo::ptr<SingularKey> TitleKey;
-		Wt::Dbo::ptr<SingularKey> DetailsKey;
-		int Value;
+			ConfigurationEnumValue() = default;
+			ConfigurationEnumValue(ptr<ConfigurationEnum> enumPtr)
+				: enumPtr(enumPtr)
+			{ }
 
-		Wt::Dbo::ptr<ConfigurationEnum> EnumPtr; //belongsTo
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::belongsTo(a, titleKey, "titleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::belongsTo(a, detailsKey, "detailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
 
-		template<class Action>void persist(Action &a)
-		{
-			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::belongsTo(a, DetailsKey, "DetailsKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value, "Value");
+				Wt::Dbo::belongsTo(a, enumPtr, "enum", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationenumvalue";
+			}
+		};
 
-			Wt::Dbo::belongsTo(a, EnumPtr, "Enum", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		static const char *TableName()
+		//ConfigurationEnum DBO Class
+		class BaseConfigurationEnum
 		{
-			return "configurationenumvalue";
-		}
-};
+		public:
+			int value = -1;
+			int defaultValue = -1;
+			boost::optional<int> recommendedValue;
+		};
+		class ConfigurationEnum : public BaseConfigurationEnum
+		{
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
 
-//ConfigurationEnum DBO Class
-class BaseConfigurationEnum
-{
-	public:
-		int Value;
-		int DefaultValue;
-		boost::optional<int> RecommendedValue;
-};
-class ConfigurationEnum : public BaseConfigurationEnum
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
-		EnumValueCollections EnumValueCollection;
-		
-		template<class Action>void persist(Action &a)
-		{
-			Wt::Dbo::id(a, ConfigurationPtr, "Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value, "Value");
-			Wt::Dbo::field(a, DefaultValue, "DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
+		public:
+			ConfigurationEnum() = default;
+			ConfigurationEnum(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
 
-			Wt::Dbo::hasMany(a, EnumValueCollection, Wt::Dbo::ManyToOne, "Enum");
-		}
-		static const char *TableName()
-		{
-			return "configurationenum";
-		}
-};
-class ConfigurationEnumData : public BaseConfigurationEnum, public ConfigurationDataKey
-{
-	public:
-		ConfigurationEnumData(Wt::Dbo::ptr<ConfigurationEnum> Ptr)
-			: BaseConfigurationEnum(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+			EnumValueCollection enumValueCollection;
 
-//ConfigurationFloat DBO Class
-class BaseConfigurationFloat
-{
-	public:
-		float Value;
-		float DefaultValue;
-		boost::optional<float> RecommendedValue;
-		boost::optional<float> MinValue;
-		boost::optional<float> MaxValue;
-};
-class ConfigurationFloat : public BaseConfigurationFloat
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
-		
-		template<class Action>void persist(Action &a)
-		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue,	"RecommendedValue");
-			Wt::Dbo::field(a, MinValue,			"MinValue");
-			Wt::Dbo::field(a, MaxValue,			"MaxValue");
-		}
-		static const char *TableName()
-		{
-			return "configurationfloat";
-		}
-};
-class ConfigurationFloatData : public BaseConfigurationFloat, public ConfigurationDataKey
-{
-	public:
-		ConfigurationFloatData(Wt::Dbo::ptr<ConfigurationFloat> Ptr)
-			: BaseConfigurationFloat(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
 
-//ConfigurationInt DBO Class
-class BaseConfigurationInt
-{
-	public:
-		int Value;
-		boost::optional<int> DefaultValue;
-		boost::optional<int> RecommendedValue;
-		boost::optional<int> MinValue;
-		boost::optional<int> MaxValue;
-};
-class ConfigurationInt : public BaseConfigurationInt
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
+				Wt::Dbo::hasMany(a, enumValueCollection, Wt::Dbo::ManyToOne, "enum");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationenum";
+			}
+		};
 
-		template<class Action>void persist(Action &a)
+		//ConfigurationFloat DBO Class
+		class BaseConfigurationFloat
 		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
-			Wt::Dbo::field(a, MinValue,			"MinValue");
-			Wt::Dbo::field(a, MaxValue,			"MaxValue");
-		}
-		static const char *TableName()
+		public:
+			float value = -1;
+			float defaultValue = -1;
+			boost::optional<float> recommendedValue;
+			boost::optional<float> minValue;
+			boost::optional<float> maxValue;
+		};
+		class ConfigurationFloat : public BaseConfigurationFloat
 		{
-			return "configurationint";
-		}
-};
-class ConfigurationIntData : public BaseConfigurationInt, public ConfigurationDataKey
-{
-	public:
-		ConfigurationIntData(Wt::Dbo::ptr<ConfigurationInt> Ptr)
-			: BaseConfigurationInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
 
-//ConfigurationLongInt DBO Class
-class BaseConfigurationLongInt
-{
-	public:
-		long long Value;
-		boost::optional<long long> DefaultValue;
-		boost::optional<long long> RecommendedValue;
-		boost::optional<long long> MinValue;
-		boost::optional<long long> MaxValue;
-};
-class ConfigurationLongInt : public BaseConfigurationLongInt
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
+		public:
+			ConfigurationFloat() = default;
+			ConfigurationFloat(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
 
-		template<class Action>void persist(Action &a)
-		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
-			Wt::Dbo::field(a, MinValue,			"MinValue");
-			Wt::Dbo::field(a, MaxValue,			"MaxValue");
-		}
-		static const char *TableName()
-		{
-			return "configurationlongint";
-		}
-};
-class ConfigurationLongIntData : public BaseConfigurationLongInt, public ConfigurationDataKey
-{
-	public:
-		ConfigurationLongIntData(Wt::Dbo::ptr<ConfigurationLongInt> Ptr)
-			: BaseConfigurationLongInt(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+				Wt::Dbo::field(a, minValue, "minValue");
+				Wt::Dbo::field(a, maxValue, "maxValue");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationfloat";
+			}
+		};
 
-//ConfigurationString DBO Class
-class BaseConfigurationString
-{
-	public:
-		std::string Value;
-		std::string DefaultValue;
-		std::string RecommendedValue;
-		std::string ExampleValue;
-		boost::optional<int> MinLength;
-		boost::optional<int> MaxLength;
-};
-class ConfigurationString : public BaseConfigurationString
-{
-	public:
-		Wt::Dbo::ptr<Configuration> ConfigurationPtr; //belongsTo
+		//ConfigurationInt DBO Class
+		class BaseConfigurationInt
+		{
+		public:
+			int value = -1;
+			boost::optional<int> defaultValue;
+			boost::optional<int> recommendedValue;
+			boost::optional<int> minValue;
+			boost::optional<int> maxValue;
+		};
+		class ConfigurationInt : public BaseConfigurationInt
+		{
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
 
-		template<class Action>void persist(Action &a)
+		public:
+			ConfigurationInt() = default;
+			ConfigurationInt(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+				Wt::Dbo::field(a, minValue, "minValue");
+				Wt::Dbo::field(a, maxValue, "maxValue");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationint";
+			}
+		};
+
+		//ConfigurationLongInt DBO Class
+		class BaseConfigurationLongInt
 		{
-			Wt::Dbo::id(a, ConfigurationPtr,	"Configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Value,			"Value");
-			Wt::Dbo::field(a, DefaultValue,		"DefaultValue");
-			Wt::Dbo::field(a, RecommendedValue, "RecommendedValue");
-			Wt::Dbo::field(a, ExampleValue,		"ExampleValue");
-			Wt::Dbo::field(a, MinLength,		"MinLength");
-			Wt::Dbo::field(a, MaxLength,		"MaxLength");
-		}
-		static const char *TableName()
+		public:
+			long long value = -1;
+			boost::optional<long long> defaultValue;
+			boost::optional<long long> recommendedValue;
+			boost::optional<long long> minValue;
+			boost::optional<long long> maxValue;
+		};
+		class ConfigurationLongInt : public BaseConfigurationLongInt
 		{
-			return "configurationstring";
-		}
-};
-class ConfigurationStringData : public BaseConfigurationString, public ConfigurationDataKey
-{
-	public:
-		ConfigurationStringData(Wt::Dbo::ptr<ConfigurationString> Ptr)
-			: BaseConfigurationString(*Ptr), ConfigurationDataKey(Ptr->ConfigurationPtr->Name(), Ptr->ConfigurationPtr->ModulePtr().id())
-		{ }
-};
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
+
+		public:
+			ConfigurationLongInt() = default;
+			ConfigurationLongInt(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+				Wt::Dbo::field(a, minValue, "minValue");
+				Wt::Dbo::field(a, maxValue, "maxValue");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationlongint";
+			}
+		};
+
+		//ConfigurationString DBO Class
+		class BaseConfigurationString
+		{
+		public:
+			std::string value;
+			std::string defaultValue;
+			std::string recommendedValue;
+			std::string exampleValue;
+			boost::optional<int> minLength;
+			boost::optional<int> maxLength;
+		};
+		class ConfigurationString : public BaseConfigurationString
+		{
+		private:
+			ptr<Configuration> _configurationPtr; //belongsTo
+
+		public:
+			ConfigurationString() = default;
+			ConfigurationString(ptr<Configuration> configurationPtr)
+				: _configurationPtr(configurationPtr)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _configurationPtr, "configuration", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, value, "value");
+				Wt::Dbo::field(a, defaultValue, "defaultValue");
+				Wt::Dbo::field(a, recommendedValue, "recommendedValue");
+				Wt::Dbo::field(a, exampleValue, "exampleValue");
+				Wt::Dbo::field(a, minLength, "minLength");
+				Wt::Dbo::field(a, maxLength, "maxLength");
+			}
+			constexpr static const char *tableName()
+			{
+				return "configurationstring";
+			}
+		};
+
+	}
+
+	namespace Ddo
+	{
+
+		class ConfigurationKey
+		{
+		protected:
+			std::string _name;
+			long long _moduleId;
+
+			ConfigurationKey(const std::string &name, long long moduleId)
+				: _name(name), _moduleId(moduleId)
+			{}
+
+		public:
+			std::string name() const { return _name; };
+			long long moduleId() const { return _moduleId; };
+		};
+
+		class ConfigurationBool : public Dbo::BaseConfigurationBool, public ConfigurationKey
+		{
+		public:
+			ConfigurationBool(Dbo::ptr<Dbo::ConfigurationBool> ptr)
+				: BaseConfigurationBool(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationDouble : public Dbo::BaseConfigurationDouble, public ConfigurationKey
+		{
+		public:
+			ConfigurationDouble(Dbo::ptr<Dbo::ConfigurationDouble> ptr)
+				: Dbo::BaseConfigurationDouble(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationEnum : public Dbo::BaseConfigurationEnum, public ConfigurationKey
+		{
+		public:
+			ConfigurationEnum(Dbo::ptr<Dbo::ConfigurationEnum> ptr)
+				: Dbo::BaseConfigurationEnum(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationFloat : public Dbo::BaseConfigurationFloat, public ConfigurationKey
+		{
+		public:
+			ConfigurationFloat(Dbo::ptr<Dbo::ConfigurationFloat> ptr)
+				: Dbo::BaseConfigurationFloat(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationInt : public Dbo::BaseConfigurationInt, public ConfigurationKey
+		{
+		public:
+			ConfigurationInt(Dbo::ptr<Dbo::ConfigurationInt> ptr)
+				: Dbo::BaseConfigurationInt(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationLongInt : public Dbo::BaseConfigurationLongInt, public ConfigurationKey
+		{
+		public:
+			ConfigurationLongInt(Dbo::ptr<Dbo::ConfigurationLongInt> ptr)
+				: Dbo::BaseConfigurationLongInt(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+		class ConfigurationString : public Dbo::BaseConfigurationString, public ConfigurationKey
+		{
+		public:
+			ConfigurationString(Dbo::ptr<Dbo::ConfigurationString> ptr)
+				: BaseConfigurationString(*ptr), ConfigurationKey(ptr.id()->name(), ptr.id()->modulePtr().id())
+			{ }
+		};
+
+	}
+}
 
 #endif

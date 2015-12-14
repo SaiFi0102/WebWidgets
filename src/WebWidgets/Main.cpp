@@ -1,6 +1,6 @@
 #include <iostream>
 #include "Application/WServer.h"
-#include "Application/Application.h"
+#include "Application/WApplication.h"
 
 int main(int argc, char **argv)
 {
@@ -10,18 +10,17 @@ int main(int argc, char **argv)
 // 	try
 // 	{
 		//Initialize Server
-		WServer Server = WServer(argv[0], "wt_config.xml");
-		Server.Initialize();
+		WW::WServer Server(argv[0], "wt_config.xml");
 
 		//Configuration
 		Server.setServerConfiguration(argc, argv, WTHTTP_CONFIGURATION);
-		Server.addEntryPoint(Wt::Application, Application::CreateApplication);
+		Server.addEntryPoint(Wt::Application, WW::WApplication::createApplication);
 		
 		//Start Server
-		if(Server.Start())
+		if(Server.start())
 		{
 			//And wait till a shutdown signal is given
-			int sig = WServer::waitForShutdown(argv[0]);
+			int sig = WW::WServer::waitForShutdown(argv[0]);
 			Server.stop();
 			Wt::log("info") << "Shutdown (Signal = " << sig << ")";
 		}

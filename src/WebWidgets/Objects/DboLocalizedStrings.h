@@ -1,25 +1,28 @@
-#ifndef DBOLOCALIZEDSTRINGS_H
-#define DBOLOCALIZEDSTRINGS_H
+#ifndef WW_DBOLOCALIZEDSTRINGS_H
+#define WW_DBOLOCALIZEDSTRINGS_H
 
 #include <Wt/WLocalizedStrings>
 
-class WServer;
-
-class DboLocalizedStrings : public Wt::WLocalizedStrings
+namespace WW
 {
+	class WServer;
+
+	class DboLocalizedStrings : public Wt::WLocalizedStrings
+	{
 	public:
-		DboLocalizedStrings(WServer *Server);
+		DboLocalizedStrings(WServer *server);
 
-		virtual bool resolveKey(const std::string &key, std::string &result);
-		virtual bool resolveKey(const std::string &key, long long ModuleId, std::string &result);
-		virtual bool resolvePluralKey(const std::string &key, std::string &result, uint64_t amount);
-		virtual bool resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount);
+		virtual bool resolveKey(const std::string &key, std::string &result) override;
+		virtual bool resolveKey(const std::string &key, long long moduleId, std::string &result) override;
+		virtual bool resolvePluralKey(const std::string &key, std::string &result, uint64_t amount) override;
+		virtual bool resolvePluralKey(const std::string &key, long long moduleId, std::string &result, uint64_t amount) override;
 
-		virtual bool resolveTemplateKey(const std::string &templateName, long long moduleId, std::string &result);
-		virtual bool loadTemplateStyleSheet(const std::string &templateName, long long moduleId);
+		virtual bool resolveTemplateKey(const std::string &templateName, long long moduleId, std::string &result) override;
+		virtual bool loadTemplateStyleSheet(const std::string &templateName, long long moduleId) override;
 
 	protected:
-		WServer *_Server;
-};
+		WServer *_server;
+	};
+}
 
 #endif

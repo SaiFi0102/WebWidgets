@@ -1,46 +1,46 @@
-#ifndef DBO_DATABASE_MANAGER_H
-#define DBO_DATABASE_MANAGER_H
+#ifndef WW_DBODATABASE_MANAGER_H
+#define WW_DBODATABASE_MANAGER_H
 
 #include <boost/thread/shared_mutex.hpp>
 #include <Wt/Dbo/SqlConnectionPool>
 #include <set>
 
-class WServer;
-class AbstractDboDatabase;
-
-class DboDatabaseManager
+namespace WW
 {
-	public:
-		typedef std::set<AbstractDboDatabase*> DatabaseSets;
+	class WServer;
+	class AbstractDboDatabase;
 
-		DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnection *SQLConnection);
-		DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnectionPool *SQLPool);
+	class DboDatabaseManager
+	{
+	public:
+		typedef std::set<AbstractDboDatabase*> DatabaseSet;
+
+		DboDatabaseManager(WServer *server, Wt::Dbo::SqlConnection *sqlConnection);
+		DboDatabaseManager(WServer *server, Wt::Dbo::SqlConnectionPool *sqlPool);
 		~DboDatabaseManager();
 
-		void Add(AbstractDboDatabase *DboDatabase);
-		void Remove(AbstractDboDatabase *DboDatabase);
+		void add(AbstractDboDatabase *dboDatabase);
+		void remove(AbstractDboDatabase *dboDatabase);
 
-		void Load();
-		void Reload();
+		void load();
+		void reload();
 
-		WServer *Server() const
-		{
-			return _Server;
-		}
+		WServer *server() const { return _server; }
 
 	protected:
-		WServer *_Server;
-		bool _InitiallyLoaded;
-		DatabaseSets DatabaseSet;
-		mutable boost::shared_mutex mutex;
+		WServer *_server;
+		bool _initiallyLoaded = false;
+		DatabaseSet _databaseSet;
+		mutable boost::shared_mutex _mutex;
 
 		bool _IsConnection;
-		Wt::Dbo::SqlConnection *SQLConnection;
-		Wt::Dbo::SqlConnectionPool *SQLPool;
+		Wt::Dbo::SqlConnection *_sqlConnection = nullptr;
+		Wt::Dbo::SqlConnectionPool *_sqlPool = nullptr;
 
 	private:
 		friend class ReadLock;
 		friend class WriteLock;
-};
+	};
+}
 
 #endif

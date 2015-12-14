@@ -1,30 +1,32 @@
-#ifndef ABSTRACT_DBO_DATABASE_H
-#define ABSTRACT_DBO_DATABASE_H
+#ifndef WW_ABSTRACT_DBODATABASE_H
+#define WW_ABSTRACT_DBODATABASE_H
 
 #include "DboDatabase/DboDatabaseManager.h"
 #include <Wt/Dbo/Session>
 
-class AbstractDboDatabase
+namespace WW
 {
+	class AbstractDboDatabase
+	{
 	public:
-		AbstractDboDatabase(DboDatabaseManager *Manager);
 		virtual ~AbstractDboDatabase();
-		WServer *Server() const;
-		DboDatabaseManager *Manager() const { return _Manager; }
-		virtual std::string Name() const = 0;
+		WServer *server() const;
+		DboDatabaseManager *manager() const { return _manager; }
+		virtual std::string name() const = 0;
 
 	protected:
-		bool _IsLoaded;
-		DboDatabaseManager *_Manager;
+		AbstractDboDatabase(DboDatabaseManager *Manager);
+		virtual void load(Wt::Dbo::Session &dboSession) = 0;
+		virtual void reload(Wt::Dbo::Session &dboSession) { }
+		virtual bool isVital() const { return false; }
 
-		virtual void Load(Wt::Dbo::Session &DboSession) = 0;
-		virtual void Reload(Wt::Dbo::Session &DboSession) { }
-		virtual bool IsVital() const { return false; }
+		bool _isLoaded = false;
+		DboDatabaseManager *_manager = nullptr;
 
 	private:
-		Wt::Dbo::Session _DboSession;
-
+		Wt::Dbo::Session _dboSession;
 		friend class DboDatabaseManager;
-};
+	};
+}
 
 #endif

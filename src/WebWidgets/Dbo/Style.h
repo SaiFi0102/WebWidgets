@@ -1,322 +1,342 @@
-#ifndef STYLE_DBO_H
-#define STYLE_DBO_H
+#ifndef WW_DBO_STYLE_H
+#define WW_DBO_STYLE_H
 
-#include "Dbo/DboTraits.h"
-#include "Dbo/Module.h"
-#include "Dbo/Author.h"
-#include "Dbo/NavigationMenu.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class BaseStyle
+namespace WW
 {
-	protected:
-		std::string _Name;
+	namespace Dbo
+	{
 
-		BaseStyle(const std::string &Name = "")
-			: _Name(Name), CompatibilityVersionSeries(-1), CompatibilityVersionMajor(-1)
-		{ }
-
-	public:
-		std::string Description;
-		int CompatibilityVersionSeries;
-		int CompatibilityVersionMajor;
-
-		std::string Name() const { return _Name; }
-};
-class Style : public BaseStyle
-{
-	protected:
-		Wt::Dbo::ptr<Author> _AuthorPtr;
-
-	public:
-		StyleCssRuleCollections CssRuleCollection;
-		StyleTemplateCollections TemplateCollection;
-		StyleSectionCollections SectionCollection;
-		AccessHostNameCollections AccessHostNameCollection;
-		NavigationMenuItemCollections ShownOnPageMenuItemCollection;
-
-		Style() { }
-		Style(const std::string &Name, Wt::Dbo::ptr<Author> AuthorPtr)
-			: BaseStyle(Name), _AuthorPtr(AuthorPtr)
-		{ }
-
-		Wt::Dbo::ptr<Author> AuthorPtr() const { return _AuthorPtr; }
-
-		template<class Action>void persist(Action &a)
+		class BaseStyle
 		{
-			Wt::Dbo::field(a, _Name, "StyleName", 50);
-			Wt::Dbo::belongsTo(a, _AuthorPtr, "Author", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Description, "Description");
-			Wt::Dbo::field(a, CompatibilityVersionSeries, "CompatibilityVersionSeries");
-			Wt::Dbo::field(a, CompatibilityVersionMajor, "CompatibilityVersionMajor");
+		protected:
+			std::string _name;
 
-			Wt::Dbo::hasMany(a, CssRuleCollection, Wt::Dbo::ManyToOne, "Style");
-			Wt::Dbo::hasMany(a, TemplateCollection, Wt::Dbo::ManyToOne, "Style");
-			Wt::Dbo::hasMany(a, SectionCollection, Wt::Dbo::ManyToOne, "Style");
-			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "Style");
-			Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "style_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		static const char *TableName()
-		{
-			return "style";
-		}
-};
+			BaseStyle() = default;
+			BaseStyle(const std::string &name)
+				: _name(name)
+			{ }
 
-class BaseStyleSection
-{
-	public:
-		enum VerticalOrientation
-		{
-			Top = 0,
-			Middle = 1,
-			Bottom = 2,
+		public:
+			std::string description;
+			int compatibilityVersionSeries = -1;
+			int compatibilityVersionMajor = -1;
+
+			std::string name() const { return _name; }
 		};
-		enum HorizontalOrientation
+		class Style : public BaseStyle
 		{
-			Left = 0,
-			Center = 1,
-			Right = 2
-		};
-		enum SectionType
-		{
-			PageContentSection = 0,
-			FixedSection = 1,
+		protected:
+			ptr<Author> _authorPtr;
+
+		public:
+			StyleCssRuleCollection cssRuleCollection;
+			StyleTemplateCollection templateCollection;
+			//StyleSectionCollections sectionCollection;
+			AccessHostNameCollection accessHostNameCollection;
+			NavigationMenuItemCollection shownOnPageMenuItemCollection;
+
+			Style() = default;
+			Style(const std::string &name, ptr<Author> authorPtr)
+				: BaseStyle(name), _authorPtr(authorPtr)
+			{ }
+
+			ptr<Author> authorPtr() const { return _authorPtr; }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::field(a, _name, "styleName", 50);
+				Wt::Dbo::belongsTo(a, _authorPtr, "author", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, description, "description");
+				Wt::Dbo::field(a, compatibilityVersionSeries, "compatibilityVersionSeries");
+				Wt::Dbo::field(a, compatibilityVersionMajor, "compatibilityVersionMajor");
+
+				Wt::Dbo::hasMany(a, cssRuleCollection, Wt::Dbo::ManyToOne, "style");
+				Wt::Dbo::hasMany(a, templateCollection, Wt::Dbo::ManyToOne, "style");
+				//Wt::Dbo::hasMany(a, sectionCollection, Wt::Dbo::ManyToOne, "style");
+				Wt::Dbo::hasMany(a, accessHostNameCollection, Wt::Dbo::ManyToOne, "style");
+				Wt::Dbo::hasMany(a, shownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "style_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			}
+			constexpr static const char *tableName()
+			{
+				return "style";
+			}
 		};
 
-		VerticalOrientation VOrientation;
-		HorizontalOrientation HOrientation;
-		SectionType Type;
-		int Order;
-};
-class StyleSection : public BaseStyleSection
-{
-	public:
-		Wt::Dbo::ptr<Style> StylePtr;
+// 		class BaseStyleSection
+// 		{
+// 			public:
+// 				enum VerticalOrientation
+// 				{
+// 					Top = 0,
+// 					Middle = 1,
+// 					Bottom = 2,
+// 				};
+// 				enum HorizontalOrientation
+// 				{
+// 					Left = 0,
+// 					Center = 1,
+// 					Right = 2
+// 				};
+// 				enum SectionType
+// 				{
+// 					PageContentSection = 0,
+// 					FixedSection = 1,
+// 				};
+// 
+// 				VerticalOrientation vOrientation;
+// 				HorizontalOrientation hOrientation;
+// 				SectionType type;
+// 				int order;
+// 		};
+// 		class StyleSection : public BaseStyleSection
+// 		{
+// 			public:
+// 				ptr<Style> stylePtr;
+// 
+// 				template<class Action>void persist(Action &a)
+// 				{
+// 					Wt::Dbo::belongsTo(a, stylePtr, "style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+// 					Wt::Dbo::field(a, vOrientation, "vOrientation");
+// 					Wt::Dbo::field(a, hOrientation, "hOrientation");
+// 					Wt::Dbo::field(a, type, "type");
+// 					Wt::Dbo::field(a, order, "order");
+// 				}
+// 				constexpr static const char *tableName()
+// 				{
+// 					return "stylesection";
+// 				}
+// 		};
 
-		template<class Action>void persist(Action &a)
+		class BaseStyleCssRule
 		{
-			Wt::Dbo::belongsTo(a, StylePtr, "Style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, VOrientation, "VOrientation");
-			Wt::Dbo::field(a, HOrientation, "HOrientation");
-			Wt::Dbo::field(a, Type, "Type");
-			Wt::Dbo::field(a, Order, "Order");
-		}
-		static const char *TableName()
+		public:
+			std::string selector;
+			std::string declarations;
+		};
+		class StyleCssRule : public BaseStyleCssRule
 		{
-			return "stylesection";
-		}
-};
-class StyleSectionData : public BaseStyleSection, public DataSurrogateKey
-{
-	public:
-		long long StyleId;
+		public:
+			StyleCssRule() = default;
+			StyleCssRule(ptr<Style> stylePtr)
+				: stylePtr(stylePtr)
+			{ }
 
-		StyleSectionData(Wt::Dbo::ptr<StyleSection> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseStyleSection(*Ptr), StyleId(Ptr->StylePtr.id())
-		{ }
-};
+			ptr<Style> stylePtr;
 
-class BaseStyleCssRule
-{
-	public:
-		std::string Selector;
-		std::string Declarations;
-};
-class StyleCssRule : public BaseStyleCssRule
-{
-	public:
-		Wt::Dbo::ptr<Style>	StylePtr;
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::field(a, selector, "selector");
+				Wt::Dbo::field(a, declarations, "declarations");
+				Wt::Dbo::belongsTo(a, stylePtr, "style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			}
+			constexpr static const char *tableName()
+			{
+				return "stylecssrule";
+			}
+		};
 
-		template<class Action>void persist(Action &a)
+		class BaseTemplateCssRule
 		{
-			Wt::Dbo::field(a, Selector, "Selector");
-			Wt::Dbo::field(a, Declarations, "Declarations");
-			Wt::Dbo::belongsTo(a, StylePtr, "Style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		static const char *TableName()
+		public:
+			std::string selector;
+			std::string declarations;
+		};
+		class TemplateCssRule : public BaseTemplateCssRule
 		{
-			return "stylecssrule";
-		}
-};
-class StyleCssRuleData : public BaseStyleCssRule, public DataSurrogateKey
-{
-	public:
-		long long StyleId;
+		public:
+			ptr<Template> templatePtr;
 
-		StyleCssRuleData(Wt::Dbo::ptr<StyleCssRule> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseStyleCssRule(*Ptr), StyleId(Ptr->StylePtr.id())
-		{ }
-};
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::field(a, selector, "selector");
+				Wt::Dbo::field(a, declarations, "declarations");
+				Wt::Dbo::belongsTo(a, templatePtr, "template", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			}
+			constexpr static const char *tableName()
+			{
+				return "templatecssrule";
+			}
+		};
 
-class StyleData : public BaseStyle, public DataSurrogateKey
-{
-	protected:
-		long long _AuthorId;
-
-	public:
-		typedef std::set< std::shared_ptr<const StyleCssRuleData> > StyleCssRuleSet;
-		typedef std::set< std::shared_ptr<const StyleSectionData> > StyleSectionSet;
-
-		StyleCssRuleSet StyleCssRules;
-		StyleSectionSet StyleSections;
-
-		StyleData(Wt::Dbo::ptr<Style> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseStyle(*Ptr), _AuthorId(Ptr->AuthorPtr().id())
-		{ }
-
-		long long AuthorId() const { return _AuthorId; }
-};
-
-class BaseTemplateCssRule
-{
-	public:
-		std::string Selector;
-		std::string Declarations;
-};
-class TemplateCssRule : public BaseTemplateCssRule
-{
-	public:
-		Wt::Dbo::ptr<Template> TemplatePtr;
-
-		template<class Action>void persist(Action &a)
+		class BaseTemplate
 		{
-			Wt::Dbo::field(a, Selector, "Selector");
-			Wt::Dbo::field(a, Declarations, "Declarations");
-			Wt::Dbo::belongsTo(a, TemplatePtr, "Template", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		static const char *TableName()
+		protected:
+			std::string _name;
+
+			BaseTemplate() = default;
+			BaseTemplate(const std::string &name)
+				: _name(name)
+			{ }
+
+		public:
+			std::string description;
+			std::string templateStr;
+
+			std::string name() const { return _name; }
+		};
+		class Template : public BaseTemplate
 		{
-			return "templatecssrule";
-		}
-};
-class TemplateCssRuleData : public BaseTemplateCssRule, public DataSurrogateKey
-{
-	public:
-		long long TemplateId;
+		protected:
+			ptr<Module> _modulePtr;
 
-		TemplateCssRuleData(Wt::Dbo::ptr<TemplateCssRule> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseTemplateCssRule(*Ptr), TemplateId(Ptr->TemplatePtr.id())
-		{ }
-};
+		public:
+			StyleTemplateCollection styleTemplateCollection;
+			TemplateCssRuleCollection cssRuleCollection;
 
-class BaseTemplate
-{
-	protected:
-		std::string _Name;
+			Template() = default;
+			Template(const std::string &name, ptr<Module> modulePtr)
+				: BaseTemplate(name), _modulePtr(modulePtr)
+			{ }
 
-		BaseTemplate(const std::string &Name = "")
-			: _Name(Name)
-		{ }
+			ptr<Module> modulePtr() const { return _modulePtr; }
 
-	public:
-		std::string Description;
-		std::string TemplateStr;
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::field(a, _name, "templateName", 50);
+				Wt::Dbo::belongsTo(a, _modulePtr, "module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, description, "description");
+				Wt::Dbo::field(a, templateStr, "templateStr");
 
-		std::string Name() const { return _Name; }
-};
-class Template : public BaseTemplate
-{
-	protected:
-		Wt::Dbo::ptr<Module> _ModulePtr;
+				Wt::Dbo::hasMany(a, styleTemplateCollection, Wt::Dbo::ManyToOne, "template");
+				Wt::Dbo::hasMany(a, cssRuleCollection, Wt::Dbo::ManyToOne, "template");
+			}
+			constexpr static const char *tableName()
+			{
+				return "template";
+			}
+		};
 
-	public:
-		StyleTemplateCollections StyleTemplateCollection;
-		TemplateCssRuleCollections CssRuleCollection;
-
-		Template() { }
-		Template(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
-			: BaseTemplate(Name), _ModulePtr(ModulePtr)
-		{ }
-
-		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; }
-
-		template<class Action>void persist(Action &a)
+		class BaseStyleTemplate
 		{
-			Wt::Dbo::field(a, _Name, "TemplateName", 50);
-			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, Description, "Description");
-			Wt::Dbo::field(a, TemplateStr, "TemplateStr");
-
-			Wt::Dbo::hasMany(a, StyleTemplateCollection, Wt::Dbo::ManyToOne, "Template");
-			Wt::Dbo::hasMany(a, CssRuleCollection, Wt::Dbo::ManyToOne, "Template");
-		}
-		static const char *TableName()
+		public:
+			std::string templateStr;
+		};
+		class StyleTemplate : public BaseStyleTemplate
 		{
-			return "template";
-		}
-};
-class TemplateData : public BaseTemplate, public DataSurrogateKey
-{
-	protected:
-		long long _ModuleId;
+		protected:
+			ptr<Template> _derivingTemplatePtr;
+			ptr<Style> _stylePtr;
 
-	public:
-		typedef std::set< std::shared_ptr<const TemplateCssRuleData> > TemplateCssRuleSet;
-		TemplateCssRuleSet TemplateCssRules;
+		public:
+			StyleTemplate() = default;
+			StyleTemplate(ptr<Style> stylePtr, ptr<Template> templatePtr)
+				: _derivingTemplatePtr(templatePtr), _stylePtr(stylePtr)
+			{ }
 
-		TemplateData(Wt::Dbo::ptr<Template> Ptr)
-			: DataSurrogateKey(Ptr.id()), BaseTemplate(*Ptr), _ModuleId(Ptr->ModulePtr().id())
-		{ }
+			ptr<Template> derivingTemplatePtr() const { return _derivingTemplatePtr; };
+			ptr<Style> stylePtr() const { return _stylePtr; };
 
-		long long ModuleId() const { return _ModuleId; }
-};
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::belongsTo(a, _derivingTemplatePtr, "template", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::belongsTo(a, _stylePtr, "style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, templateStr, "templateStr");
+			}
+			constexpr static const char *tableName()
+			{
+				return "styletemplate";
+			}
+		};
 
-class BaseStyleTemplate
-{
-	public:
-		std::string TemplateStr;
-};
-class StyleTemplate : public BaseStyleTemplate
-{
-	protected:
-		Wt::Dbo::ptr<Template> _DerivingTemplatePtr;
-		Wt::Dbo::ptr<Style> _StylePtr;
+	}
 
-	public:
-		StyleTemplate() { }
-		StyleTemplate(Wt::Dbo::ptr<Style> StylePtr, Wt::Dbo::ptr<Template> TemplatePtr)
-			: _DerivingTemplatePtr(TemplatePtr), _StylePtr(StylePtr)
-		{ }
+	namespace Ddo
+	{
 
-		Wt::Dbo::ptr<Template> DerivingTemplatePtr() const { return _DerivingTemplatePtr; };
-		Wt::Dbo::ptr<Style> StylePtr() const { return _StylePtr; };
-
-		template<class Action>void persist(Action &a)
+		class StyleCssRule : public Dbo::BaseStyleCssRule, public SurrogateKey
 		{
-			Wt::Dbo::belongsTo(a, _DerivingTemplatePtr, "Template", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::belongsTo(a, _StylePtr, "Style", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, TemplateStr, "TemplateStr");
-		}
-		static const char *TableName()
+		public:
+			long long styleId;
+
+			StyleCssRule(Dbo::ptr<Dbo::StyleCssRule> ptr)
+				: SurrogateKey(ptr.id()), Dbo::BaseStyleCssRule(*ptr), styleId(ptr->stylePtr.id())
+			{ }
+		};
+
+		class Style : public Dbo::BaseStyle, public SurrogateKey
 		{
-			return "styletemplate";
-		}
-};
-class StyleTemplateData : public BaseStyleTemplate, public DataSurrogateKey
-{
-	protected:
-		long long _DerivingTemplateId;
-		long long _StyleId;
+		protected:
+			long long _authorId;
 
-	public:
-		std::string TemplateName;
-		long long ModuleId;
-		std::string StyleName;
-		long long AuthorId;
+		public:
+			typedef std::set< cPtr<StyleCssRule> > StyleCssRuleSet;
+			//typedef std::set< cPtr<StyleSectionData> > StyleSectionSet;
 
-		StyleTemplateData(Wt::Dbo::ptr<StyleTemplate> Ptr)
-			: DataSurrogateKey(Ptr.id()),
-			BaseStyleTemplate(*Ptr),
-			_DerivingTemplateId(Ptr->DerivingTemplatePtr().id()),
-			_StyleId(Ptr->StylePtr().id()),
-			TemplateName(Ptr->DerivingTemplatePtr()->Name()),
-			ModuleId(Ptr->DerivingTemplatePtr()->ModulePtr().id()),
-			StyleName(Ptr->StylePtr()->Name()), AuthorId(Ptr->StylePtr()->AuthorPtr().id())
-		{ }
+			StyleCssRuleSet styleCssRules;
+			//StyleSectionSet styleSections;
 
-		long long DerivingTemplateId() const { return _DerivingTemplateId; }
-		long long StyleId() const { return _StyleId; }
-};
+			Style(Dbo::ptr<Dbo::Style> ptr)
+				: SurrogateKey(ptr.id()), Dbo::BaseStyle(*ptr), _authorId(ptr->authorPtr().id())
+			{ }
 
-#include "Dbo/AccessPath.h"
+			long long authorId() const { return _authorId; }
+		};
+
+		class TemplateCssRule : public Dbo::BaseTemplateCssRule, public SurrogateKey
+		{
+		public:
+			long long templateId;
+
+			TemplateCssRule(Dbo::ptr<Dbo::TemplateCssRule> ptr)
+				: SurrogateKey(ptr.id()), Dbo::BaseTemplateCssRule(*ptr), templateId(ptr->templatePtr.id())
+			{ }
+		};
+
+		class Template : public Dbo::BaseTemplate, public SurrogateKey
+		{
+		protected:
+			long long _moduleId;
+
+		public:
+			typedef std::set< cPtr<TemplateCssRule> > TemplateCssRuleSet;
+			TemplateCssRuleSet templateCssRules;
+
+			Template(Dbo::ptr<Dbo::Template> ptr)
+				: SurrogateKey(ptr.id()), Dbo::BaseTemplate(*ptr), _moduleId(ptr->modulePtr().id())
+			{ }
+
+			long long moduleId() const { return _moduleId; }
+		};
+
+		class StyleTemplate : public Dbo::BaseStyleTemplate, public SurrogateKey
+		{
+		protected:
+			long long _derivingTemplateId;
+			long long _styleId;
+
+		public:
+			std::string templateName;
+			long long moduleId;
+			std::string styleName;
+			long long authorId;
+
+			StyleTemplate(Dbo::ptr<Dbo::StyleTemplate> ptr)
+				: SurrogateKey(ptr.id()),
+				Dbo::BaseStyleTemplate(*ptr),
+				_derivingTemplateId(ptr->derivingTemplatePtr().id()),
+				_styleId(ptr->stylePtr().id()),
+				templateName(ptr->derivingTemplatePtr()->name()),
+				moduleId(ptr->derivingTemplatePtr()->modulePtr().id()),
+				styleName(ptr->stylePtr()->name()), authorId(ptr->stylePtr()->authorPtr().id())
+			{ }
+
+			long long derivingTemplateId() const { return _derivingTemplateId; }
+			long long styleId() const { return _styleId; }
+		};
+
+// 		class StyleSectionData : public BaseStyleSection, public DataSurrogateKey
+// 		{
+// 			public:
+// 				long long styleId;
+// 
+// 				StyleSectionData(Dbo::ptr<Dbo::StyleSection> ptr)
+// 					: DataSurrogateKey(ptr.id()), BaseStyleSection(*ptr), styleId(ptr->stylePtr.id())
+// 				{ }
+// 		};
+
+	}
+}
 
 #endif

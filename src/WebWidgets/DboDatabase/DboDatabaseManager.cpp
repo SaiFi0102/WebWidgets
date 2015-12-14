@@ -5,71 +5,67 @@
 #include <Wt/Dbo/Exception>
 #include <Wt/WLogger>
 
-DboDatabaseManager::DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnection *SQLConnection)
-: _Server(Server), _IsConnection(true), _InitiallyLoaded(false), SQLConnection(SQLConnection)
+namespace WW
+{
+
+DboDatabaseManager::DboDatabaseManager(WServer *server, Wt::Dbo::SqlConnection *sqlConnection)
+: _server(server), _IsConnection(true), _sqlConnection(sqlConnection)
 { }
-DboDatabaseManager::DboDatabaseManager(WServer *Server, Wt::Dbo::SqlConnectionPool *SQLPool)
-: _Server(Server), _IsConnection(false), _InitiallyLoaded(false), SQLPool(SQLPool)
+DboDatabaseManager::DboDatabaseManager(WServer *server, Wt::Dbo::SqlConnectionPool *sqlPool)
+: _server(server), _IsConnection(false), _sqlPool(sqlPool)
 { }
 
 DboDatabaseManager::~DboDatabaseManager()
 {
-	for(DatabaseSets::const_iterator itr = DatabaseSet.begin();
-		itr != DatabaseSet.end();)
+	for(DatabaseSet::const_iterator itr = _databaseSet.begin();
+		itr != _databaseSet.end();)
 	{
 		delete *(itr++);
 	}
 }
 
-void DboDatabaseManager::Add(AbstractDboDatabase *DboDatabase)
+void DboDatabaseManager::add(AbstractDboDatabase *dboDatabase)
 {
-	if(!DboDatabase)
-	{
+	if(!dboDatabase)
 		return;
-	}
 
-	boost::lock_guard<boost::shared_mutex> lock(mutex);
+	boost::lock_guard<boost::shared_mutex> lock(_mutex);
 	
-	std::pair<DatabaseSets::iterator, bool> itr = DatabaseSet.insert(DboDatabase);
+	std::pair<DatabaseSet::iterator, bool> itr = _databaseSet.insert(dboDatabase);
 	if(!itr.second)	//Already added
-	{
 		return;
-	}
+
 	if(_IsConnection)
-	{
-		(*itr.first)->_DboSession.setConnection(*SQLConnection);
-	}
+		(*itr.first)->_dboSession.setConnection(*_sqlConnection);
 	else
+		(*itr.first)->_dboSession.setConnectionPool(*_sqlPool);
+}
+
+void DboDatabaseManager::remove(AbstractDboDatabase *dboDatabase)
+{
+	if(dboDatabase)
 	{
-		(*itr.first)->_DboSession.setConnectionPool(*SQLPool);
+		boost::lock_guard<boost::shared_mutex> lock(_mutex);
+		_databaseSet.erase(dboDatabase);
+		dboDatabase->_manager = nullptr;
 	}
 }
 
-void DboDatabaseManager::Remove(AbstractDboDatabase *DboDatabase)
+void DboDatabaseManager::load()
 {
-	if(DboDatabase)
+	if(!_initiallyLoaded)
 	{
-		boost::lock_guard<boost::shared_mutex> lock(mutex);
-		DatabaseSet.erase(DboDatabase);
-		DboDatabase->_Manager = 0;
-	}
-}
-
-void DboDatabaseManager::Load()
-{
-	if(!_InitiallyLoaded)
-	{
-		boost::lock_guard<boost::shared_mutex> lock(mutex);
-		for(DatabaseSets::iterator itr = DatabaseSet.begin();
-			itr != DatabaseSet.end();
+		boost::lock_guard<boost::shared_mutex> lock(_mutex);
+		for(DatabaseSet::iterator itr = _databaseSet.begin();
+			itr != _databaseSet.end();
 			++itr)
 		{
 // 			try
 // 			{
-				Wt::log("info") << "Loading " << (*itr)->Name();
-				(*itr)->Load((*itr)->_DboSession);
-				(*itr)->_IsLoaded = true;
-				Wt::log("success") << "Successfully loaded " << (*itr)->Name();
+				Wt::log("info") << "Loading " << (*itr)->name();
+				(*itr)->load((*itr)->_dboSession);
+				(*itr)->_isLoaded = true;
+				Wt::log("success") << "Successfully loaded " << (*itr)->name();
 // 			}
 // 			catch(Wt::Dbo::Exception &e)
 // 			{
@@ -91,53 +87,51 @@ void DboDatabaseManager::Load()
 	}
 	else
 	{
-		Reload();
+		reload();
 	}
 }
-void DboDatabaseManager::Reload()
+void DboDatabaseManager::reload()
 {
 	{
-		boost::lock_guard<boost::shared_mutex> lock(mutex);
-		for(DatabaseSets::iterator itr = DatabaseSet.begin();
-			itr != DatabaseSet.end();
+		boost::lock_guard<boost::shared_mutex> lock(_mutex);
+		for(DatabaseSet::iterator itr = _databaseSet.begin();
+			itr != _databaseSet.end();
 			++itr)
 		{
 			try
 			{
-				if(!(*itr)->_IsLoaded)
+				if(!(*itr)->_isLoaded)
 				{
-					Wt::log("info") << "Loading " << (*itr)->Name();
-					(*itr)->Load((*itr)->_DboSession);
+					Wt::log("info") << "Loading " << (*itr)->name();
+					(*itr)->load((*itr)->_dboSession);
 				}
 				else
 				{
-					Wt::log("info") << "Reloading " << (*itr)->Name();
-					(*itr)->Reload((*itr)->_DboSession);
+					Wt::log("info") << "Reloading " << (*itr)->name();
+					(*itr)->reload((*itr)->_dboSession);
 				}
-				(*itr)->_IsLoaded = true;
-				Wt::log("success") << "Successfully loaded " << (*itr)->Name();
+				(*itr)->_isLoaded = true;
+				Wt::log("success") << "Successfully loaded " << (*itr)->name();
 			}
 			catch(Wt::Dbo::Exception &e)
 			{
-				Wt::log("error") << "Database error " << ((*itr)->_IsLoaded ? "reloading " : "loading ")
-					<< (*itr)->Name() << ": " << e.what();
+				Wt::log("error") << "Database error " << ((*itr)->_isLoaded ? "reloading " : "loading ")
+					<< (*itr)->name() << ": " << e.what();
 
-				if((*itr)->IsVital() && !(*itr)->_IsLoaded)
-				{
+				if((*itr)->isVital() && !(*itr)->_isLoaded)
 					throw e;
-				}
 			}
 			catch(std::exception &e)
 			{
-				Wt::log("error") << "Error " << ((*itr)->_IsLoaded ? "reloading " : "loading ")
-					<< (*itr)->Name() << ": " << e.what();
+				Wt::log("error") << "Error " << ((*itr)->_isLoaded ? "reloading " : "loading ")
+					<< (*itr)->name() << ": " << e.what();
 
-				if((*itr)->IsVital() && !(*itr)->_IsLoaded)
-				{
+				if((*itr)->isVital() && !(*itr)->_isLoaded)
 					throw e;
-				}
 			}
 		}
 	}
-	Server()->DboDatabaseReloadHandler();
+	server()->dboDatabaseReloadHandler();
+}
+
 }

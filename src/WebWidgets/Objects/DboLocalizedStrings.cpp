@@ -1,94 +1,87 @@
 #include <Wt/WMessageResources>
 
 #include "Objects/DboLocalizedStrings.h"
-#include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/ModuleDatabase.h"
 #include "DboDatabase/ConfigurationsDatabase.h"
-#include "DboDatabase/ConfigurationsCache.h"
-#include "DboDatabase/LanguagesDatabase.h"
-#include "DboDatabase/AccessPathsDatabase.h"
-#include "DboDatabase/StylesDatabase.h"
+#include "DboDatabase/ConfigurationCache.h"
+#include "DboDatabase/LanguageDatabase.h"
+#include "DboDatabase/AccessPathDatabase.h"
+#include "DboDatabase/StyleDatabase.h"
 #include "Application/WServer.h"
-#include "Application/Application.h"
+#include "Application/WApplication.h"
 
-DboLocalizedStrings::DboLocalizedStrings(WServer *Server)
-	: _Server(Server)
+namespace WW
+{
+
+DboLocalizedStrings::DboLocalizedStrings(WServer *server)
+	: _server(server)
 { }
 
 bool DboLocalizedStrings::resolveKey(const std::string &key, std::string &result)
 {
-	return resolveKey(key, ModulesDatabase::Wt, result);
+	return resolveKey(key, ModuleDatabase::Wt, result);
 }
 
-bool DboLocalizedStrings::resolveKey(const std::string &key, long long ModuleId, std::string &result)
+bool DboLocalizedStrings::resolveKey(const std::string &key, long long moduleId, std::string &result)
 {
-	Application *wapp = Application::instance();
-	std::string Locale = wapp ? wapp->locale().name() : "";
+	WApplication *wapp = WApplication::instance();
+	std::string locale = wapp ? wapp->locale().name() : "";
 
 	//If no locale is given or string not found in the locale, try to look for the string in the default locale
-	if(Locale.empty() || !_Server->Languages()->GetSingleString(Locale, key, ModuleId, result))
+	if(locale.empty() || !_server->languages()->getSingularString(locale, key, moduleId, result))
 	{
 		//Use default locale from configuration or else use "en"
-		Locale = _Server->AccessPaths()->AccessHostNamePtr("")->LanguageCode;
-		if(Locale.empty())
+		locale = _server->accessPaths()->accessHostNamePtr("")->languageCode;
+		if(locale.empty())
+			locale = "en";
+
+		if(!_server->languages()->getSingularString(locale, key, moduleId, result))
 		{
-			Locale = "en";
-		}
-		if(!_Server->Languages()->GetSingleString(Locale, key, ModuleId, result))
-		{
-			if(Locale == "en")
-			{
+			if(locale == "en")
 				return false;
-			}
 		}
 		else
-		{
 			return true;
-		}
 
 		//Return false if default locale does not have the string either
-		return _Server->Languages()->GetSingleString("en", key, ModuleId, result);
+		return _server->languages()->getSingularString("en", key, moduleId, result);
 	}
 	return true;
 }
 
 bool DboLocalizedStrings::resolvePluralKey(const std::string &key, std::string &result, uint64_t amount)
 {
-	return resolvePluralKey(key, ModulesDatabase::Wt, result, amount);
+	return resolvePluralKey(key, ModuleDatabase::Wt, result, amount);
 }
 
-bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long ModuleId, std::string &result, uint64_t amount)
+bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long moduleId, std::string &result, uint64_t amount)
 {
-	Application *wapp = Application::instance();
-	std::string Locale = wapp ? wapp->locale().name() : "";
-	std::string PluralExpression;
+	WApplication *wapp = WApplication::instance();
+	std::string locale = wapp ? wapp->locale().name() : "";
+	std::string pluralExpression;
 
 	//If no locale is given or plural expression for locale is not found or string not found in the locale, try to look for the string in the default locale
-	if(Locale.empty()
-		|| !_Server->Languages()->GetPluralExpression(Locale, PluralExpression)
-		|| !_Server->Languages()->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
+	if(locale.empty()
+		|| !_server->languages()->getPluralExpression(locale, pluralExpression)
+		|| !_server->languages()->getPluralString(locale, key, moduleId, Wt::WMessageResources::evalPluralCase(pluralExpression, amount), result))
 	{
 		//Use default locale from configuration or else use "en"
-		Locale = _Server->AccessPaths()->AccessHostNamePtr("")->LanguageCode;
-		if(Locale.empty())
+		locale = _server->accessPaths()->accessHostNamePtr("")->languageCode;
+		if(locale.empty())
+			locale = "en";
+
+		if((!_server->languages()->getPluralExpression(locale, pluralExpression)
+			|| !_server->languages()->getPluralString(locale, key, moduleId, Wt::WMessageResources::evalPluralCase(pluralExpression, amount), result)))
 		{
-			Locale = "en";
-		}
-		if((!_Server->Languages()->GetPluralExpression(Locale, PluralExpression)
-			|| !_Server->Languages()->GetPluralString(Locale, key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result)))
-		{
-			if(Locale == "en")
-			{
+			if(locale == "en")
 				return false;
-			}
 		}
 		else
-		{
 			return true;
-		}
 
 		//Return false if default locale does not have the string either
-		if(!_Server->Languages()->GetPluralExpression("en", PluralExpression)
-			|| !_Server->Languages()->GetPluralString("en", key, ModuleId, Wt::WMessageResources::evalPluralCase(PluralExpression, amount), result))
+		if(!_server->languages()->getPluralExpression("en", pluralExpression)
+			|| !_server->languages()->getPluralString("en", key, moduleId, Wt::WMessageResources::evalPluralCase(pluralExpression, amount), result))
 		{
 			return false;
 		}
@@ -98,36 +91,33 @@ bool DboLocalizedStrings::resolvePluralKey(const std::string &key, long long Mod
 
 bool DboLocalizedStrings::resolveTemplateKey(const std::string &templateName, long long moduleId, std::string &result)
 {
-	Application *app = Application::instance();
+	WApplication *app = WApplication::instance();
 
 	if(app)
 	{
-		std::shared_ptr<const StyleData> CurrentStyle = app->CurrentStyle();
-		if(!CurrentStyle
-			|| !_Server->Styles()->GetStyleTemplateStr(templateName, moduleId, CurrentStyle->Name(), CurrentStyle->AuthorId(), result))
+		Ddo::cPtr<Ddo::Style> currentStyle = app->currentStyle();
+		if(!currentStyle
+			|| !_server->styles()->getStyleTemplateStr(templateName, moduleId, currentStyle->name(), currentStyle->authorId(), result))
 		{
-			if(!_Server->Styles()->GetTemplateStr(templateName, moduleId, result))
-			{
+			if(!_server->styles()->getTemplateStr(templateName, moduleId, result))
 				return false;
-			}
 		}
 	}
 	else
 	{
-		if(!_Server->Styles()->GetTemplateStr(templateName, moduleId, result))
-		{
+		if(!_server->styles()->getTemplateStr(templateName, moduleId, result))
 			return false;
-		}
 	}
 	return true;
 }
 
 bool DboLocalizedStrings::loadTemplateStyleSheet(const std::string &templateName, long long moduleId)
 {
-	Application *app = Application::instance();
+	WApplication *app = WApplication::instance();
 	if(app)
-	{
-		app->UseTemplateStyleSheet(_Server->Styles()->GetTemplatePtr(templateName, moduleId));
-	}
+		app->useTemplateStyleSheet(_server->styles()->getTemplatePtr(templateName, moduleId));
+
 	return true;
+}
+
 }

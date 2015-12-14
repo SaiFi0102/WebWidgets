@@ -1,15 +1,14 @@
-#ifndef WIDGET_DBO_H
-#define WIDGET_DBO_H
+#ifndef WW_DBO_WIDGET_H
+#define WW_DBO_WIDGET_H
 
-#include "Dbo/DboTraits.h"
-#include "Dbo/Module.h"
+#include "Dbo/ModuleTreeDbos.h"
 
 // class Widget : public Wt::Dbo::Dbo<Widget>
 // {
 // 	public:
 // 
 // 		Widget() { }
-// 		Widget(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr = Wt::Dbo::ptr<Module>())
+// 		Widget(const std::string &Name, ptr<Module> ModulePtr = ptr<Module>())
 // 			: _Id(Name, ModulePtr)
 // 		{ }
 // 
@@ -17,9 +16,9 @@
 // 
 // 		template<class Action>void persist(Action &a)
 // 		{
-// 			Wt::Dbo::id(a, _Id, "Widget");
+// 			Wt::Dbo::id(a, _Id, "widget");
 // 		}
-// 		static const char *TableName()
+// 		constexpr static const char *tableName()
 // 		{
 // 			return "widget";
 // 		}

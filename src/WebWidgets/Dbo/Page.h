@@ -1,83 +1,115 @@
-#ifndef PAGE_DBO_H
-#define PAGE_DBO_H
+#ifndef WW_DBO_PAGE_H
+#define WW_DBO_PAGE_H
 
-#include "Dbo/DboTraits.h"
-#include "Dbo/Module.h"
-#include "Dbo/NavigationMenu.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class BasePage
+namespace WW
 {
-	protected:
-		BasePage(const std::string &Name)
-			: _Name(Name)
-		{ }
+	namespace Dbo
+	{
 
-		std::string _Name;
-
-	public:
-		std::string Name() const { return _Name; }
-		std::string	DefaultInternalPath;
-};
-class Page : public BasePage
-{
-	protected:
-		Wt::Dbo::ptr<Module> _ModulePtr;
-
-	public:
-		PageAccessPathCollections PageAccessPathCollection;
-		AccessHostNameCollections AccessHostNameCollection;
-		MenuItemOnPageCollections MenuItemOnPageCollection;
-
-		Wt::Dbo::ptr<SingularKey> TitleKey;
-
-		PageCollections ChildrenPages;
-		Wt::Dbo::ptr<Page> ParentPage;
-
-		Page()
-			: BasePage("")
-		{ }
-		Page(const std::string &Name, Wt::Dbo::ptr<Module> ModulePtr)
-			: BasePage(Name), _ModulePtr(ModulePtr)
-		{ }
-
-		Wt::Dbo::ptr<Module> ModulePtr() const { return _ModulePtr; };
-
-		template<class Action>void persist(Action &a)
+		class BasePage
 		{
-			Wt::Dbo::field(a, _Name, "Name", 50);
-			Wt::Dbo::belongsTo(a, _ModulePtr, "Module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-			Wt::Dbo::field(a, DefaultInternalPath, "DefaultInternalPath", 50);
-			Wt::Dbo::belongsTo(a, TitleKey, "TitleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+		protected:
+			BasePage() = default;
+			BasePage(const std::string &name)
+				: _name(name)
+			{ }
 
-			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Page");
-			Wt::Dbo::hasMany(a, AccessHostNameCollection, Wt::Dbo::ManyToOne, "DefaultPage");
-			Wt::Dbo::hasMany(a, MenuItemOnPageCollection, Wt::Dbo::ManyToOne, "Page");
+			std::string _name;
 
-			Wt::Dbo::hasMany(a, ChildrenPages, Wt::Dbo::ManyToOne, "Parent_Page");
-			Wt::Dbo::belongsTo(a, ParentPage, "Parent_Page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-		}
-		static const char *TableName()
+		public:
+			enum AuthRestriction
+			{
+				AuthUnrestricted = 0,
+				AuthLoggedIn = 1,
+				AuthLoggedInStrong = 2,
+				AuthLoggedOut = 3
+			};
+
+			std::string name() const { return _name; }
+			std::string	defaultInternalPath;
+			bool preload = false;
+			AuthRestriction authRestriction = AuthUnrestricted;
+			bool allowOnDisabledLogin = false;
+		};
+
+		class Page : public BasePage
 		{
-			return "page";
-		}
+		protected:
+			ptr<Module> _modulePtr;
 
-	private:
-		friend class PagesDatabase;
-};
-class PageData : public BasePage, public DataSurrogateKey
-{
-	protected:
-		long long _ModuleId;
+		public:
+			PageAccessPathCollection pageAccessPathCollection;
+			AccessHostNameCollection accessHostNameCollection;
+			MenuItemOnPageCollection menuItemOnPageCollection;
 
-	public:
-		PageData(Wt::Dbo::ptr<Page> Ptr);
+			ptr<SingularKey> titleKey;
 
-		std::string TitleKey;
-		long long TitleModuleId;
-		long long ParentPageId;
-		long long ModuleId() const { return _ModuleId; }
-};
+			PageCollection childrenPages;
+			ptr<Page> parentPage;
 
-#include "Dbo/AccessPath.h"
+			Page() = default;
+			Page(const std::string &name, ptr<Module> modulePtr)
+				: BasePage(name), _modulePtr(modulePtr)
+			{ }
+
+			ptr<Module> modulePtr() const { return _modulePtr; };
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::field(a, _name, "name", 50);
+				Wt::Dbo::belongsTo(a, _modulePtr, "module", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, defaultInternalPath, "defaultInternalPath", 50);
+				Wt::Dbo::belongsTo(a, titleKey, "titleKey", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+				Wt::Dbo::field(a, preload, "preload");
+				Wt::Dbo::field(a, authRestriction, "authRestriction");
+				Wt::Dbo::field(a, allowOnDisabledLogin, "allowOnDisabledLogin");
+
+				Wt::Dbo::hasMany(a, pageAccessPathCollection, Wt::Dbo::ManyToOne, "page");
+				Wt::Dbo::hasMany(a, accessHostNameCollection, Wt::Dbo::ManyToOne, "defaultPage");
+				Wt::Dbo::hasMany(a, menuItemOnPageCollection, Wt::Dbo::ManyToOne, "page");
+
+				Wt::Dbo::hasMany(a, childrenPages, Wt::Dbo::ManyToOne, "parent_page");
+				Wt::Dbo::belongsTo(a, parentPage, "parent_page", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+			}
+			constexpr static const char *tableName()
+			{
+				return "page";
+			}
+
+		private:
+			friend class PageDatabase;
+		};
+
+	}
+
+	namespace Ddo
+	{
+
+		class Page : public Dbo::BasePage, public SurrogateKey
+		{
+		protected:
+			long long _moduleId;
+
+		public:
+			Page(Dbo::ptr<Dbo::Page> ptr)
+				: BasePage(*ptr),
+				SurrogateKey(ptr.id()),
+				_moduleId(ptr->modulePtr().id()),
+				parentPageId(ptr->parentPage.id()),
+				titleKey(ptr->titleKey->key()),
+				titleModuleId(ptr->titleKey->modulePtr().id())
+			{ }
+
+			std::string titleKey;
+			long long titleModuleId;
+			long long parentPageId;
+			long long moduleId() const { return _moduleId; }
+		};
+
+	}
+
+}
 
 #endif

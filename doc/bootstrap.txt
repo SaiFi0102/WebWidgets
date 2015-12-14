@@ -1,0 +1,1 @@
+--docroot "D:\Programming\WtFork" --approot "C:\wt\approot" --http-address 0.0.0.0 --http-port 8080 --deploy-path="/ww" --accesslog="access.log"

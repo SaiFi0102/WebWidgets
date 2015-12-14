@@ -1,16 +1,19 @@
-#ifndef PAGETEMPLATE_WIDGET_H
-#define PAGETEMPLATE_WIDGET_H
+#ifndef WW_WIDGET_PAGETEMPLATE_H
+#define WW_WIDGET_PAGETEMPLATE_H
 
 #include <Wt/WCompositeWidget>
 #include <Wt/WTemplate>
 
-class PageTemplate : public Wt::WCompositeWidget
+namespace WW
 {
+	class PageTemplate : public Wt::WCompositeWidget
+	{
 	public:
-		PageTemplate(Wt::WContainerWidget *parent = 0);
+		PageTemplate(Wt::WContainerWidget *parent = nullptr);
 
 	protected:
-		Wt::WTemplate *ImplTemplate;
-};
+		Wt::WTemplate *_implTemplate;
+	};
+}
 
 #endif

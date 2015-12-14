@@ -1,21 +1,25 @@
 #include "DboDatabase/AbstractDboDatabase.h"
 
-AbstractDboDatabase::AbstractDboDatabase(DboDatabaseManager *Manager)
-: _Manager(Manager), _IsLoaded(false)
+namespace WW
 {
-	Manager->Add(this);
+
+AbstractDboDatabase::AbstractDboDatabase(DboDatabaseManager *manager)
+	: _manager(manager)
+{
+	manager->add(this);
 }
 
 AbstractDboDatabase::~AbstractDboDatabase()
 {
-	_Manager->Remove(this);
+	_manager->remove(this);
 }
 
-WServer *AbstractDboDatabase::Server() const
+WServer *AbstractDboDatabase::server() const
 {
-	if(!_Manager)
-	{
-		return 0;
-	}
-	return _Manager->Server();
+	if(!_manager)
+		return nullptr;
+
+	return _manager->server();
+}
+
 }

@@ -1,22 +1,24 @@
-#ifndef DBOCSSRULE_H
-#define DBOCSSRULE_H
+#ifndef WW_DBOCSSRULE_H
+#define WW_DBOCSSRULE_H
 
 #include <Wt/WCssStyleSheet>
-#include "Dbo/Style.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class DboCssRule : public Wt::WCssRule
+namespace WW
 {
+	class DboCssRule : public Wt::WCssRule
+	{
 	public:
-		DboCssRule(std::shared_ptr<const StyleCssRuleData> CssRulePtr, Wt::WObject *parent = 0);
-		DboCssRule(std::shared_ptr<const TemplateCssRuleData> CssRulePtr, Wt::WObject *parent = 0);
+		DboCssRule(Ddo::cPtr<Ddo::StyleCssRule> cssRulePtr, Wt::WObject *parent = nullptr);
+		DboCssRule(Ddo::cPtr<Ddo::TemplateCssRule> cssRulePtr, Wt::WObject *parent = nullptr);
 
-		virtual std::string selector() const;
-		virtual std::string declarations();
+		virtual std::string selector() const override;
+		virtual std::string declarations() override;
 
 	protected:
-		std::shared_ptr<const StyleCssRuleData> StyleCssRulePtr;
-		std::shared_ptr<const TemplateCssRuleData> TemplateCssRulePtr;
-		bool IsTemplate;
-};
+		Ddo::cPtr<Ddo::StyleCssRule> _styleCssRulePtr;
+		Ddo::cPtr<Ddo::TemplateCssRule> _templateCssRulePtr;
+	};
+}
 
 #endif

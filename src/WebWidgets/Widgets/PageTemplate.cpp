@@ -1,9 +1,14 @@
 #include "Widgets/PageTemplate.h"
-#include "DboDatabase/ModulesDatabase.h"
+#include "DboDatabase/ModuleDatabase.h"
+
+namespace WW
+{
 
 PageTemplate::PageTemplate(Wt::WContainerWidget *parent)
 	: Wt::WCompositeWidget(parent)
 {
-	setImplementation(ImplTemplate = new Wt::WTemplate());
-	ImplTemplate->setTemplateText(Wt::WString::tstr("body", ModulesDatabase::Navigation));
+	setImplementation(_implTemplate = new Wt::WTemplate());
+	_implTemplate->setTemplateText(Wt::WString::tstr("body", ModuleDatabase::Navigation));
+}
+
 }

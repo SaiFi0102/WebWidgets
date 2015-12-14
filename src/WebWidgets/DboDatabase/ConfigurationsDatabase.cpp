@@ -2,292 +2,283 @@
 #include "DboDatabase/ReadLock.h"
 #include <Wt/WLogger>
 
-ConfigurationsDatabase::ConfigurationsDatabase(DboDatabaseManager *Manager)
-: AbstractDboDatabase(Manager)
+namespace WW
+{
+
+ConfigurationsDatabase::ConfigurationsDatabase(DboDatabaseManager *manager)
+: AbstractDboDatabase(manager)
 { }
 
-void ConfigurationsDatabase::FetchAll(Wt::Dbo::Session &DboSession)
+void ConfigurationsDatabase::fetchAll(Wt::Dbo::Session &dboSession)
 {
 	//Time at start
-	boost::posix_time::ptime PTStart = boost::posix_time::microsec_clock::local_time();
+	boost::posix_time::ptime ptStart = boost::posix_time::microsec_clock::local_time();
 
 	//Insert into temporary objects first
-	BoolMaps boolmap;
-	DoubleMaps doublemap;
-	EnumMaps enummap;
-	FloatMaps floatmap;
-	IntMaps intmap;
-	LongIntMaps longintmap;
-	StringMaps stringmap;
+	BoolMap boolmap;
+	DoubleMap doublemap;
+	EnumMap enummap;
+	FloatMap floatmap;
+	IntMap intmap;
+	LongIntMap longintmap;
+	StringMap stringmap;
 	std::size_t count = 0;
 
-	BoolCollections BoolCollection;
-	DoubleCollections DoubleCollection;
-	EnumCollections EnumCollection;
-	FloatCollections FloatCollection;
-	IntCollections IntCollection;
-	LongIntCollections LongIntCollection;
-	StringCollections StringCollection;
+	Dbo::BoolCollection boolCollection;
+	Dbo::DoubleCollection doubleCollection;
+	Dbo::EnumCollection enumCollection;
+	Dbo::FloatCollection floatCollection;
+	Dbo::IntCollection intCollection;
+	Dbo::LongIntCollection longIntCollection;
+	Dbo::StringCollection stringCollection;
 
 	//Fetch em all
-	Wt::Dbo::Transaction transaction(DboSession);
-	BoolCollection = DboSession.find<ConfigurationBool>();
-	DoubleCollection = DboSession.find<ConfigurationDouble>();
-	EnumCollection = DboSession.find<ConfigurationEnum>();
-	FloatCollection = DboSession.find<ConfigurationFloat>();
-	IntCollection = DboSession.find<ConfigurationInt>();
-	LongIntCollection = DboSession.find<ConfigurationLongInt>();
-	StringCollection = DboSession.find<ConfigurationString>();
+	Wt::Dbo::Transaction transaction(dboSession);
+	boolCollection = dboSession.find<Dbo::ConfigurationBool>();
+	doubleCollection = dboSession.find<Dbo::ConfigurationDouble>();
+	enumCollection = dboSession.find<Dbo::ConfigurationEnum>();
+	floatCollection = dboSession.find<Dbo::ConfigurationFloat>();
+	intCollection = dboSession.find<Dbo::ConfigurationInt>();
+	longIntCollection = dboSession.find<Dbo::ConfigurationLongInt>();
+	stringCollection = dboSession.find<Dbo::ConfigurationString>();
 
 	//Bool
-	for(BoolCollections::const_iterator itr = BoolCollection.begin();
-		itr != BoolCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationBool> &ptr : boolCollection)
 	{
-		boolmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationBoolData>(new ConfigurationBoolData(*itr));
+		boolmap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationBool>(new Ddo::ConfigurationBool(ptr));
+		_count++;
 	}
 
 	//Double
-	for(DoubleCollections::const_iterator itr = DoubleCollection.begin();
-		itr != DoubleCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationDouble> &ptr : doubleCollection)
 	{
-		doublemap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationDoubleData>(new ConfigurationDoubleData(*itr));
+		doublemap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationDouble>(new Ddo::ConfigurationDouble(ptr));
+		_count++;
 	}
 
 	//Enum
-	for(EnumCollections::const_iterator itr = EnumCollection.begin();
-		itr != EnumCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationEnum> &ptr : enumCollection)
 	{
-		enummap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationEnumData>(new ConfigurationEnumData(*itr));
+		enummap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationEnum>(new Ddo::ConfigurationEnum(ptr));
+		_count++;
 	}
 
 	//Float
-	for(FloatCollections::const_iterator itr = FloatCollection.begin();
-		itr != FloatCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationFloat> &ptr : floatCollection)
 	{
-		floatmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationFloatData>(new ConfigurationFloatData(*itr));;
+		floatmap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationFloat>(new Ddo::ConfigurationFloat(ptr));
+		_count++;
 	}
 
 	//Int
-	for(IntCollections::const_iterator itr = IntCollection.begin();
-		itr != IntCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationInt> &ptr : intCollection)
 	{
-		intmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationIntData>(new ConfigurationIntData(*itr));;
+		intmap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationInt>(new Ddo::ConfigurationInt(ptr));
+		_count++;
 	}
 
 	//LongInt
-	for(LongIntCollections::const_iterator itr = LongIntCollection.begin();
-		itr != LongIntCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationLongInt> &ptr : longIntCollection)
 	{
-		longintmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationLongIntData>(new ConfigurationLongIntData(*itr));
+		longintmap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationLongInt>(new Ddo::ConfigurationLongInt(ptr));
+		_count++;
 	}
 
 	//String
-	for(StringCollections::const_iterator itr = StringCollection.begin();
-		itr != StringCollection.end();
-		++itr, Count++)
+	for(Dbo::ptr<Dbo::ConfigurationString> &ptr : stringCollection)
 	{
-		stringmap[std::make_pair(itr->id()->ModulePtr().id(), itr->id()->Name())] = std::shared_ptr<ConfigurationStringData>(new ConfigurationStringData(*itr));
+		stringmap[std::make_pair(ptr.id()->modulePtr().id(), ptr.id()->name())] = Ddo::ptr<Ddo::ConfigurationString>(new Ddo::ConfigurationString(ptr));
+		_count++;
 	}
 
 	transaction.commit();
-	BoolMap.swap(boolmap);
-	DoubleMap.swap(doublemap);
-	EnumMap.swap(enummap);
-	FloatMap.swap(floatmap);
-	IntMap.swap(intmap);
-	LongIntMap.swap(longintmap);
-	StringMap.swap(stringmap);
-	std::swap(Count, count);
+	_boolMap.swap(boolmap);
+	_doubleMap.swap(doublemap);
+	_enumMap.swap(enummap);
+	_floatMap.swap(floatmap);
+	_intMap.swap(intmap);
+	_longIntMap.swap(longintmap);
+	_stringMap.swap(stringmap);
+	std::swap(_count, count);
 
 	//Time at end
-	boost::posix_time::ptime PTEnd = boost::posix_time::microsec_clock::local_time();
-	LoadDuration = PTEnd - PTStart;
+	boost::posix_time::ptime ptEnd = boost::posix_time::microsec_clock::local_time();
+	_loadDuration = ptEnd - ptStart;
 
-	Wt::log("info") << Name() << ": " << Count << " entries successfully loaded in " << LoadDuration.total_milliseconds() << " ms";
+	Wt::log("info") << name() << ": " << _count << " entries successfully loaded in " << _loadDuration.total_milliseconds() << " ms";
 }
 
-std::shared_ptr<const ConfigurationBoolData> ConfigurationsDatabase::GetBoolPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationBool> ConfigurationsDatabase::getBoolPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	BoolMaps::const_iterator itr = BoolMap.find(std::make_pair(ModuleId, Name));
-	if(itr == BoolMap.end())
-	{
-		return std::shared_ptr<const ConfigurationBoolData>();
-	}
+	ReadLock lock(manager());
+	BoolMap::const_iterator itr = _boolMap.find(std::make_pair(moduleId, name));
+	if(itr == _boolMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationBool>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationDoubleData> ConfigurationsDatabase::GetDoublePtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationDouble> ConfigurationsDatabase::getDoublePtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	DoubleMaps::const_iterator itr = DoubleMap.find(std::make_pair(ModuleId, Name));
-	if(itr == DoubleMap.end())
-	{
-		return std::shared_ptr<const ConfigurationDoubleData>();
-	}
+	ReadLock lock(manager());
+	DoubleMap::const_iterator itr = _doubleMap.find(std::make_pair(moduleId, name));
+	if(itr == _doubleMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationDouble>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationEnumData> ConfigurationsDatabase::GetEnumPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationEnum> ConfigurationsDatabase::getEnumPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	EnumMaps::const_iterator itr = EnumMap.find(std::make_pair(ModuleId, Name));
-	if(itr == EnumMap.end())
-	{
-		return std::shared_ptr<const ConfigurationEnumData>();
-	}
+	ReadLock lock(manager());
+	EnumMap::const_iterator itr = _enumMap.find(std::make_pair(moduleId, name));
+	if(itr == _enumMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationEnum>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationFloatData> ConfigurationsDatabase::GetFloatPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationFloat> ConfigurationsDatabase::getFloatPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	FloatMaps::const_iterator itr = FloatMap.find(std::make_pair(ModuleId, Name));
-	if(itr == FloatMap.end())
-	{
-		return std::shared_ptr<const ConfigurationFloatData>();
-	}
+	ReadLock lock(manager());
+	FloatMap::const_iterator itr = _floatMap.find(std::make_pair(moduleId, name));
+	if(itr == _floatMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationFloat>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationIntData> ConfigurationsDatabase::GetIntPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationInt> ConfigurationsDatabase::getIntPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	IntMaps::const_iterator itr = IntMap.find(std::make_pair(ModuleId, Name));
-	if(itr == IntMap.end())
-	{
-		return std::shared_ptr<const ConfigurationIntData>();
-	}
+	ReadLock lock(manager());
+	IntMap::const_iterator itr = _intMap.find(std::make_pair(moduleId, name));
+	if(itr == _intMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationInt>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationLongIntData> ConfigurationsDatabase::GetLongIntPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationLongInt> ConfigurationsDatabase::getLongIntPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	LongIntMaps::const_iterator itr = LongIntMap.find(std::make_pair(ModuleId, Name));
-	if(itr == LongIntMap.end())
-	{
-		return std::shared_ptr<const ConfigurationLongIntData>();
-	}
+	ReadLock lock(manager());
+	LongIntMap::const_iterator itr = _longIntMap.find(std::make_pair(moduleId, name));
+	if(itr == _longIntMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationLongInt>();
+
 	return itr->second;
 }
 
-std::shared_ptr<const ConfigurationStringData> ConfigurationsDatabase::GetStringPtr(const std::string &Name, long long ModuleId) const
+Ddo::cPtr<Ddo::ConfigurationString> ConfigurationsDatabase::getStringPtr(const std::string &name, long long moduleId) const
 {
-	ReadLock lock(Manager());
-	StringMaps::const_iterator itr = StringMap.find(std::make_pair(ModuleId, Name));
-	if(itr == StringMap.end())
-	{
-		return std::shared_ptr<const ConfigurationStringData>();
-	}
+	ReadLock lock(manager());
+	StringMap::const_iterator itr = _stringMap.find(std::make_pair(moduleId, name));
+	if(itr == _stringMap.end())
+		return Ddo::cPtr<Ddo::ConfigurationString>();
+
 	return itr->second;
 }
 
 //Boolean getter
-bool ConfigurationsDatabase::GetBool(const std::string &Name, long long ModuleId, bool Default) const
+bool ConfigurationsDatabase::getBool(const std::string &name, long long moduleId, bool defaultValue) const
 {
-	std::shared_ptr<const ConfigurationBoolData> BoolPtr = GetBoolPtr(Name, ModuleId);
-	if(!BoolPtr)
+	Ddo::cPtr<Ddo::ConfigurationBool> boolPtr = getBoolPtr(name, moduleId);
+	if(!boolPtr)
 	{
-		Wt::log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "BoolPtr not found in ConfigurationsDatabase in GetBool(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return BoolPtr->Value;
+	return boolPtr->value;
 }
 
 //Double getter
-double ConfigurationsDatabase::GetDouble(const std::string &Name, long long ModuleId, double Default) const
+double ConfigurationsDatabase::getDouble(const std::string &name, long long moduleId, double defaultValue) const
 {
-	std::shared_ptr<const ConfigurationDoubleData> DoublePtr = GetDoublePtr(Name, ModuleId);
-	if(!DoublePtr)
+	Ddo::cPtr<Ddo::ConfigurationDouble> doublePtr = getDoublePtr(name, moduleId);
+	if(!doublePtr)
 	{
-		Wt::log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "DoublePtr not found in ConfigurationsDatabase in GetDouble(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return DoublePtr->Value;
+	return doublePtr->value;
 }
 
 //Enum getter
-int ConfigurationsDatabase::GetEnum(const std::string &Name, long long ModuleId, int Default) const
+int ConfigurationsDatabase::getEnum(const std::string &name, long long moduleId, int defaultValue) const
 {
-	std::shared_ptr<const ConfigurationEnumData> EnumPtr = GetEnumPtr(Name, ModuleId);
-	if(!EnumPtr)
+	Ddo::cPtr<Ddo::ConfigurationEnum> enumPtr = getEnumPtr(name, moduleId);
+	if(!enumPtr)
 	{
-		Wt::log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "EnumPtr not found in ConfigurationsDatabase in GetEnum(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return EnumPtr->Value;
+	return enumPtr->value;
 }
 
 //Float getter
-float ConfigurationsDatabase::GetFloat(const std::string &Name, long long ModuleId, float Default) const
+float ConfigurationsDatabase::getFloat(const std::string &name, long long moduleId, float defaultValue) const
 {
-	std::shared_ptr<const ConfigurationFloatData> FloatPtr = GetFloatPtr(Name, ModuleId);
-	if(!FloatPtr)
+	Ddo::cPtr<Ddo::ConfigurationFloat> floatPtr = getFloatPtr(name, moduleId);
+	if(!floatPtr)
 	{
-		Wt::log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "FloatPtr not found in ConfigurationsDatabase in GetFloat(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return FloatPtr->Value;
+	return floatPtr->value;
 }
 
 //Integer getter
-int ConfigurationsDatabase::GetInt(const std::string &Name, long long ModuleId, int Default) const
+int ConfigurationsDatabase::getInt(const std::string &name, long long moduleId, int defaultValue) const
 {
-	std::shared_ptr<const ConfigurationIntData> IntPtr = GetIntPtr(Name, ModuleId);
-	if(!IntPtr)
+	Ddo::cPtr<Ddo::ConfigurationInt> intPtr = getIntPtr(name, moduleId);
+	if(!intPtr)
 	{
-		Wt::log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "IntPtr not found in ConfigurationsDatabase in GetInt(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return IntPtr->Value;
+	return intPtr->value;
 }
 
 //Long integer getter
-long long ConfigurationsDatabase::GetLongInt(const std::string &Name, long long ModuleId, long long Default) const
+long long ConfigurationsDatabase::getLongInt(const std::string &name, long long moduleId, long long defaultValue) const
 {
-	std::shared_ptr<const ConfigurationLongIntData> LongIntPtr = GetLongIntPtr(Name, ModuleId);
-	if(!LongIntPtr)
+	Ddo::cPtr<Ddo::ConfigurationLongInt> longIntPtr = getLongIntPtr(name, moduleId);
+	if(!longIntPtr)
 	{
-		Wt::log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "LongIntPtr not found in ConfigurationsDatabase in GetLongInt(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return LongIntPtr->Value;
+	return longIntPtr->value;
 }
 
 //String getter
-std::string ConfigurationsDatabase::GetStr(const std::string &Name, long long ModuleId, std::string Default) const
+std::string ConfigurationsDatabase::getStr(const std::string &name, long long moduleId, std::string defaultValue) const
 {
-	std::shared_ptr<const ConfigurationStringData> StringPtr = GetStringPtr(Name, ModuleId);
-	if(!StringPtr)
+	Ddo::cPtr<Ddo::ConfigurationString> stringPtr = getStringPtr(name, moduleId);
+	if(!stringPtr)
 	{
-		Wt::log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << Name << ", ModuleId: " << ModuleId << ", Default Value: " << Default;
-		return Default;
+		Wt::log("warn") << "StringPtr not found in ConfigurationsDatabase in GetString(...). Name: " << name << ", ModuleId: " << moduleId << ", Default Value: " << defaultValue;
+		return defaultValue;
 	}
-	return StringPtr->Value;
+	return stringPtr->value;
 }
 
-long long ConfigurationsDatabase::GetLoadDurationinMS() const
+long long ConfigurationsDatabase::getLoadDurationinMS() const
 {
-	ReadLock lock(Manager());
-	return LoadDuration.total_milliseconds();
+	ReadLock lock(manager());
+	return _loadDuration.total_milliseconds();
 }
 
-std::size_t ConfigurationsDatabase::CountConfigurations() const
+std::size_t ConfigurationsDatabase::configurationsCount() const
 {
-	ReadLock lock(Manager());
-	return Count;
+	ReadLock lock(manager());
+	return _count;
 }
 
-void ConfigurationsDatabase::Load(Wt::Dbo::Session &DboSession)
+void ConfigurationsDatabase::load(Wt::Dbo::Session &dboSession)
 {
-	MAPDBOCASSES(DboSession)
+	MAP_MODULE_DBO_TREE(dboSession)
 
-	FetchAll(DboSession);
+	fetchAll(dboSession);
+}
+
 }

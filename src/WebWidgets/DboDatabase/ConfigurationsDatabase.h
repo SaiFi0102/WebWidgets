@@ -1,66 +1,69 @@
-#ifndef CONFIGURATIONS_DATABASE_H
-#define CONFIGURATIONS_DATABASE_H
+#ifndef WW_DBODATABASE_CONFIGURATION_H
+#define WW_DBODATABASE_CONFIGURATION_H
 
 #include <unordered_map>
 #include "Objects/PairHash.h"
 #include "DboDatabase/AbstractDboDatabase.h"
-#include "Dbo/Configuration.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class ConfigurationsDatabase : public AbstractDboDatabase
+namespace WW
 {
+	class ConfigurationsDatabase : public AbstractDboDatabase
+	{
 	protected:
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationBoolData> > BoolMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationDoubleData> > DoubleMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationEnumData> > EnumMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationFloatData> > FloatMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationIntData> > IntMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationLongIntData> > LongIntMaps;
-		typedef std::unordered_map< std::pair<long long, std::string>, std::shared_ptr<ConfigurationStringData> > StringMaps;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationBool> > BoolMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationDouble> > DoubleMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationEnum> > EnumMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationFloat> > FloatMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationInt> > IntMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationLongInt> > LongIntMap;
+		typedef std::unordered_map< std::pair<long long, std::string>, Ddo::ptr<Ddo::ConfigurationString> > StringMap;
 
 	public:
 		ConfigurationsDatabase(DboDatabaseManager *Manager);
 
-		std::shared_ptr<const ConfigurationBoolData> GetBoolPtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationDoubleData> GetDoublePtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationEnumData> GetEnumPtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationFloatData> GetFloatPtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationIntData> GetIntPtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationLongIntData> GetLongIntPtr(const std::string &Name, long long ModuleId) const;
-		std::shared_ptr<const ConfigurationStringData> GetStringPtr(const std::string &Name, long long ModuleId) const;
+		Ddo::cPtr<Ddo::ConfigurationBool> getBoolPtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationDouble> getDoublePtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationEnum> getEnumPtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationFloat> getFloatPtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationInt> getIntPtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationLongInt> getLongIntPtr(const std::string &name, long long moduleId) const;
+		Ddo::cPtr<Ddo::ConfigurationString> getStringPtr(const std::string &name, long long moduleId) const;
 
-		bool GetBool(const std::string &Name, long long ModuleId, bool Default) const;
-		double GetDouble(const std::string &Name, long long ModuleId, double Default) const;
-		int GetEnum(const std::string &Name, long long ModuleId, int Default) const;
-		float GetFloat(const std::string &Name, long long ModuleId, float Default) const;
-		int GetInt(const std::string &Name, long long ModuleId, int Default) const;
-		long long GetLongInt(const std::string &Name, long long ModuleId, long long Default) const;
-		std::string GetStr(const std::string &Name, long long ModuleId, std::string Default = "") const;
+		bool getBool(const std::string &name, long long moduleId, bool defaultValue) const;
+		double getDouble(const std::string &name, long long moduleId, double defaultValue) const;
+		int getEnum(const std::string &name, long long moduleId, int defaultValue) const;
+		float getFloat(const std::string &name, long long moduleId, float defaultValue) const;
+		int getInt(const std::string &name, long long moduleId, int defaultValue) const;
+		long long getLongInt(const std::string &name, long long moduleId, long long defaultValue) const;
+		std::string getStr(const std::string &name, long long moduleId, std::string defaultValue = "") const;
 
-		long long GetLoadDurationinMS() const;
-		std::size_t CountConfigurations() const;
+		long long getLoadDurationinMS() const;
+		std::size_t configurationsCount() const;
 
-		virtual std::string Name() const { return "ConfigurationsDatabase"; }
+		virtual std::string name() const override { return "ConfigurationsDatabase"; }
 
 	protected:
-		virtual void Load(Wt::Dbo::Session &DboSession);
-		virtual void Reload(Wt::Dbo::Session &DboSession) { FetchAll(DboSession); }
-		void FetchAll(Wt::Dbo::Session &DboSession);
+		virtual void load(Wt::Dbo::Session &DboSession) override;
+		virtual void reload(Wt::Dbo::Session &DboSession) override { fetchAll(DboSession); }
+		void fetchAll(Wt::Dbo::Session &DboSession);
 
-		virtual bool IsVital() const { return true; }
+		virtual bool isVital() const override { return true; }
 
-		BoolMaps BoolMap;
-		DoubleMaps DoubleMap;
-		EnumMaps EnumMap;
-		FloatMaps FloatMap;
-		IntMaps IntMap;
-		LongIntMaps LongIntMap;
-		StringMaps StringMap;
+		BoolMap _boolMap;
+		DoubleMap _doubleMap;
+		EnumMap _enumMap;
+		FloatMap _floatMap;
+		IntMap _intMap;
+		LongIntMap _longIntMap;
+		StringMap _stringMap;
 
-		boost::posix_time::time_duration LoadDuration;
-		std::size_t Count;
+		boost::posix_time::time_duration _loadDuration;
+		std::size_t _count;
 
 	private:
-		friend class ConfigurationsCache;
-};
+		friend class ConfigurationCache;
+	};
+}
 
 #endif

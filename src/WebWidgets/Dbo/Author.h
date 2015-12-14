@@ -1,45 +1,45 @@
-#ifndef AUTHOR_DBO_H
-#define AUTHOR_DBO_H
+#ifndef WW_DBO_AUTHOR_H
+#define WW_DBO_AUTHOR_H
 
-#include "DboTraits.h"
-#include "Dbo/Module.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class Author
+namespace WW
 {
-	public:
-		std::string Name;
-		std::string Email;
-		std::string Website;
-
-		ModuleCollections ModuleCollection;
-		StyleCollections StyleCollection;
-
-		Author()
-			: _id(-1)
-		{};
-
-		Author(long long id)
-			: _id(id)
-		{};
-
-		template<class Action>void persist(Action &a)
+	namespace Dbo
+	{
+		class Author
 		{
-			Wt::Dbo::id(a, _id);
-			Wt::Dbo::field(a, Name, "Name", 255);
-			Wt::Dbo::field(a, Email, "Email", 255);
-			Wt::Dbo::field(a, Website, "Website", 255);
+		public:
+			std::string name;
+			std::string email;
+			std::string website;
 
-			Wt::Dbo::hasMany(a, ModuleCollection, Wt::Dbo::ManyToOne, "Author");
-			Wt::Dbo::hasMany(a, StyleCollection, Wt::Dbo::ManyToOne, "Author");
-		}
-		static const char *TableName()
-		{
-			return "author";
-		}
-	private:
-		long long _id;
-};
+			ModuleCollection moduleCollection;
+			StyleCollection styleCollection;
 
-#include "Dbo/Style.h"
+			Author() = default;
+			Author(long long id)
+				: _id(id)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _id);
+				Wt::Dbo::field(a, name, "name", 255);
+				Wt::Dbo::field(a, email, "email", 255);
+				Wt::Dbo::field(a, website, "website", 255);
+
+				Wt::Dbo::hasMany(a, moduleCollection, Wt::Dbo::ManyToOne, "author");
+				Wt::Dbo::hasMany(a, styleCollection, Wt::Dbo::ManyToOne, "author");
+			}
+			constexpr static const char *tableName()
+			{
+				return "author";
+			}
+		private:
+			long long _id = -1;
+		};
+	}
+}
 
 #endif

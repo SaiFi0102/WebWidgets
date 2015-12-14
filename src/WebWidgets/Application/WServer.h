@@ -1,5 +1,5 @@
-#ifndef SERVER_WAPPLICATION_H
-#define SERVER_WAPPLICATION_H
+#ifndef WW_WSERVER_H
+#define WW_WSERVER_H
 
 #include <Wt/WServer>
 
@@ -11,73 +11,80 @@
 
 #include <3rdparty/rapidxml/rapidxml.hpp>
 
-class Application;
-class DboInstaller;
-class ModulesDatabase;
-class ConfigurationsDatabase;
-class LanguagesDatabase;
-class StylesDatabase;
-class PagesDatabase;
-class AccessPathsDatabase;
-class NavigationMenusDatabase;
-class DboDatabaseManager;
-
-typedef std::vector<const Wt::Auth::OAuthService *> OAuthServiceMap;
-
-class WServer : public Wt::WServer
+namespace WW
 {
+	namespace Installer
+	{
+		class DboInstaller;
+	}
+	class WApplication;
+	class ModuleDatabase;
+	class ConfigurationsDatabase;
+	class LanguageDatabase;
+	class StyleDatabase;
+	class PageDatabase;
+	class AccessPathDatabase;
+	class NavigationMenuDatabase;
+	class DboDatabaseManager;
+
+	typedef std::vector<const Wt::Auth::OAuthService*> OAuthServiceMap;
+
+	class WServer : public Wt::WServer
+	{
 	public:
 		WServer(const std::string& wtApplicationPath = std::string(), const std::string& wtConfigurationFile = std::string());
-		~WServer();
-		
-		DboDatabaseManager *DatabaseManager() const { return _DboManager; }
-		ModulesDatabase *Modules() const { return _Modules; }
-		ConfigurationsDatabase *Configurations() const { return _Configurations; }
-		LanguagesDatabase *Languages() const { return _Languages; }
-		StylesDatabase *Styles() const { return _Styles; }
-		PagesDatabase *Pages() const { return _Pages; }
-		AccessPathsDatabase *AccessPaths() const { return _AccessPaths; }
-		NavigationMenusDatabase *NavigationMenus() const { return _NavigationMenus; }
+		virtual ~WServer() override;
 
-		const Wt::Auth::AuthService &GetAuthService() const { return AuthService; }
-		const Wt::Auth::PasswordService &GetPasswordService() const { return PasswordService; }
-		const OAuthServiceMap &GetOAuthServices() const { OAuthServices; }
+		DboDatabaseManager *databaseManager() const { return _dboManager; }
+		ModuleDatabase *modules() const { return _modules; }
+		ConfigurationsDatabase *configurations() const { return _configurations; }
+		LanguageDatabase *languages() const { return _languages; }
+		StyleDatabase *styles() const { return _styles; }
+		PageDatabase *pages() const { return _pages; }
+		AccessPathDatabase *accessPaths() const { return _accessPaths; }
+		NavigationMenuDatabase *navigationMenus() const { return _navigationMenus; }
 
-		boost::posix_time::ptime StartPTime() const { return PTStart; }
-		bool Start();
+		Wt::Dbo::SqlConnectionPool *sqlPool() const { return _sqlPool; }
+
+		const Wt::Auth::AuthService &getAuthService() const { return _authService; }
+		const Wt::Auth::PasswordService &getPasswordService() const { return _passwordService; }
+		const OAuthServiceMap &getOAuthServices() const { return _oAuthServices; }
+
+		boost::posix_time::ptime startPTime() const { return _ptStart; }
+		bool start();
 
 		static WServer *instance() { return dynamic_cast<WServer*>(Wt::WServer::instance()); }
 
 	protected:
-		void ConfigureAuth();
-		void CreateWtXmlConfiguration();
-		void Initialize();
+		void configureAuth();
+		void createWtXmlConfiguration();
+		void initialize();
 
-		void DboDatabaseReloadHandler();
+		void dboDatabaseReloadHandler();
 
-		Wt::Dbo::SqlConnectionPool *SQLPool;
+		Wt::Dbo::SqlConnectionPool *_sqlPool = nullptr;
 
-		DboInstaller *_Installer;
-		DboDatabaseManager *_DboManager;
-		ModulesDatabase *_Modules;
-		ConfigurationsDatabase *_Configurations;
-		LanguagesDatabase *_Languages;
-		StylesDatabase *_Styles;
-		PagesDatabase *_Pages;
-		AccessPathsDatabase *_AccessPaths;
-		NavigationMenusDatabase *_NavigationMenus;
+		Installer::DboInstaller *_installer = nullptr;
+		DboDatabaseManager *_dboManager = nullptr;
+		ModuleDatabase *_modules = nullptr;
+		ConfigurationsDatabase *_configurations = nullptr;
+		LanguageDatabase *_languages = nullptr;
+		StyleDatabase *_styles = nullptr;
+		PageDatabase *_pages = nullptr;
+		AccessPathDatabase *_accessPaths = nullptr;
+		NavigationMenuDatabase *_navigationMenus = nullptr;
 
-		Wt::rapidxml::xml_document<> XmlDoc;
-		boost::posix_time::ptime PTBeforeLoad;
-		boost::posix_time::ptime PTStart;
+		Wt::rapidxml::xml_document<> _xmlDoc;
+		boost::posix_time::ptime _ptBeforeLoad;
+		boost::posix_time::ptime _ptStart;
 
-		Wt::Auth::AuthService AuthService;
-		Wt::Auth::PasswordService PasswordService;
-		OAuthServiceMap OAuthServices;
+		Wt::Auth::AuthService _authService;
+		Wt::Auth::PasswordService _passwordService;
+		OAuthServiceMap _oAuthServices;
 
 	private:
-		friend int main(int argc, char** argv);
 		friend class DboDatabaseManager;
-};
+	};
+}
 
 #endif

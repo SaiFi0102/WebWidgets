@@ -1,43 +1,36 @@
 #include "Objects/DboCssRule.h"
 
-DboCssRule::DboCssRule(std::shared_ptr<const StyleCssRuleData> CssRulePtr, Wt::WObject *parent)
-	: StyleCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(false)
+namespace WW
 {
-	if(!CssRulePtr)
-	{
+
+DboCssRule::DboCssRule(Ddo::cPtr<Ddo::StyleCssRule> cssRulePtr, Wt::WObject *parent)
+: _styleCssRulePtr(cssRulePtr), Wt::WCssRule(parent)
+{
+	if(!cssRulePtr)
 		throw std::runtime_error("DboCssRule constructor called with an empty CssRulePtr");
-	}
 }
 
-DboCssRule::DboCssRule(std::shared_ptr<const TemplateCssRuleData> CssRulePtr, Wt::WObject *parent)
-	: TemplateCssRulePtr(CssRulePtr), Wt::WCssRule(parent), IsTemplate(true)
+DboCssRule::DboCssRule(Ddo::cPtr<Ddo::TemplateCssRule> CssRulePtr, Wt::WObject *parent)
+: _templateCssRulePtr(CssRulePtr), Wt::WCssRule(parent)
 {
 	if(!CssRulePtr)
-	{
 		throw std::runtime_error("DboCssRule constructor called with an empty CssRulePtr");
-	}
 }
 
 std::string DboCssRule::selector() const
 {
-	if(IsTemplate)
-	{
-		return TemplateCssRulePtr->Selector;
-	}
+	if(_templateCssRulePtr)
+		return _templateCssRulePtr->selector;
 	else
-	{
-		return StyleCssRulePtr->Selector;
-	}
+		return _styleCssRulePtr->selector;
 }
 
 std::string DboCssRule::declarations()
 {
-	if(IsTemplate)
-	{
-		return TemplateCssRulePtr->Declarations;
-	}
+	if(_templateCssRulePtr)
+		return _templateCssRulePtr->declarations;
 	else
-	{
-		return StyleCssRulePtr->Declarations;
-	}
+		return _styleCssRulePtr->declarations;
+}
+
 }

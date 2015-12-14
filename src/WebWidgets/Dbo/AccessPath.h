@@ -1,166 +1,189 @@
-#ifndef ACCESSPATH_DBO_H
-#define ACCESSPATH_DBO_H
+#ifndef WW_DBO_ACCESSPATH_H
+#define WW_DBO_ACCESSPATH_H
 
-#include "Dbo/DboTraits.h"
-#include "Dbo/Language.h"
-#include "Dbo/Page.h"
-#include "Dbo/Style.h"
-#include "Dbo/NavigationMenu.h"
+#include "Dbo/ModuleTreeDbos.h"
 
-class AccessHostName
+namespace WW
 {
-	public:
-		std::string HostName() const { return _HostName; }
-		Wt::Dbo::ptr<Language> LanguagePtr;
-		Wt::Dbo::ptr<Page> DefaultPagePtr;
-		Wt::Dbo::ptr<Style> StylePtr;
-		bool MobileMode;
-		std::string MobileInternalPath;
-
-		PageAccessPathCollections PageAccessPathCollection;
-		LanguageAccessPathCollections LanguageAccessPathCollection;
-		NavigationMenuItemCollections ShownOnPageMenuItemCollection;
-
-		AccessHostName(const std::string &HostName = "")
-			: _HostName(HostName), MobileMode(false)
-		{ }
-
-		template<class Action>void persist(Action &a)
+	namespace Dbo
+	{
+		class AccessHostName
 		{
-			Wt::Dbo::id(a, _HostName, "HostName", 255);
-			Wt::Dbo::belongsTo(a, LanguagePtr, "Language", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::belongsTo(a, DefaultPagePtr, "DefaultPage", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::belongsTo(a, StylePtr, "Style", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::field(a, MobileMode, "MobileMode");
-			Wt::Dbo::field(a, MobileInternalPath, "MobileInternalPath", 255);
-			Wt::Dbo::hasMany(a, PageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
-			Wt::Dbo::hasMany(a, LanguageAccessPathCollection, Wt::Dbo::ManyToOne, "Access");
-			Wt::Dbo::hasMany(a, ShownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "accesshost_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
-		}
-		static const char *TableName()
+		public:
+			std::string hostName() const { return _hostName; }
+			ptr<Language> languagePtr;
+			ptr<Page> defaultPagePtr;
+			ptr<Style> stylePtr;
+			bool mobileMode = false;
+			std::string mobileInternalPath;
+
+			PageAccessPathCollection pageAccessPathCollection;
+			LanguageAccessPathCollection languageAccessPathCollection;
+			NavigationMenuItemCollection shownOnPageMenuItemCollection;
+
+			AccessHostName() = default;
+			AccessHostName(const std::string &hostName)
+				: _hostName(hostName)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::id(a, _hostName, "hostName", 255);
+				Wt::Dbo::belongsTo(a, languagePtr, "language", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::belongsTo(a, defaultPagePtr, "defaultPage", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::belongsTo(a, stylePtr, "style", Wt::Dbo::OnDeleteSetNull | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::field(a, mobileMode, "mobileMode");
+				Wt::Dbo::field(a, mobileInternalPath, "mobileInternalPath", 255);
+				Wt::Dbo::hasMany(a, pageAccessPathCollection, Wt::Dbo::ManyToOne, "access");
+				Wt::Dbo::hasMany(a, languageAccessPathCollection, Wt::Dbo::ManyToOne, "access");
+				Wt::Dbo::hasMany(a, shownOnPageMenuItemCollection, Wt::Dbo::ManyToMany, "accesshost_show_menuitem", "", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade | Wt::Dbo::NotNull);
+			}
+			constexpr static const char *tableName()
+			{
+				return "accesshostname";
+			}
+
+		protected:
+			std::string _hostName;
+		};
+
+		class BaseAccessPath
 		{
-			return "accesshostname";
-		}
+		public:
+			std::string internalPath() const { return _internalPath; }
+			ptr<AccessHostName> accessHostNamePtr() const { return _accessHostNamePtr; }
 
-	protected:
-		std::string _HostName;
-};
-class AccessHostNameData
-{
-	public:
-		std::string HostName;
-		std::string LanguageCode;
-		long long DefaultPageId;
-		long long StyleId;
-		bool MobileMode;
-		std::string MobileInternalPath;
+		protected:
+			BaseAccessPath() = default;
+			BaseAccessPath(ptr<AccessHostName> accessHostNamePtr, const std::string &internalPath)
+				: _accessHostNamePtr(accessHostNamePtr), _internalPath(internalPath)
+			{ }
 
-		AccessHostNameData(Wt::Dbo::ptr<AccessHostName> Ptr)
-			: HostName(Ptr.id()),
-			LanguageCode(Ptr->LanguagePtr.id()),
-			DefaultPageId(Ptr->DefaultPagePtr.id()),
-			StyleId(Ptr->StylePtr.id()),
-			MobileMode(Ptr->MobileMode),
-			MobileInternalPath(Ptr->MobileInternalPath)
-		{ }
-};
+			std::string _internalPath;
+			ptr<AccessHostName> _accessHostNamePtr;
+		};
 
-class BaseAccessPath
-{
-	public:
-		std::string InternalPath() const { return _InternalPath; }
-		Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr() const { return _AccessHostNamePtr; }
-
-		BaseAccessPath(Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr, const std::string &InternalPath)
-			: _AccessHostNamePtr(AccessHostNamePtr), _InternalPath(InternalPath)
-		{ }
-	
-	protected:
-		std::string _InternalPath;
-		Wt::Dbo::ptr<AccessHostName> _AccessHostNamePtr;
-};
-
-class PageAccessPath : public BaseAccessPath
-{
-	public:
-		Wt::Dbo::ptr<Page> PagePtr;
-		NavigationMenuItemCollections PageMenuItemCollection;
-		MenuItemOnPageAccessPathCollections MenuItemOnPageAccessPathCollection;
-
-		Wt::Dbo::ptr<PageAccessPath> ParentAccessPathPtr() const { return _ParentAccessPathPtr; }
-		PageAccessPathCollections ChildrenAccessPaths;
-
-		PageAccessPath(Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr = Wt::Dbo::ptr<AccessHostName>(),
-			const std::string &InternalPath = "",
-			Wt::Dbo::ptr<PageAccessPath> ParentAccessPathPtr = Wt::Dbo::ptr<PageAccessPath>())
-			: BaseAccessPath(AccessHostNamePtr, InternalPath), _ParentAccessPathPtr(ParentAccessPathPtr)
-		{ }
-
-		template<class Action>void persist(Action &a)
+		class PageAccessPath : public BaseAccessPath
 		{
-			Wt::Dbo::belongsTo(a, _AccessHostNamePtr, "Access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::field(a, _InternalPath, "InternalPath", 255);
-			Wt::Dbo::belongsTo(a, PagePtr, "Page", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::hasMany(a, PageMenuItemCollection, Wt::Dbo::ManyToOne, "AccessPath");
-			Wt::Dbo::hasMany(a, MenuItemOnPageAccessPathCollection, Wt::Dbo::ManyToOne, "PageAccessPath");
+		public:
+			ptr<Page> pagePtr;
+			NavigationMenuItemCollection pageMenuItemCollection;
+			MenuItemOnPageAccessPathCollection menuItemOnPageAccessPathCollection;
 
-			Wt::Dbo::hasMany(a, ChildrenAccessPaths, Wt::Dbo::ManyToOne, "Parent_AccessPath");
-			Wt::Dbo::belongsTo(a, _ParentAccessPathPtr, "Parent_AccessPath", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-		}
-		static const char *TableName()
+			ptr<PageAccessPath> parentAccessPathPtr() const { return _parentAccessPathPtr; }
+			PageAccessPathCollection childrenAccessPaths;
+
+			PageAccessPath() = default;
+			PageAccessPath(ptr<AccessHostName> accessHostNamePtr, const std::string &internalPath, ptr<PageAccessPath> parentAccessPathPtr = ptr<PageAccessPath>())
+				: BaseAccessPath(accessHostNamePtr, internalPath), _parentAccessPathPtr(parentAccessPathPtr)
+			{ }
+
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::belongsTo(a, _accessHostNamePtr, "access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::field(a, _internalPath, "internalPath", 255);
+				Wt::Dbo::belongsTo(a, pagePtr, "page", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::hasMany(a, pageMenuItemCollection, Wt::Dbo::ManyToOne, "accessPath");
+				Wt::Dbo::hasMany(a, menuItemOnPageAccessPathCollection, Wt::Dbo::ManyToOne, "pageAccessPath");
+
+				Wt::Dbo::hasMany(a, childrenAccessPaths, Wt::Dbo::ManyToOne, "parent_accessPath");
+				Wt::Dbo::belongsTo(a, _parentAccessPathPtr, "parent_accessPath", Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+			}
+			constexpr static const char *tableName()
+			{
+				return "pageaccesspath";
+			}
+
+		protected:
+			ptr<PageAccessPath> _parentAccessPathPtr;
+		};
+
+		class LanguageAccessPath : public BaseAccessPath
 		{
-			return "pageaccesspath";
-		}
+		public:
+			ptr<Language> languagePtr;
 
-	protected:
-		Wt::Dbo::ptr<PageAccessPath> _ParentAccessPathPtr;
-};
-class PageAccessPathData : public DataSurrogateKey
-{
-	public:
-		std::string HostName;
-		std::string InternalPath;
-		std::string FullPath;
-		long long PageId;
-		long long ParentAccessPathId;
+			LanguageAccessPath() = default;
+			LanguageAccessPath(ptr<AccessHostName> accessHostNamePtr, const std::string &internalPath)
+				: BaseAccessPath(accessHostNamePtr, internalPath)
+			{ }
 
-		PageAccessPathData(Wt::Dbo::ptr<PageAccessPath> Ptr);
-};
+			template<class Action>void persist(Action &a)
+			{
+				Wt::Dbo::belongsTo(a, _accessHostNamePtr, "access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+				Wt::Dbo::field(a, _internalPath, "internalPath", 255);
+				Wt::Dbo::belongsTo(a, languagePtr, "language", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
+			}
+			constexpr static const char *tableName()
+			{
+				return "languageaccesspath";
+			}
+		};
+	}
 
-class LanguageAccessPath : public BaseAccessPath
-{
-	public:
-		Wt::Dbo::ptr<Language> LanguagePtr;
-
-		LanguageAccessPath(Wt::Dbo::ptr<AccessHostName> AccessHostNamePtr = Wt::Dbo::ptr<AccessHostName>(),
-			const std::string &InternalPath = "")
-			: BaseAccessPath(AccessHostNamePtr, InternalPath)
-		{ }
-
-		template<class Action>void persist(Action &a)
+	namespace Ddo
+	{
+		class AccessHostName
 		{
-			Wt::Dbo::belongsTo(a, _AccessHostNamePtr, "Access", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-			Wt::Dbo::field(a, _InternalPath, "InternalPath", 255);
-			Wt::Dbo::belongsTo(a, LanguagePtr, "Language", Wt::Dbo::NotNull | Wt::Dbo::OnDeleteCascade | Wt::Dbo::OnUpdateCascade);
-		}
-		static const char *TableName()
-		{
-			return "languageaccesspath";
-		}
-};
-class LanguageAccessPathData : public DataSurrogateKey
-{
-	public:
-		std::string HostName;
-		std::string InternalPath;
-		std::string LanguageCode;
+		public:
+			std::string hostName;
+			std::string languageCode;
+			long long defaultPageId;
+			long long styleId;
+			bool mobileMode;
+			std::string mobileInternalPath;
 
-		LanguageAccessPathData(Wt::Dbo::ptr<LanguageAccessPath> Ptr)
-			: DataSurrogateKey(Ptr.id()),
-			HostName(Ptr->AccessHostNamePtr().id()),
-			InternalPath(Ptr->InternalPath()),
-			LanguageCode(Ptr->LanguagePtr.id())
-		{ }
-};
+			AccessHostName(Dbo::ptr<Dbo::AccessHostName> ptr)
+				: hostName(ptr.id()),
+				languageCode(ptr->languagePtr.id()),
+				defaultPageId(ptr->defaultPagePtr.id()),
+				styleId(ptr->stylePtr.id()),
+				mobileMode(ptr->mobileMode),
+				mobileInternalPath(ptr->mobileInternalPath)
+			{ }
+		};
+
+		class PageAccessPath : public SurrogateKey
+		{
+		public:
+			std::string hostName;
+			std::string internalPath;
+			std::string fullPath;
+			long long pageId;
+			long long parentAccessPathId;
+
+			PageAccessPath(Dbo::ptr<Dbo::PageAccessPath> ptr)
+				: SurrogateKey(ptr.id()),
+				hostName(ptr->accessHostNamePtr().id()),
+				internalPath(ptr->internalPath()),
+				pageId(ptr->pagePtr.id()),
+				parentAccessPathId(ptr->parentAccessPathPtr().id())
+			{
+				fullPath = internalPath;
+				Dbo::ptr<Dbo::PageAccessPath> parentAccessPathPtr = ptr->parentAccessPathPtr();
+				while (parentAccessPathPtr)
+				{
+					fullPath.insert(0, parentAccessPathPtr->internalPath() + "/");
+					parentAccessPathPtr = parentAccessPathPtr->parentAccessPathPtr();
+				}
+			}
+		};
+
+		class LanguageAccessPath : public SurrogateKey
+		{
+		public:
+			std::string hostName;
+			std::string internalPath;
+			std::string languageCode;
+
+			LanguageAccessPath(Dbo::ptr<Dbo::LanguageAccessPath> Ptr)
+				: SurrogateKey(Ptr.id()),
+				hostName(Ptr->accessHostNamePtr().id()),
+				internalPath(Ptr->internalPath()),
+				languageCode(Ptr->languagePtr.id())
+			{ }
+		};
+	}
+}
 
 #endif
