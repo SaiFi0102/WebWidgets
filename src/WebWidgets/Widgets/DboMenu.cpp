@@ -78,11 +78,11 @@ DboMenuItem::DboMenuItem(Ddo::cPtr<Ddo::NavigationMenuItem> itemPtr)
 	if(itemPtr->accessPathId != -1)
 		_accessPathPtr = server->accessPaths()->pageAccessPathPtr(itemPtr->accessPathId);
 
-	app->pageChanged().connect(std::bind(&DboMenuItem::handlePageChanged, this));
-	app->localeChanged().connect(std::bind(&DboMenuItem::handleLocaleChanged, this));
-	app->styleChanged().connect(std::bind(&DboMenuItem::handleStyleChanged, this));
-	app->internalPathChanged().connect(std::bind(&DboMenuItem::handlePageChanged, this));
-	app->session().login().changed().connect(std::bind(&DboMenuItem::handleAuthEvent, this));
+	app->pageChanged().connect(std::bind(&DboMenuItem::handlePageChanged, this)); handlePageChanged();
+	app->localeChanged().connect(std::bind(&DboMenuItem::handleLocaleChanged, this)); handleLocaleChanged();
+	app->styleChanged().connect(std::bind(&DboMenuItem::handleStyleChanged, this)); handleStyleChanged();
+	app->internalPathChanged().connect(std::bind(&DboMenuItem::handlePageChanged, this)); handlePageChanged();
+	app->session().login().changed().connect(std::bind(&DboMenuItem::handleAuthEvent, this)); handleAuthEvent();
 }
 
 std::string DboMenuItem::pathComponent() const
