@@ -43,6 +43,8 @@ namespace WW
 
 			//Main menu
 			Dbo::ptr<Dbo::NavigationMenu> MainMenu;
+			//Main template
+			Dbo::ptr<Dbo::Template> MainTemplate;
 		};
 
 		class DboInstaller

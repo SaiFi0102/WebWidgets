@@ -163,7 +163,7 @@ void DboInstaller::insertRows()
 	auto mainTemplate = new Dbo::Template("main", O.StylingModule);
 	mainTemplate->description = "Main container template";
 	mainTemplate->templateStr = "${navigation}${page-content}${test-page}";
-	dboSession.add(mainTemplate);
+	O.MainTemplate = dboSession.add(mainTemplate);
 
 	auto registerTemplate = new Dbo::Template("registration", O.AuthenticationModule);
 	mainTemplate->description = "Registration widget template";

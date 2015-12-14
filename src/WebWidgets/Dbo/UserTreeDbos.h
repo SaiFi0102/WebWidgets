@@ -2,7 +2,6 @@
 #define WW_DBO_USERTREE_H
 
 #include "Dbo/DboDefs.h"
-#include "Dbo/User.h"
 #include <Wt/Auth/Dbo/AuthInfo>
 
 namespace WW
@@ -17,6 +16,8 @@ namespace WW
 		typedef Wt::Dbo::collection< ptr<User> > UserCollection;
 	}
 }
+
+#include "Dbo/User.h"
 
 #define MAP_USER_DBO_TREE(dboSession) \
 	dboSession.mapClass<Dbo::User>("user"); \
