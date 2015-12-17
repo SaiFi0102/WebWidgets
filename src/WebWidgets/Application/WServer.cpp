@@ -38,6 +38,7 @@ WServer::WServer(const std::string &wtApplicationPath, const std::string &wtConf
 }
 void WServer::initialize()
 {
+	testSignal = new ServerSignal<>(this);
 	//Start time
 	_ptBeforeLoad = boost::posix_time::microsec_clock::local_time();
 

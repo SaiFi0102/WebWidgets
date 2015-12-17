@@ -64,6 +64,8 @@ namespace WW
 		//Database reload handler
 		static void refreshDdoPtrs();
 
+		void testFunction(/*int a1, const std::string &a2*/);
+
 	protected:
 		typedef std::unordered_map<std::pair<std::string, long long>, Wt::WCssStyleSheet> TemplateStyleSheetMap;
 

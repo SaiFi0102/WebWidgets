@@ -11,6 +11,8 @@
 
 #include <3rdparty/rapidxml/rapidxml.hpp>
 
+#include "Objects/ServerSignal.h"
+
 namespace WW
 {
 	namespace Installer
@@ -54,6 +56,8 @@ namespace WW
 		bool start();
 
 		static WServer *instance() { return dynamic_cast<WServer*>(Wt::WServer::instance()); }
+
+		ServerSignal<> *testSignal = nullptr;
 
 	protected:
 		void configureAuth();

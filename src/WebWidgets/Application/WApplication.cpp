@@ -101,6 +101,21 @@ WApplication::WApplication(const Wt::WEnvironment &env)
 		+ boost::lexical_cast<std::string>((initEndTime - _startTime).total_microseconds())
 		+ " µs", root());
 	new Wt::WBreak(root());
+
+	server->testSignal->connect(boost::bind(&WApplication::testFunction, this));
+
+	auto testButton = new Wt::WPushButton("Push to emit(5, hey)", root());
+	testButton->clicked().connect(std::bind<void>([this, server]() {
+		server->testSignal->emit(/*5, "hey"*/);
+	}));
+}
+
+void WApplication::testFunction(/*int a1, const std::string &a2*/)
+{
+	//new Wt::WText(boost::lexical_cast<std::string>(a1) + ", " + a2, root());
+	new Wt::WText("testFunction called", root());
+	new Wt::WBreak(root());
+	triggerUpdate();
 }
 
 WApplication::~WApplication()
