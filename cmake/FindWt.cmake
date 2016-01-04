@@ -42,8 +42,8 @@
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
 IF(WIN32)
-#	SET(WT_PREFIX $ENV{PROGRAMFILES}/WT CACHE PATH "Installation prefix of Wt libraries ")
-	SET(WT_PREFIX "" CACHE PATH "Installation prefix of Wt libraries ")
+	SET(WT_PREFIX $ENV{PROGRAMFILES}/WT CACHE PATH "Installation prefix of Wt libraries ")
+#	SET(WT_PREFIX "" CACHE PATH "Installation prefix of Wt libraries ")
 ELSE(WIN32)
 	SET(WT_PREFIX ${USERLIB_PREFIX} CACHE PATH "Installation prefix of Wt libraries ")
 ENDIF(WIN32)
@@ -152,9 +152,9 @@ IF(Wt_FOUND)
         MESSAGE(STATUS "Found the Wt headers at ${Wt_INCLUDE_DIR}")
     ENDIF (NOT Wt_FIND_QUIETLY)
 ELSE(Wt_FOUND)
-    IF(Wt_FIND_REQUIRED)
+    IF(Wt_FIND_REQUIRED_Release)
         MESSAGE(FATAL_ERROR "Could NOT find Wt")
-    ENDIF(Wt_FIND_REQUIRED)
+    ENDIF(Wt_FIND_REQUIRED_Release)
 ENDIF(Wt_FOUND)
 
 IF(Wt_DEBUG_FOUND)
