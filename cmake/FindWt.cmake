@@ -42,7 +42,7 @@
 # For details see the accompanying COPYING-CMAKE-SCRIPTS file.
 
 IF(WIN32)
-	SET(WT_PREFIX $ENV{PROGRAMFILES}/WT CACHE PATH "Installation prefix of Wt libraries ")
+	SET(WT_PREFIX "C:/Program Files/WT" CACHE PATH "Installation prefix of Wt libraries ")
 #	SET(WT_PREFIX "" CACHE PATH "Installation prefix of Wt libraries ")
 ELSE(WIN32)
 	SET(WT_PREFIX ${USERLIB_PREFIX} CACHE PATH "Installation prefix of Wt libraries ")
