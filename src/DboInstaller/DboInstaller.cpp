@@ -47,22 +47,22 @@ void DboInstaller::createTables()
 	dboSession.createTables();
 
 	//UNIQUE
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Dbo::Language::tableName() + "\" (\"LanguageAccept\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page_host_path\" ON \"") + Dbo::PageAccessPath::tableName() + "\" (\"Access_HostName\", \"InternalPath\", \"Parent_AccessPath_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_host_path\" ON \"") + Dbo::LanguageAccessPath::tableName() + "\" (\"Access_HostName\", \"InternalPath\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Dbo::Configuration::tableName() + "\" (\"Name\", \"Module_id\", \"Type\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_key\" ON \"") + Dbo::SingularKey::tableName() + "\" (\"Key\", \"Module_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_string\" ON \"") + Dbo::SingularString::tableName() + "\" (\"Language_Code\", \"Key_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_key\" ON \"") + Dbo::PluralKey::tableName() + "\" (\"Key\", \"Module_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_string\" ON \"") + Dbo::PluralString::tableName() + "\" (\"Language_Code\", \"Key_id\", \"Case\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Dbo::Page::tableName() + "\" (\"Name\", \"Module_id\")");
-// 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_order\" ON \"") + Dbo::NavigationMenuItem::TableName() + "\" (\"Order\", \"Parent_Item_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style\" ON \"") + Dbo::Style::tableName() + "\" (\"StyleName\", \"Author_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_template\" ON \"") + Dbo::Template::tableName() + "\" (\"TemplateName\", \"Module_id\")");
-	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style_template\" ON \"") + Dbo::StyleTemplate::tableName() + "\" (\"Style_id\", \"Template_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_accept\" ON \"") + Dbo::Language::tableName() + "\" (\"languageAccept\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page_host_path\" ON \"") + Dbo::PageAccessPath::tableName() + "\" (\"access_hostName\", \"internalPath\", \"parent_AccessPath_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_language_host_path\" ON \"") + Dbo::LanguageAccessPath::tableName() + "\" (\"access_hostName\", \"internalPath\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_configuration\" ON \"") + Dbo::Configuration::tableName() + "\" (\"name\", \"module_id\", \"type\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_key\" ON \"") + Dbo::SingularKey::tableName() + "\" (\"key\", \"module_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_singular_string\" ON \"") + Dbo::SingularString::tableName() + "\" (\"language_code\", \"key_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_key\" ON \"") + Dbo::PluralKey::tableName() + "\" (\"key\", \"module_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_plural_string\" ON \"") + Dbo::PluralString::tableName() + "\" (\"language_Code\", \"key_id\", \"case\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_page\" ON \"") + Dbo::Page::tableName() + "\" (\"name\", \"module_id\")");
+// 	DboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_order\" ON \"") + Dbo::NavigationMenuItem::TableName() + "\" (\"order\", \"parent_item_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style\" ON \"") + Dbo::Style::tableName() + "\" (\"styleName\", \"author_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_template\" ON \"") + Dbo::Template::tableName() + "\" (\"templateName\", \"module_id\")");
+	dboSession.execute(std::string("CREATE UNIQUE INDEX \"unique_style_template\" ON \"") + Dbo::StyleTemplate::tableName() + "\" (\"style_id\", \"template_id\")");
 
 	//INDEX
-	dboSession.execute(std::string("CREATE INDEX \"idx_installed\" ON \"") + Dbo::Language::tableName() + "\" (\"Installed\")");
+	dboSession.execute(std::string("CREATE INDEX \"idx_installed\" ON \"") + Dbo::Language::tableName() + "\" (\"installed\")");
 	
 	transaction.commit();
 }
