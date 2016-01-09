@@ -36,7 +36,7 @@ namespace WW
 
 	protected:
 		void fetchAll(Wt::Dbo::Session &dboSession);
-		void fetchChildren(Wt::Dbo::Session &dboSession, Ddo::NavigationMenuItem::ChildrenItemVector &destination, SourceData &source, long long parentId);
+		void fetchChildren(Wt::Dbo::Session &dboSession, long long menuId, Ddo::NavigationMenuItem::ChildrenItemVector &destination, SourceData &source, long long parentId);
 		virtual void load(Wt::Dbo::Session &dboSession) override;
 		virtual void reload(Wt::Dbo::Session &dboSession) override;
 

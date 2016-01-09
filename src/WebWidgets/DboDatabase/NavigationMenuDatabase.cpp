@@ -21,11 +21,13 @@ void NavigationMenuDatabase::reload(Wt::Dbo::Session &dboSession)
 	fetchAll(dboSession);
 }
 
-void NavigationMenuDatabase::fetchChildren(Wt::Dbo::Session &dboSession, Ddo::NavigationMenuItem::ChildrenItemVector &destination, SourceData &source, long long parentId)
+void NavigationMenuDatabase::fetchChildren(Wt::Dbo::Session &dboSession, long long menuId, Ddo::NavigationMenuItem::ChildrenItemVector &destination, SourceData &source, long long parentId)
 {
 	for(auto &itemPtr : source.itemList)
 	{
 		if(itemPtr->parentItemId != parentId)
+			continue;
+		if(itemPtr->menuId != menuId)
 			continue;
 
 		//Show on pages
@@ -63,14 +65,14 @@ void NavigationMenuDatabase::fetchChildren(Wt::Dbo::Session &dboSession, Ddo::Na
 				itemPtr->showOnStyleIds.insert(tuple.get<0>());
 		}
 
-		fetchChildren(dboSession, itemPtr->childrenItems, source, itemPtr->id);
+		fetchChildren(dboSession, itemPtr->menuId, itemPtr->childrenItems, source, itemPtr->id);
 		destination.push_back(itemPtr);
 	}
 
 	std::sort(destination.begin(), destination.end(), [](const Ddo::ptr<Ddo::NavigationMenuItem> &left, const Ddo::ptr<Ddo::NavigationMenuItem> &right) {
 		if(left->order < right->order)
 			return true;
-		else if(left->order = right->order)
+		else if(left->order == right->order)
 			return left->id < right->id;
 		else
 			return false;
@@ -113,25 +115,26 @@ void NavigationMenuDatabase::fetchAll(Wt::Dbo::Session &dboSession)
 		source.itemOnPageAccessPathList.push_back(ptr);
 
 	//Show on access hostnames
-	Wt::Dbo::collection<MenuItemOnAccessHostTuple> menuItemOnAccessHostCollection = dboSession.query<MenuItemOnAccessHostTuple>("SELECT accesshostname_hostName, navigationmenuitem_id FROM accesshost_show_menuitem");
+	Wt::Dbo::collection<MenuItemOnAccessHostTuple> menuItemOnAccessHostCollection
+		= dboSession.query<MenuItemOnAccessHostTuple>("SELECT \"accesshostname_hostName\", \"navigationmenuitem_id\" FROM \"accesshost_show_menuitem\"");
 	for(const auto &ptr : menuItemOnAccessHostCollection)
 		source.itemOnAccessHostNameList.push_back(ptr);
 
 	//Show on languages
 	Wt::Dbo::collection<MenuItemOnLanguageTuple> menuItemOnLanguageCollection
-		= dboSession.query<MenuItemOnLanguageTuple>("SELECT language_code, navigationmenuitem_id FROM language_show_menuitem");
+		= dboSession.query<MenuItemOnLanguageTuple>("SELECT \"language_code\", \"navigationmenuitem_id\" FROM \"language_show_menuitem\"");
 	for(const auto &tuple : menuItemOnLanguageCollection)
 		source.itemOnLanguageList.push_back(tuple);
 
 	//Show on styles
 	Wt::Dbo::collection<MenuItemOnStyleTuple> menuItemOnStyleCollection = 
-		dboSession.query<MenuItemOnStyleTuple>("SELECT style_id, navigationmenuitem_id FROM style_show_menuitem");
+		dboSession.query<MenuItemOnStyleTuple>("SELECT \"style_id\", \"navigationmenuitem_id\" FROM \"style_show_menuitem\"");
 	for(const auto &tuple : menuItemOnStyleCollection)
 		source.itemOnStyleList.push_back(tuple);
 
 	//FetchAll
 	for(auto &res : menuitemmap)
-		fetchChildren(dboSession, res.second, source, -1);
+		fetchChildren(dboSession, res.first, res.second, source, -1);
 
 	//Apply
 	transaction.commit();
